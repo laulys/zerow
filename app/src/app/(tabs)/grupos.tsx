@@ -1,97 +1,67 @@
-import { router } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FocusStatusBar } from "../../components/FocusStatusBar";
-import { Avatar, AvatarStack } from "../../components/Avatar";
-import { Icon, type IconName } from "../../components/Icon";
-import { BrandGradient } from "../../components/BrandGradient";
-import { Money, RollingMoney } from "../../components/Money";
-import { Orb } from "../../components/Orb";
-import { WalletStack, type WalletCard } from "../../components/WalletStack";
-import { Glass } from "../../components/Glass";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
-import { Card, Hairline, T, Tap } from "../../components/ui";
-import {
-  balancesFor,
-  eurText,
-  pastGroups,
-  people,
-  usePeopleBalances,
-  usePisoBalance,
-  useTrip,
-  type GroupKind,
-  type PersonId,
-} from "../../data/trip";
-import { font, light } from "../../theme/tokens";
+import { router } from 'expo-router';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FocusStatusBar } from '../../components/FocusStatusBar';
+import { Avatar, AvatarStack } from '../../components/Avatar';
+import { Icon, type IconName } from '../../components/Icon';
+import { BrandGradient } from '../../components/BrandGradient';
+import { Money, RollingMoney } from '../../components/Money';
+import { Orb } from '../../components/Orb';
+import { WalletStack, type WalletCard } from '../../components/WalletStack';
+import { Glass } from '../../components/Glass';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { Card, Hairline, T, Tap } from '../../components/ui';
+import { balancesFor, eurText, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, type GroupKind, type PersonId } from '../../data/trip';
+import { font, light } from '../../theme/tokens';
 
-import { useTheme } from "../../theme/useTheme";
+import { useTheme } from '../../theme/useTheme';
 
 const HEADER_H = 48;
+const GLOW_H = 520;
+const GLOW_OVERSCROLL = 400;
 
 const kindIcon: Record<GroupKind, IconName> = {
-  viaje: "plane",
-  piso: "house",
-  evento: "gift",
-  otro: "shapes",
+  viaje: 'plane',
+  piso: 'house',
+  evento: 'gift',
+  otro: 'shapes',
 };
 
 // 2.1 Inicio: your groups. Lisboa is the open trip; its balance rolls when it changes.
 export default function Home() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, draft, groups, groupExpenses, pisoPaid, pastEmoji } =
-    useTrip();
+  const { expenses, draft, groups, groupExpenses, pisoPaid, pastEmoji } = useTrip();
   const mine = balancesFor(expenses).tu;
   const between = usePeopleBalances();
   const piso = usePisoBalance();
-  const pisoWord =
-    Math.abs(piso) < 0.005 ? "A mano" : piso > 0 ? "Te deben" : "Debes";
+  const pisoWord = Math.abs(piso) < 0.005 ? 'A mano' : piso > 0 ? 'Te deben' : 'Debes';
 
   // Open groups, front to back: the trip in progress first, on the brand gradient.
   const cards: WalletCard[] = [
     {
-      key: "lisboa",
-      title: `Lisboa 2026. ${mine >= 0 ? "Te deben" : "Debes"} ${eurText(Math.abs(mine))}${draft ? ". 1 borrador por confirmar" : ""}`,
-      onPress: () => router.push("/trip/lisboa"),
+      key: 'lisboa',
+      title: `Lisboa 2026. ${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}${draft ? '. 1 borrador por confirmar' : ''}`,
+      onPress: () => router.push('/trip/lisboa'),
       content: (
         <BrandGradient style={styles.cardBody} seed={3}>
-          <CardTop
-            title="Lisboa 2026"
-            meta="12–18 nov · en curso"
-            color={light.inkFixed}
-            muted={light.inkMutedFixed}
-            people={["tu", "ana", "luis", "marta"]}
-            outline="#D3F27F"
-          />
-          <T
-            v="label"
-            color={light.inkMutedFixed}
-            style={{ marginTop: "auto", marginBottom: 6 }}
-          >
-            {mine >= 0 ? "Te deben" : "Debes"}
+          <CardTop title="Lisboa 2026" meta="12–18 nov · en curso" color={light.inkFixed} muted={light.inkMutedFixed} people={['tu', 'ana', 'luis', 'marta']} outline="#D3F27F" />
+          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', marginBottom: 6 }}>
+            {mine >= 0 ? 'Te deben' : 'Debes'}
           </T>
-          <RollingMoney
-            value={Math.abs(mine)}
-            size={60}
-            color={light.inkFixed}
-            centsColor={light.inkMutedFixed}
-          />
+          <RollingMoney value={Math.abs(mine)} size={60} color={light.inkFixed} centsColor={light.inkMutedFixed} />
           <View style={styles.cardFoot}>
             {draft ? (
               <>
                 <Orb size={16} onGradient />
-                <T
-                  v="caption"
-                  color={light.inkFixed}
-                  style={{ fontFamily: font.medium }}
-                >
+                <T v="caption" color={light.inkFixed} style={{ fontFamily: font.medium }}>
                   1 borrador por confirmar
                 </T>
               </>
             ) : (
               <T v="caption" color={light.inkMutedFixed}>
-                {eurText(expenses.reduce((a, e) => a + e.amountEur, 0))} en{" "}
-                {expenses.length} gastos
+                {eurText(expenses.reduce((a, e) => a + e.amountEur, 0))} en {expenses.length} gastos
               </T>
             )}
           </View>
@@ -99,47 +69,21 @@ export default function Home() {
       ),
     },
     {
-      key: "piso",
-      title: pisoPaid
-        ? `Piso Calle Mayor. ${pisoWord}${piso ? " " + eurText(Math.abs(piso)) : ""}`
-        : "Piso Calle Mayor. Debes 18,40 €. Toca para pagar a Ana",
+      key: 'piso',
+      title: pisoPaid ? `Piso Calle Mayor. ${pisoWord}${piso ? ' ' + eurText(Math.abs(piso)) : ''}` : 'Piso Calle Mayor. Debes 18,40 €. Toca para pagar a Ana',
       // Unpaid, the card is the quick way to pay Ana; once paid it opens the flat.
-      onPress: () => router.push(pisoPaid ? "/trip/piso" : "/pagar"),
+      onPress: () => router.push(pisoPaid ? '/trip/piso' : '/pagar'),
       content: (
         <BrandGradient style={styles.cardBody} seed={7} lively>
-          <CardTop
-            title="Piso Calle Mayor"
-            meta="3 personas · 2 gastos este mes"
-            color={light.inkFixed}
-            muted={light.inkMutedFixed}
-            people={["tu", "ana", "luis"]}
-            outline="#D3F27F"
-          />
-          <T
-            v="label"
-            color={light.inkMutedFixed}
-            style={{ marginTop: "auto", marginBottom: 6 }}
-          >
+          <CardTop title="Piso Calle Mayor" meta="3 personas · 2 gastos este mes" color={light.inkFixed} muted={light.inkMutedFixed} people={['tu', 'ana', 'luis']} outline="#D3F27F" />
+          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', marginBottom: 6 }}>
             {pisoWord}
           </T>
-          <RollingMoney
-            value={Math.abs(piso)}
-            size={60}
-            color={light.inkFixed}
-            centsColor={light.inkMutedFixed}
-          />
+          <RollingMoney value={Math.abs(piso)} size={60} color={light.inkFixed} centsColor={light.inkMutedFixed} />
           <View style={styles.cardFoot}>
-            <Icon
-              name={pisoPaid ? "check" : "house"}
-              size={16}
-              color={light.inkFixed}
-            />
-            <T
-              v="caption"
-              color={light.inkFixed}
-              style={{ fontFamily: font.medium }}
-            >
-              {pisoPaid ? "Pagaste 18,40 € a Ana" : "Toca para pagar a Ana"}
+            <Icon name={pisoPaid ? 'check' : 'house'} size={16} color={light.inkFixed} />
+            <T v="caption" color={light.inkFixed} style={{ fontFamily: font.medium }}>
+              {pisoPaid ? 'Pagaste 18,40 € a Ana' : 'Toca para pagar a Ana'}
             </T>
           </View>
         </BrandGradient>
@@ -150,43 +94,19 @@ export default function Home() {
       const bal = balancesFor(list).tu;
       return {
         key: g.id,
-        title: `${g.name}. ${list.length ? `${bal >= 0 ? "Te deben" : "Debes"} ${eurText(Math.abs(bal), g.currency)}` : "Sin gastos todavía"}`,
-        onPress: () =>
-          router.push({ pathname: "/trip/[id]", params: { id: g.id } }),
+        title: `${g.name}. ${list.length ? `${bal >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(bal), g.currency)}` : 'Sin gastos todavía'}`,
+        onPress: () => router.push({ pathname: '/trip/[id]', params: { id: g.id } }),
         content: (
           <BrandGradient style={styles.cardBody} seed={11} lively>
-            <CardTop
-              title={g.name}
-              meta={`${g.members.length} personas${g.dates ? " · " + g.dates : ""}`}
-              color={light.inkFixed}
-              muted={light.inkMutedFixed}
-              people={g.members}
-              outline="#D3F27F"
-            />
-            <T
-              v="label"
-              color={light.inkMutedFixed}
-              style={{ marginTop: "auto", marginBottom: 6 }}
-            >
-              {list.length ? (bal >= 0 ? "Te deben" : "Debes") : "Saldo"}
+            <CardTop title={g.name} meta={`${g.members.length} personas${g.dates ? ' · ' + g.dates : ''}`} color={light.inkFixed} muted={light.inkMutedFixed} people={g.members} outline="#D3F27F" />
+            <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', marginBottom: 6 }}>
+              {list.length ? (bal >= 0 ? 'Te deben' : 'Debes') : 'Saldo'}
             </T>
-            <Money
-              value={Math.abs(bal)}
-              size={60}
-              color={light.inkFixed}
-              centsColor={light.inkMutedFixed}
-              currency={g.currency}
-            />
+            <Money value={Math.abs(bal)} size={60} color={light.inkFixed} centsColor={light.inkMutedFixed} currency={g.currency} />
             <View style={styles.cardFoot}>
-              <Icon
-                name={kindIcon[g.kind]}
-                size={16}
-                color={light.inkMutedFixed}
-              />
+              <Icon name={kindIcon[g.kind]} size={16} color={light.inkMutedFixed} />
               <T v="caption" color={light.inkMutedFixed}>
-                {list.length
-                  ? `${list.length} gasto${list.length === 1 ? "" : "s"}`
-                  : "Sin gastos todavía"}
+                {list.length ? `${list.length} gasto${list.length === 1 ? '' : 's'}` : 'Sin gastos todavía'}
               </T>
             </View>
           </BrandGradient>
@@ -196,10 +116,18 @@ export default function Home() {
   ];
 
   const headerTop = insets.top + 8;
+  const { width } = useWindowDimensions();
+  // The dark fade under the status bar only appears once you scroll, so at rest
+  // it doesn't dim the glow.
+  const y = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    y.value = e.contentOffset.y;
+  });
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, 60], [0, 1], Extrapolation.CLAMP) }));
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
-      <ScrollView
+      <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingTop: headerTop + HEADER_H + 28,
@@ -207,32 +135,31 @@ export default function Home() {
           paddingBottom: 140,
         }}
         scrollIndicatorInsets={{ top: HEADER_H }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
       >
         <FocusStatusBar style="light" />
+        {/* A lime glow behind the wallet (reference: Paynx), olive at the top and
+            fading into the graphite page, so the cards and the glass header sit
+            on colour. It scrolls with the page. */}
+        <Svg pointerEvents="none" style={[styles.glow, { top: -GLOW_OVERSCROLL, width }]} width={width} height={GLOW_H + GLOW_OVERSCROLL}>
+          <Defs>
+            <LinearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#3D4A1F" stopOpacity={1} />
+              <Stop offset={String(GLOW_OVERSCROLL / (GLOW_H + GLOW_OVERSCROLL) + 0.12)} stopColor="#3D4A1F" stopOpacity={0.85} />
+              <Stop offset="0.62" stopColor="#2A3318" stopOpacity={0.45} />
+              <Stop offset="1" stopColor={t.page} stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#glow)" />
+        </Svg>
         <WalletStack cards={cards} />
 
-        <T
-          v="titleM"
-          color={t.ink}
-          style={{ marginTop: 24, marginBottom: 12 }}
-          accessibilityRole="header"
-        >
+        <T v="titleM" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
           Personas
         </T>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={{ marginHorizontal: -20 }}
-          contentContainerStyle={styles.people}
-        >
-          <Tap
-            onPress={() =>
-              router.push({ pathname: "/invitar", params: { elegir: "1" } })
-            }
-            accessibilityRole="button"
-            accessibilityLabel="Invitar a alguien"
-            style={styles.person}
-          >
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={styles.people}>
+          <Tap onPress={() => router.push({ pathname: '/invitar', params: { elegir: '1' } })} accessibilityRole="button" accessibilityLabel="Invitar a alguien" style={styles.person}>
             <View style={[styles.addFace, styles.glassTile]}>
               <Icon name="plus" size={22} color={t.ink} />
             </View>
@@ -242,38 +169,16 @@ export default function Home() {
           </Tap>
           {between.map((p) => {
             const name = people[p.id].name;
-            const state =
-              p.net > 0
-                ? `te debe ${eurText(p.net)}`
-                : p.net < 0
-                  ? `le debes ${eurText(-p.net)}`
-                  : "estáis a mano";
+            const state = p.net > 0 ? `te debe ${eurText(p.net)}` : p.net < 0 ? `le debes ${eurText(-p.net)}` : 'estáis a mano';
             return (
-              <Tap
-                key={p.id}
-                onPress={() =>
-                  router.push({ pathname: "/persona", params: { id: p.id } })
-                }
-                accessibilityRole="button"
-                accessibilityLabel={`${name}, ${state}`}
-                style={styles.person}
-              >
+              <Tap key={p.id} onPress={() => router.push({ pathname: '/persona', params: { id: p.id } })} accessibilityRole="button" accessibilityLabel={`${name}, ${state}`} style={styles.person}>
                 <Avatar id={p.id} size={56} />
-                <T
-                  v="caption"
-                  color={t.ink}
-                  style={[styles.personName, { fontFamily: font.medium }]}
-                  numberOfLines={1}
-                >
+                <T v="caption" color={t.ink} style={[styles.personName, { fontFamily: font.medium }]} numberOfLines={1}>
                   {name}
                 </T>
                 {p.net !== 0 ? (
-                  <T
-                    v="caption"
-                    color={p.net > 0 ? t.lime : t.inkMuted}
-                    numberOfLines={1}
-                  >
-                    {p.net > 0 ? "+" : "−"}
+                  <T v="caption" color={p.net > 0 ? t.lime : t.inkMuted} numberOfLines={1}>
+                    {p.net > 0 ? '+' : '−'}
                     {eurText(Math.abs(p.net))}
                   </T>
                 ) : null}
@@ -282,21 +187,14 @@ export default function Home() {
           })}
         </ScrollView>
 
-        <T
-          v="titleM"
-          color={t.ink}
-          style={{ marginTop: 24, marginBottom: 12 }}
-          accessibilityRole="header"
-        >
+        <T v="titleM" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
           Anteriores
         </T>
         <Card bg={t.surface} style={{ paddingVertical: 4 }}>
           {pastGroups.map((p, i) => (
             <View key={p.id}>
               <Tap
-                onPress={() =>
-                  router.push({ pathname: "/emoji", params: { id: p.id } })
-                }
+                onPress={() => router.push({ pathname: '/emoji', params: { id: p.id } })}
                 accessibilityRole="button"
                 accessibilityLabel={`${p.kind}: ${p.name}. ${p.meta}. ${eurText(p.total)}, saldado. Cambiar emoji`}
                 style={[styles.rowBetween, { paddingVertical: 12 }]}
@@ -305,21 +203,7 @@ export default function Home() {
                   {pastEmoji[p.id] ? (
                     <Text style={styles.emoji}>{pastEmoji[p.id]}</Text>
                   ) : (
-                    <Icon
-                      name={
-                        kindIcon[
-                          p.kind === "Piso"
-                            ? "piso"
-                            : p.kind === "Viaje"
-                              ? "viaje"
-                              : p.kind === "Regalo"
-                                ? "evento"
-                                : "otro"
-                        ]
-                      }
-                      size={20}
-                      color={t.ink}
-                    />
+                    <Icon name={kindIcon[p.kind === 'Piso' ? 'piso' : p.kind === 'Viaje' ? 'viaje' : p.kind === 'Regalo' ? 'evento' : 'otro']} size={20} color={t.ink} />
                   )}
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
@@ -334,52 +218,32 @@ export default function Home() {
                   {eurText(p.total)}
                 </T>
               </Tap>
-              {i < pastGroups.length - 1 ? (
-                <Hairline color={t.line} inset={52} />
-              ) : null}
+              {i < pastGroups.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
             </View>
           ))}
         </Card>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Floating header, like Revolut's: the page scrolls under it, so the search
           and + sit on Liquid Glass (the navigation layer, per Apple). A soft fade
           keeps the status bar readable over the lime cards. */}
-      <Svg
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFill, { height: headerTop + HEADER_H + 24 }]}
-        width="100%"
-        height={headerTop + HEADER_H + 24}
-      >
-        <Defs>
-          <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={t.page} stopOpacity={0.9} />
-            <Stop offset="0.55" stopColor={t.page} stopOpacity={0.6} />
-            <Stop offset="1" stopColor={t.page} stopOpacity={0} />
-          </LinearGradient>
-        </Defs>
-        <Rect width="100%" height="100%" fill="url(#fade)" />
-      </Svg>
-      <View
-        style={[
-          styles.header,
-          { position: "absolute", top: headerTop, left: 20, right: 20 },
-        ]}
-      >
-        <Tap
-          onPress={() => router.navigate("/perfil")}
-          accessibilityRole="button"
-          accessibilityLabel="Tu perfil"
-          style={[styles.ring, { borderColor: "rgba(203, 242, 107, 0.45)" }]}
-        >
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { height: headerTop + HEADER_H + 24 }, fadeStyle]}>
+        <Svg width="100%" height={headerTop + HEADER_H + 24}>
+          <Defs>
+            <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor={t.page} stopOpacity={0.9} />
+              <Stop offset="0.55" stopColor={t.page} stopOpacity={0.6} />
+              <Stop offset="1" stopColor={t.page} stopOpacity={0} />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#fade)" />
+        </Svg>
+      </Animated.View>
+      <View style={[styles.header, { position: 'absolute', top: headerTop, left: 20, right: 20 }]}>
+        <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={[styles.ring, { borderColor: 'rgba(203, 242, 107, 0.45)' }]}>
           <Avatar id="tu" size={40} />
         </Tap>
-        <Tap
-          onPress={() => router.push("/buscar")}
-          accessibilityRole="search"
-          accessibilityLabel="Buscar grupos, personas o gastos"
-          style={{ flex: 1 }}
-        >
+        <Tap onPress={() => router.push('/buscar')} accessibilityRole="search" accessibilityLabel="Buscar grupos, personas o gastos" style={{ flex: 1 }}>
           <Glass fallback={t.surface} style={styles.search}>
             <Icon name="search" size={18} color={t.ink} />
             <T v="body" color={t.ink}>
@@ -387,11 +251,7 @@ export default function Home() {
             </T>
           </Glass>
         </Tap>
-        <Tap
-          onPress={() => router.push("/dividir")}
-          accessibilityRole="button"
-          accessibilityLabel="Dividir algo nuevo"
-        >
+        <Tap onPress={() => router.push('/dividir')} accessibilityRole="button" accessibilityLabel="Dividir algo nuevo">
           <Glass fallback={t.surface} style={styles.round}>
             <Icon name="plus" size={20} color={t.ink} />
           </Glass>
@@ -401,27 +261,13 @@ export default function Home() {
   );
 }
 
-function CardTop({
-  title,
-  meta,
-  color,
-  muted,
-  people,
-  outline,
-}: {
-  title: string;
-  meta: string;
-  color: string;
-  muted: string;
-  people: PersonId[];
-  outline: string;
-}) {
+function CardTop({ title, meta, color, muted, people, outline }: { title: string; meta: string; color: string; muted: string; people: PersonId[]; outline: string }) {
   return (
     <View
       style={{
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
       }}
     >
       <View style={{ flex: 1 }}>
@@ -440,60 +286,61 @@ function CardTop({
 const styles = StyleSheet.create({
   emoji: { fontSize: 22, lineHeight: 28 },
   glassTile: {
-    backgroundColor: "rgba(255,255,255,0.07)",
+    backgroundColor: 'rgba(255,255,255,0.07)',
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   cardBody: { flex: 1, padding: 20, paddingBottom: 18 },
   people: { paddingHorizontal: 20, gap: 14 },
-  person: { width: 64, alignItems: "center" },
+  person: { width: 64, alignItems: 'center' },
   personName: { marginTop: 6 },
   addFace: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardFoot: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     marginTop: 10,
   },
-  header: { flexDirection: "row", alignItems: "center", gap: 10 },
+  glow: { position: 'absolute', left: 0 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   search: {
     height: 48,
     borderRadius: 24,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
     paddingHorizontal: 18,
-    overflow: "hidden",
+    overflow: 'hidden',
   },
   round: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
   ring: {
     width: 48,
     height: 48,
     borderRadius: 24,
     borderWidth: 2,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   rowBetween: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   chip: {
-    alignSelf: "flex-start",
+    alignSelf: 'flex-start',
     marginTop: 18,
     borderRadius: 16,
     paddingHorizontal: 14,
@@ -503,7 +350,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

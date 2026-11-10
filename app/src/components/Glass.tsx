@@ -4,6 +4,9 @@ import { AccessibilityInfo, View, type StyleProp, type ViewProps, type ViewStyle
 
 const liquid = isLiquidGlassAvailable();
 
+/** iOS 26: sheets get the system's Liquid Glass when their background is clear. */
+export const glassSheets = liquid;
+
 function useReduceTransparency() {
   const [on, setOn] = useState(false);
   useEffect(() => {

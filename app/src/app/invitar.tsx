@@ -8,6 +8,7 @@ import { AvatarStack } from '../components/Avatar';
 import { useTrip, type PersonId } from '../data/trip';
 import { Icon } from '../components/Icon';
 import { Button, Chip, IconButton, T, Tap } from '../components/ui';
+import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
 // 5.1 Invitar: a link, not a form. The promise that matters to the new person
@@ -43,12 +44,12 @@ export default function Invite() {
   };
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: t.surface }}>
+    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
       <View style={styles.rowBetween}>
         <T v="titleM" color={t.ink} accessibilityRole="header" style={{ flex: 1 }}>
           Invita a {group}
         </T>
-        <IconButton name="x" label="Cerrar" bg={t.page} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="x" label="Cerrar" bg={t.fill} color={t.ink} onPress={() => router.back()} />
       </View>
       {elegir ? (
         <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Grupo">
@@ -70,12 +71,12 @@ export default function Invite() {
         Quien entra empieza en cero. Solo le cuentan los gastos en los que le incluyáis.
       </T>
 
-      <View style={[styles.link, { backgroundColor: t.page }]}>
+      <View style={[styles.link, { backgroundColor: t.fill }]}>
         <Icon name="link" size={18} color={t.inkMuted} />
         <T v="bodyStrong" color={t.ink} style={{ flex: 1 }} numberOfLines={1}>
           {link}
         </T>
-        <Tap onPress={copy} accessibilityRole="button" accessibilityLabel={copied ? 'Enlace copiado' : 'Copiar enlace'} style={[styles.copy, { backgroundColor: t.surface }]}>
+        <Tap onPress={copy} accessibilityRole="button" accessibilityLabel={copied ? 'Enlace copiado' : 'Copiar enlace'} style={[styles.copy, { backgroundColor: t.fillStrong }]}>
           <Icon name={copied ? 'check' : 'copy'} size={16} color={t.ink} />
           <T v="labelStrong" color={t.ink} accessibilityLiveRegion="polite">
             {copied ? 'Copiado' : 'Copiar'}

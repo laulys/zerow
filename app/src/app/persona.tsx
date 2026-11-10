@@ -8,6 +8,7 @@ import { Money } from '../components/Money';
 import { Button, T, Tap } from '../components/ui';
 import { afterSheet } from '../data/session';
 import { eurText, people, usePeopleBalances, type PersonId } from '../data/trip';
+import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
 const LIME_DIM = 'rgba(203, 242, 107, 0.6)';
@@ -38,7 +39,7 @@ export default function Person() {
     });
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: t.surface }}>
+    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
       <View style={styles.head}>
         <Avatar id={p.id} size={56} />
         <View>
@@ -59,7 +60,7 @@ export default function Person() {
         <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} centsColor={p.net > 0 ? LIME_DIM : t.inkMuted} />
       </View>
 
-      <View style={[styles.box, { backgroundColor: t.page }]}>
+      <View style={[styles.box, { backgroundColor: t.fill }]}>
         {p.parts.map((x, i) => {
           const owe = x.amount < 0;
           const text = x.amount === 0 ? 'A mano' : owe ? `Le debes ${eurText(-x.amount)}` : `Te debe ${eurText(x.amount)}`;
