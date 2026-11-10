@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandGradient } from '../components/BrandGradient';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
+import { Orb } from '../components/Orb';
 import { Button, Card, IconButton, T, Tap } from '../components/ui';
 import { interpret, missing, type Partial } from '../data/interpret';
 import { balancesFor, eurText, people, useTrip, type Expense } from '../data/trip';
@@ -22,7 +23,14 @@ const examples = ['Pagué el tranvía de todos', 'Pagué la cena, 84 euros, entr
 export default function NewExpense() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, addExpense } = useTrip();
+  const { expenses, addExpense, groups, groupExpenses, addToGroup } = useTrip();
+  const params = useLocalSearchParams<{ grupo?: string }>();
+  const options = [{ id: 'lisboa', name: 'Lisboa 2026' }, ...groups.map((g) => ({ id: g.id, name: g.name }))];
+  const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
+  const [picking, setPicking] = useState(false);
+  const groupName = options.find((o) => o.id === groupId)?.name ?? 'Lisboa 2026';
+  const members = groupId === 'lisboa' ? (['tu', 'ana', 'luis', 'marta'] as Expense['splitWith']) : (groups.find((g) => g.id === groupId)?.members ?? ['tu']);
+  const ledger = groupId === 'lisboa' ? expenses : (groupExpenses[groupId] ?? []);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [partial, setPartial] = useState<Partial>({});
@@ -51,9 +59,10 @@ export default function NewExpense() {
     if (gap === 'amount') return setTimeout(() => say('zerow', '¿Cuánto fue? Prefiero preguntarte a adivinarlo.'), 350);
     setPreparing(true);
     setTimeout(() => {
-      const e: Expense = { id: `n${Date.now()}`, title: next.title!, payer: 'tu', amountEur: next.amountEur!, originalUsd: next.originalUsd, splitWith: next.splitWith ?? ['tu', 'ana', 'luis', 'marta'] };
-      const before = balancesFor(expenses).tu;
-      const after = balancesFor([e, ...expenses]).tu;
+      const e: Expense = { id: `n${Date.now()}`, title: next.title!, payer: 'tu', amountEur: next.amountEur!, originalUsd: next.originalUsd, splitWith: (next.splitWith ?? members).filter((p) => members.includes(p)) };
+      if (!e.splitWith.length) e.splitWith = members;
+      const before = balancesFor(ledger).tu;
+      const after = balancesFor([e, ...ledger]).tu;
       setPreparing(false);
       setDraft(e);
       say('zerow', `Así quedas: te deberán ${eurText(after)} en vez de ${eurText(before)}.`);
@@ -63,10 +72,11 @@ export default function NewExpense() {
   const confirm = () => {
     if (!draft) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    addExpense(draft);
+    if (groupId === 'lisboa') addExpense(draft);
+    else addToGroup(groupId, draft);
     setSaved(true);
     setPartial({});
-    say('zerow', `Guardado en Lisboa 2026.`);
+    say('zerow', `Guardado en ${groupName}.`);
   };
 
   const discard = () => {
@@ -83,12 +93,44 @@ export default function NewExpense() {
           <T v="bodyStrong" color={t.ink}>
             Nuevo gasto
           </T>
-          <T v="caption" color={t.inkMuted}>
-            Lisboa 2026
-          </T>
+          <Tap onPress={() => setPicking((v) => !v)} accessibilityRole="button" accessibilityLabel={`Grupo: ${groupName}. Cambiar`} accessibilityState={{ expanded: picking }} style={[styles.picker, { backgroundColor: t.surface }]}>
+            <T v="caption" color={t.ink} style={{ fontFamily: font.medium }}>
+              {groupName}
+            </T>
+            <View style={{ transform: [{ rotate: picking ? '-90deg' : '90deg' }] }}>
+              <Icon name="chevron-right" size={14} color={t.inkMuted} />
+            </View>
+          </Tap>
         </View>
         <View style={{ width: 44 }} />
       </View>
+      {picking ? (
+        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(120)} style={[styles.menu, { backgroundColor: t.surface, borderColor: t.line }]}>
+          {options.map((o) => (
+            <Tap
+              key={o.id}
+              onPress={() => {
+                setPicking(false);
+                if (o.id === groupId) return;
+                setGroupId(o.id);
+                if (draft && !saved) {
+                  setDraft(null);
+                  setPartial({});
+                  say('zerow', `Ahora apunto en ${o.name}. Repíteme el gasto y preparo el borrador allí.`);
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityState={{ selected: o.id === groupId }}
+              style={styles.menuRow}
+            >
+              <T v="bodyStrong" color={t.ink} style={{ flex: 1 }}>
+                {o.name}
+              </T>
+              {o.id === groupId ? <Icon name="check" size={18} color={t.lime} /> : null}
+            </Tap>
+          ))}
+        </Animated.View>
+      ) : null}
 
       <ScrollView ref={scroll} contentContainerStyle={{ padding: 20, paddingBottom: 24, gap: 10 }} keyboardShouldPersistTaps="handled">
         {messages.length === 0 ? (
@@ -112,9 +154,12 @@ export default function NewExpense() {
         {messages.map((m) => (
           <Animated.View key={m.id} entering={FadeInDown.duration(motion.standard)} style={{ alignItems: m.from === 'me' ? 'flex-end' : 'flex-start' }}>
             {m.from === 'zerow' ? (
-              <T v="caption" color={t.inkMuted} style={{ marginBottom: 4, marginLeft: 4 }}>
-                Zerow
-              </T>
+              <View style={styles.speaker}>
+                <Orb size={16} />
+                <T v="caption" color={t.inkMuted}>
+                  Zerow
+                </T>
+              </View>
             ) : null}
             <View style={[styles.bubble, m.from === 'me' ? { backgroundColor: t.action, borderBottomRightRadius: 6 } : { backgroundColor: t.surface, borderBottomLeftRadius: 6 }]}>
               <T v="body" color={m.from === 'me' ? t.onAction : t.ink}>
@@ -134,9 +179,12 @@ export default function NewExpense() {
               </View>
               <Skel w={220} h={12} />
             </Card>
-            <T v="caption" color={t.inkMuted} style={{ marginTop: 8 }}>
-              Preparando el borrador…
-            </T>
+            <View style={[styles.speaker, { marginTop: 10 }]}>
+              <Orb size={20} state="composing" label="Zerow está preparando el borrador" />
+              <T v="caption" color={t.inkMuted}>
+                Zerow está preparando el borrador…
+              </T>
+            </View>
           </Animated.View>
         ) : null}
 
@@ -156,14 +204,14 @@ export default function NewExpense() {
                   </T>
                   <Money value={draft.amountEur} size={32} color={t.ink} centsColor={t.inkMuted} />
                 </View>
-                <Button label="Volver a Lisboa" height={48} style={{ marginTop: 14 }} onPress={() => router.back()} />
+                <Button label={`Volver a ${groupName}`} height={48} style={{ marginTop: 14 }} onPress={() => router.back()} />
               </Card>
             ) : (
               <BrandGradient style={styles.draft} seed={9}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Icon name="pen" size={14} color={light.inkFixed} />
+                  <Orb size={18} onGradient />
                   <T v="caption" color={light.inkFixed}>
-                    Borrador: aún no cuenta
+                    Borrador de Zerow · aún no cuenta
                   </T>
                 </View>
                 <View style={[styles.rowBetween, { marginTop: 10 }]}>
@@ -174,7 +222,7 @@ export default function NewExpense() {
                 </View>
                 <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 4 }}>
                   Pagaste tú · {eurText(draft.amountEur / draft.splitWith.length)} cada uno, entre{' '}
-                  {draft.splitWith.length === 4 ? '4' : draft.splitWith.map((p) => (p === 'tu' ? 'tú' : people[p].name)).join(' y ')}
+                  {draft.splitWith.length === members.length ? String(members.length) : draft.splitWith.map((p) => (p === 'tu' ? 'tú' : people[p].name)).join(' y ')}
                   {draft.originalUsd ? ` · ${draft.originalUsd.toFixed(2).replace('.', ',')} US$` : ''}
                 </T>
                 <View style={[styles.rowBetween, { marginTop: 16, gap: 8 }]}>
@@ -219,5 +267,9 @@ const styles = StyleSheet.create({
   draft: { borderRadius: 22, padding: 18 },
   bar: { marginHorizontal: 20, height: 64, borderRadius: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8, gap: 10 },
   input: { flex: 1, fontFamily: font.regular, fontSize: 16, height: 48 },
+  picker: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, paddingLeft: 10, paddingRight: 8, height: 26, borderRadius: 13 },
+  menu: { marginHorizontal: 20, borderRadius: 18, borderWidth: 1, paddingVertical: 4, marginBottom: 4 },
+  menuRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16 },
+  speaker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, marginLeft: 2 },
   send: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
 });

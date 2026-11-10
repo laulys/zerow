@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, AvatarStack } from '../../components/Avatar';
 import { BrandGradient } from '../../components/BrandGradient';
 import { Icon } from '../../components/Icon';
+import { Orb } from '../../components/Orb';
 import { Money, RollingMoney, useRollingNumber } from '../../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
@@ -30,20 +31,45 @@ export default function TripRoute() {
   return group ? <EmptyGroup group={group} /> : <Trip />;
 }
 
-const kindWord: Record<Group['kind'], string> = { viaje: 'del viaje', piso: 'del piso', evento: 'del evento', otro: 'del grupo' };
+const kindWord: Record<Group['kind'], string> = {
+  viaje: 'del viaje',
+  piso: 'del piso',
+  evento: 'del evento',
+  otro: 'del grupo',
+};
 
-// 6.5 Grupo sin gastos: what a group looks like the moment it's created.
-// The zero is the hero; the empty list teaches the one thing to do next.
+// A group created in the app. Empty (6.5), the zero is the hero and the empty list
+// teaches the one thing to do next; with expenses, the same balance-and-list layout.
 function EmptyGroup({ group }: { group: Group }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
+  const { groupExpenses } = useTrip();
+  const list = groupExpenses[group.id] ?? [];
+  const mine = balancesFor(list).tu;
   const meta = [group.dates, `${group.members.length} personas`, group.currency === 'EUR' ? 'en euros' : 'en dólares'].filter(Boolean).join(' · ');
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 150 }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 20,
+          paddingBottom: 150,
+        }}
+      >
         <View style={styles.header}>
           <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
-          <IconButton name="user-plus" label="Invitar al grupo" bg={t.surface} color={t.ink} onPress={() => router.push({ pathname: '/invitar', params: { nombre: group.name } })} />
+          <IconButton
+            name="user-plus"
+            label="Invitar al grupo"
+            bg={t.surface}
+            color={t.ink}
+            onPress={() =>
+              router.push({
+                pathname: '/invitar',
+                params: { nombre: group.name },
+              })
+            }
+          />
         </View>
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
           {group.name}
@@ -53,19 +79,36 @@ function EmptyGroup({ group }: { group: Group }) {
         </T>
         <Card bg={t.panel} style={{ padding: 20 }}>
           <T v="label" color={t.onPanelMuted}>
-            Saldo {kindWord[group.kind]}
+            {list.length ? (mine >= 0 ? 'Te deben' : 'Debes') : `Saldo ${kindWord[group.kind]}`}
           </T>
-          <Money value={0} size={64} color={t.onPanel} centsColor={t.onPanelMuted} currency={group.currency} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
+          <RollingMoney value={Math.abs(mine)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} currency={group.currency} duration={motion.numbers} />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 14,
+            }}
+          >
             <AvatarStack ids={group.members} size={30} />
             <T v="caption" color={t.onPanelMuted}>
-              {group.members.length} personas · todavía nadie debe nada
+              {list.length ? `${eurText(list.reduce((a, e) => a + e.amountEur, 0))} en ${list.length} gasto${list.length === 1 ? '' : 's'}` : `${group.members.length} personas · todavía nadie debe nada`}
             </T>
           </View>
         </Card>
         <T v="titleM" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }}>
           Gastos
         </T>
+        {list.length ? (
+          <Card bg={t.surface} style={{ paddingVertical: 4 }}>
+            {list.map((e, i) => (
+              <Animated.View key={e.id} entering={FadeInDown.duration(motion.standard)}>
+                <ExpenseRow e={e} />
+                {i < list.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
+              </Animated.View>
+            ))}
+          </Card>
+        ) : (
         <Card bg={t.surface} style={{ padding: 20, alignItems: 'flex-start' }}>
           <T v="bodyStrong" color={t.ink}>
             Aún no hay gastos
@@ -74,8 +117,9 @@ function EmptyGroup({ group }: { group: Group }) {
             Cuéntale el primero al micro, por ejemplo: «Pagué el taxi, 45 dólares, para Ana y para mí».
           </T>
         </Card>
+        )}
       </ScrollView>
-      <CaptureBar bottom={insets.bottom} />
+      <CaptureBar bottom={insets.bottom} group={group.id} />
     </View>
   );
 }
@@ -105,7 +149,13 @@ function Trip() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 150 }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingHorizontal: 20,
+          paddingBottom: 150,
+        }}
+      >
         <View style={styles.header}>
           <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -113,55 +163,68 @@ function Trip() {
             <Button label={pendingPayments ? `Saldar · ${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A mano'} icon="arrow-left-right" kind="secondary" height={44} onPress={() => router.push('/saldar')} />
           </View>
         </View>
-        <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
-          Lisboa 2026
-        </T>
-        <T v="caption" color={t.inkMuted} style={{ marginTop: 2, marginBottom: 16 }}>
-          12–18 nov · 4 personas · en euros
-        </T>
-
-        <Card bg={t.panel} style={{ padding: 20 }}>
-          <T v="label" color={t.onPanelMuted}>
-            {caption('tu', now.tu) === 'debes' ? 'Debes' : 'Te deben'}
+        <Animated.View entering={FadeInDown.duration(220)}>
+          <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
+            Lisboa 2026
           </T>
-          <RollingMoney value={Math.abs(now.tu)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} duration={motion.numbers} />
-          <T v="caption" color={next ? t.lime : t.onPanelMuted} style={{ marginTop: 6 }}>
-            {next ? `→ ${eurText(next.tu)} si confirmas el almuerzo` : `${eurText(total)} en ${expenses.length} gastos confirmados`}
+          <T v="caption" color={t.inkMuted} style={{ marginTop: 2, marginBottom: 16 }}>
+            12–18 nov · 4 personas · en euros
           </T>
-          <View style={{ height: 1, backgroundColor: t.onPanel, opacity: 0.1, marginVertical: 14 }} />
-          {order.map((id, i) => (
-            <View key={id}>
-              <View style={styles.balRow} accessible accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si confirmas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}`}>
-                <Avatar id={id} size={34} />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <T v="bodyStrong" color={t.onPanel}>
-                    {people[id].name}
-                  </T>
-                  <T v="caption" color={t.onPanelMuted}>
-                    {caption(id, now[id])}
-                  </T>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <RollingText value={Math.abs(now[id])} color={t.onPanel} />
-                  {next ? (
-                    <T v="caption" color={t.lime}>
-                      → {eurText(Math.abs(next[id]))}
-                    </T>
-                  ) : null}
-                </View>
-              </View>
-              {i < order.length - 1 ? <View style={{ height: 1, backgroundColor: t.onPanel, opacity: 0.08, marginLeft: 46 }} /> : null}
-            </View>
-          ))}
-        </Card>
+        </Animated.View>
 
         {draft ? (
-          <Animated.View key={draft.id} entering={FadeInDown.duration(motion.standard)} exiting={ZoomOut.duration(motion.standard)} style={{ marginTop: 12 }}>
+          <Animated.View key={draft.id} entering={FadeInDown.delay(100).duration(280)} exiting={ZoomOut.duration(motion.standard)} style={{ marginBottom: 12 }}>
             <DraftCard draft={draft} onConfirm={onConfirm} onDiscard={discardDraft} />
           </Animated.View>
         ) : null}
 
-        <Animated.View layout={LinearTransition.duration(motion.standard)}>
+        <Animated.View entering={FadeInDown.delay(180).duration(280)} layout={LinearTransition.duration(motion.standard)}>
+          <Card bg={t.panel} style={{ padding: 20 }}>
+            <T v="label" color={t.onPanelMuted}>
+              {caption('tu', now.tu) === 'debes' ? 'Debes' : 'Te deben'}
+            </T>
+            <RollingMoney value={Math.abs(now.tu)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} duration={motion.numbers} />
+            <T v="caption" color={next ? t.lime : t.onPanelMuted} style={{ marginTop: 6 }}>
+              {next ? `→ ${eurText(next.tu)} si confirmas el almuerzo` : `${eurText(total)} en ${expenses.length} gastos confirmados`}
+            </T>
+            <View
+              style={{
+                height: 1,
+                backgroundColor: t.onPanel,
+                opacity: 0.1,
+                marginVertical: 14,
+              }}
+            />
+            {order.map((id, i) => (
+              <View key={id}>
+                <View style={styles.balRow} accessible accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si confirmas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}`}>
+                  <Avatar id={id} size={34} />
+                  <View style={{ flex: 1, marginLeft: 12 }}>
+                    <T v="bodyStrong" color={t.onPanel}>
+                      {people[id].name}
+                    </T>
+                    <T v="caption" color={t.onPanelMuted}>
+                      {caption(id, now[id])}
+                    </T>
+                  </View>
+                  <RollingText value={Math.abs(now[id])} color={t.onPanel} />
+                </View>
+                {i < order.length - 1 ? (
+                  <View
+                    style={{
+                      height: 1,
+                      backgroundColor: t.onPanel,
+                      opacity: 0.08,
+                      marginLeft: 46,
+                    }}
+                  />
+                ) : null}
+              </View>
+            ))}
+          </Card>
+        </Animated.View>
+
+        <Animated.View entering={FadeInDown.delay(260).duration(280)} layout={LinearTransition.duration(motion.standard)}>
           <T v="titleM" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }}>
             Gastos
           </T>
@@ -219,9 +282,9 @@ function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm:
   return (
     <BrandGradient style={styles.draft} seed={7}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        <Icon name="pen" size={14} color={ink} />
+        <Orb size={18} onGradient />
         <T v="caption" color={ink}>
-          Borrador: aún no cuenta
+          Borrador de Zerow · aún no cuenta
         </T>
       </View>
       <View style={[styles.rowBetween, { marginTop: 10 }]}>
@@ -243,7 +306,7 @@ function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm:
 
 function ExpenseRow({ e }: { e: Expense }) {
   const { t } = useTheme();
-  const who = e.splitWith.length === 4 ? 'entre 4' : `entre ${e.splitWith.map((p) => people[p].name).join(' y ')}`;
+  const who = e.splitWith.length > 2 ? `entre ${e.splitWith.length}` : `entre ${e.splitWith.map((p) => people[p].name).join(' y ')}`;
   return (
     <View style={styles.expRow}>
       <Avatar id={e.payer} size={40} />
@@ -270,10 +333,10 @@ function ExpenseRow({ e }: { e: Expense }) {
   );
 }
 
-function CaptureBar({ bottom }: { bottom: number }) {
+function CaptureBar({ bottom, group = 'lisboa' }: { bottom: number; group?: string }) {
   const { t } = useTheme();
   return (
-    <Tap onPress={() => router.push('/nuevo')} accessibilityRole="button" accessibilityLabel="Cuéntame un gasto" style={[styles.capture, { backgroundColor: t.panel, bottom: Math.max(bottom - 8, 12) }]}>
+    <Tap onPress={() => router.push({ pathname: '/nuevo', params: { grupo: group } })} accessibilityRole="button" accessibilityLabel="Cuéntame un gasto" style={[styles.capture, { backgroundColor: t.panel, bottom: Math.max(bottom - 8, 12) }]}>
       <T v="body" color={t.onPanelMuted} style={{ flex: 1 }}>
         Cuéntame un gasto…
       </T>
@@ -286,13 +349,59 @@ function CaptureBar({ bottom }: { bottom: number }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   balRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   draft: { borderRadius: 22, padding: 18 },
   expRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  toast: { position: 'absolute', left: 20, right: 20, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 6, height: 56 },
-  undo: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12, borderRadius: 22 },
-  capture: { position: 'absolute', left: 20, right: 20, height: 64, borderRadius: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8, gap: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
-  mic: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  toast: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingRight: 6,
+    height: 56,
+  },
+  undo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: 22,
+  },
+  capture: {
+    position: 'absolute',
+    left: 20,
+    right: 20,
+    height: 64,
+    borderRadius: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 20,
+    paddingRight: 8,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  mic: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

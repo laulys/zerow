@@ -1,9 +1,9 @@
-import { dark, type Tokens } from './tokens';
+import { graphite, type Tokens } from './tokens';
 
 /**
- * Dark is Zerow's main design. The light tokens stay in tokens.ts so a
- * "follow the iPhone / light / dark" setting can be added later.
+ * Graphite dark (rediseño v2) is Zerow's main design. The light and the older
+ * green-tinted dark tokens stay in tokens.ts for a future appearance setting.
  */
 export function useTheme(): { t: Tokens; isDark: boolean } {
-  return { t: dark, isDark: true };
+  return { t: graphite, isDark: true };
 }

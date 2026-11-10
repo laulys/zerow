@@ -87,6 +87,9 @@ export type Group = { id: string; name: string; kind: GroupKind; dates: string; 
 type TripState = {
   groups: Group[];
   createGroup: (g: Omit<Group, 'id'>) => Group;
+  /** Expenses of the groups created in the app (Lisboa keeps `expenses`). */
+  groupExpenses: Record<string, Expense[]>;
+  addToGroup: (groupId: string, e: Expense) => void;
   expenses: Expense[];
   draft: Expense | null;
   confirmDraft: () => void;
@@ -107,10 +110,13 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [lastSaved, setLastSaved] = useState<Expense | null>(null);
   const [paid, setPaid] = useState<Set<string>>(new Set());
   const [groups, setGroups] = useState<Group[]>([]);
+  const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>({});
 
   const value = useMemo<TripState>(
     () => ({
       groups,
+      groupExpenses,
+      addToGroup: (groupId, e) => setGroupExpenses((all) => ({ ...all, [groupId]: [e, ...(all[groupId] ?? [])] })),
       createGroup: (g) => {
         const slug = g.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'grupo';
         const made = { ...g, id: `${slug}-${Date.now().toString(36).slice(-4)}` };
@@ -147,7 +153,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
         setLastSaved(null);
       },
     }),
-    [groups, expenses, draft, lastSaved, paid],
+    [groups, groupExpenses, expenses, draft, lastSaved, paid],
   );
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;

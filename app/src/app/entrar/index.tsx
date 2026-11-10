@@ -19,7 +19,7 @@ export default function SignIn() {
       <T v="body" color={t.inkMuted} style={{ marginTop: 4, marginBottom: 20 }}>
         Entra para ver tus grupos.
       </T>
-      <Button label="Continuar con Apple" leading={<AppleMark color={t.onAction} />} onPress={enterApp} />
+      <Button label="Continuar con Apple" leading={<AppleMark color="#000000" />} color="#000000" style={{ backgroundColor: '#FFFFFF' }} onPress={enterApp} />
       <Button label="Continuar con Google" kind="secondary" leading={<GoogleMark />} style={{ marginTop: 10, backgroundColor: 'transparent' }} onPress={enterApp} />
       <Button label="Usar mi correo" kind="text" height={48} style={{ marginTop: 8 }} onPress={() => afterSheet(() => router.push('/entrar/correo'))} />
       <T v="caption" color={t.inkMuted} style={{ textAlign: 'center', marginTop: 12 }}>
