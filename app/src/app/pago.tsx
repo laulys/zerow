@@ -14,7 +14,7 @@ import { useTheme } from '../theme/useTheme';
 
 const APath = Animated.createAnimatedComponent(Path);
 const CHECK_LEN = 63;
-const RECEIPT_H = 300;
+const RECEIPT_H = 344;
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 
 // Pago enviado (option A), only when you pay: a quiet, Apple Pay-like confirmation. The lime disc
@@ -25,7 +25,7 @@ export default function PaymentSent() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
-  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string }>();
+  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string; metodo?: string }>();
   const to = (p.para ?? 'ana') as PersonId;
   const amount = Number(p.importe ?? 0);
   const group = p.grupo ?? 'Lisboa 2026';
@@ -64,6 +64,7 @@ export default function PaymentSent() {
     ['Para', name(to), to],
     ['Grupo', group],
     ['Concepto', p.concepto ?? `Saldar ${group}`],
+    ...(p.metodo ? ([['Método', p.metodo]] as [string, string][]) : []),
     ['Fecha', when],
     ['Referencia', ref],
   ];
