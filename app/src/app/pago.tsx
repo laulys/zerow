@@ -88,7 +88,7 @@ export default function PaymentSent() {
         </View>
 
         <Animated.View entering={at(500)} style={{ alignItems: 'center', marginTop: 18 }}>
-          <T v="bodyStrong" color={t.inkMuted}>
+          <T v="bodyStrong" color={t.inkMuted} style={{ marginBottom: 4 }}>
             Pagado
           </T>
           <Money value={amount} size={72} color={t.ink} centsColor={t.inkMuted} />

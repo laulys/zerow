@@ -28,6 +28,7 @@ const paths: Record<string, string[]> = {
   mail: ['m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'],
   bell: ['M10.268 21a2 2 0 0 0 3.464 0', 'M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326'],
   'log-out': ['m16 17 5-5-5-5', 'M21 12H9', 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'],
+  search: ['m21 21-4.34-4.34'],
   landmark: ['M10 18v-7', 'M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z', 'M14 18v-7', 'M18 18v-7', 'M3 22h18', 'M6 18v-7'],
 };
 
@@ -36,6 +37,7 @@ const circles: Record<string, [number, number, number][]> = {
   user: [[12, 7, 4]],
   'user-plus': [[9, 7, 4]],
   shapes: [[17.5, 17.5, 3.5]],
+  search: [[11, 11, 8]],
 };
 
 const rects: Record<string, [number, number, number, number, number][]> = {

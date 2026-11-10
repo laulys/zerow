@@ -67,7 +67,7 @@ export default function Invited() {
               </View>
 
               <View style={styles.bottom}>
-                <T v="label" color={light.inkMutedFixed}>
+                <T v="label" color={light.inkMutedFixed} style={{ marginBottom: 6 }}>
                   Tú entras con
                 </T>
                 <Money value={0} size={88} color={light.inkFixed} centsColor={light.inkMutedFixed} />

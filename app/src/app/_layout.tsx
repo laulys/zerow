@@ -37,6 +37,7 @@ export default function RootLayout() {
             <Stack.Screen name="emoji" options={sheet(t.surface)} />
             <Stack.Screen name="persona" options={sheet(t.surface)} />
             <Stack.Screen name="gasto" />
+            <Stack.Screen name="buscar" options={{ animation: 'fade' }} />
             <Stack.Screen name="entrar/index" />
             <Stack.Screen name="entrar/codigo" />
             <Stack.Screen name="cuenta" options={{ presentation: 'modal' }} />

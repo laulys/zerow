@@ -106,7 +106,7 @@ function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; b
           {meta}
         </T>
         <Card bg={t.panel} style={{ padding: 20 }}>
-          <T v="label" color={t.onPanelMuted}>
+          <T v="label" color={t.onPanelMuted} style={{ marginBottom: 6 }}>
             {list.length ? (Math.abs(mine) < 0.005 ? 'A mano' : mine > 0 ? 'Te deben' : 'Debes') : `Saldo ${kindWord[group.kind]}`}
           </T>
           <RollingMoney value={Math.abs(mine)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} currency={group.currency} duration={motion.numbers} />
@@ -264,7 +264,7 @@ function Trip() {
 
         <Animated.View entering={FadeInDown.delay(180).duration(280)} layout={LinearTransition.duration(motion.standard)}>
           <Card bg={t.panel} style={{ padding: 20 }}>
-            <T v="label" color={t.onPanelMuted}>
+            <T v="label" color={t.onPanelMuted} style={{ marginBottom: 6 }}>
               {caption('tu', now.tu) === 'debes' ? 'Debes' : 'Te deben'}
             </T>
             <RollingMoney value={Math.abs(now.tu)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} duration={motion.numbers} />

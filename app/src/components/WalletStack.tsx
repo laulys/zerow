@@ -101,6 +101,19 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
             </Animated.View>
           </Animated.View>
         ) : null}
+        {behind ? (
+          // The peeking edge of the card behind: tap it to bring that group forward.
+          <Pressable
+            onPress={() => {
+              x.value = withTiming(-460, { duration: 220 }, (done) => {
+                if (done) runOnJS(afterFling)(-1);
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver ${behind.title}`}
+            style={styles.peek}
+          />
+        ) : null}
         <Animated.View key={'front-' + current.key} style={[styles.slot, styles.card, frontStyle]} {...responder.panHandlers}>
           <Pressable onPress={current.onPress} style={{ flex: 1 }} disabled={!current.onPress}>
             {current.content}
@@ -122,6 +135,7 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
 
 const styles = StyleSheet.create({
   slot: { position: 'absolute', top: PEEK, left: 0, right: 0, height: CARD_H },
+  peek: { position: 'absolute', top: 0, left: 16, right: 16, height: PEEK },
   card: { flex: 1, borderRadius: 28, overflow: 'hidden' },
   dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 14 },
   dot: { height: 6, borderRadius: 3 },
