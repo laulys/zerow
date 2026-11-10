@@ -9,6 +9,7 @@ export type WalletCard = { key: string; title: string; content: ReactNode; onPre
 const CARD_H = 250;
 const PEEK = 48;
 const BACK_SCALE = 0.91;
+const BACK_DIM = 0.65;
 // How far the back card moves up so its top edge shows above the front one.
 const BACK_LIFT = PEEK + (CARD_H * (1 - BACK_SCALE)) / 2;
 const settle = { damping: 17, stiffness: 220, mass: 0.9 } as const;
@@ -72,6 +73,8 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
     const p = Math.min(1, Math.abs(x.value) / 260);
     return { transform: [{ translateY: -BACK_LIFT * (1 - p) }, { scale: BACK_SCALE + (1 - BACK_SCALE) * p }] };
   });
+  // The card behind is the same colour, dimmed, and brightens as it comes forward.
+  const dimStyle = useAnimatedStyle(() => ({ opacity: BACK_DIM * (1 - Math.min(1, Math.abs(x.value) / 260)) }));
 
   const current = cards[Math.min(front, n - 1)];
   const behind = n > 1 ? cards[(front + 1) % n] : null;
@@ -92,7 +95,10 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
       >
         {behind ? (
           <Animated.View key={'back-' + behind.key} entering={FadeInDown.springify().damping(15).stiffness(160)} style={styles.slot} pointerEvents="none">
-            <Animated.View style={[styles.card, backStyle]}>{behind.content}</Animated.View>
+            <Animated.View style={[styles.card, backStyle]}>
+              {behind.content}
+              <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: t.page }, dimStyle]} />
+            </Animated.View>
           </Animated.View>
         ) : null}
         <Animated.View key={'front-' + current.key} style={[styles.slot, styles.card, frontStyle]} {...responder.panHandlers}>

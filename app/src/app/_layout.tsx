@@ -34,6 +34,9 @@ export default function RootLayout() {
             <Stack.Screen name="dividir" options={sheet(t.surface)} />
             <Stack.Screen name="invitar" options={sheet(t.surface)} />
             <Stack.Screen name="pagar" options={sheet(t.surface)} />
+            <Stack.Screen name="emoji" options={sheet(t.surface)} />
+            <Stack.Screen name="persona" options={sheet(t.surface)} />
+            <Stack.Screen name="gasto" />
             <Stack.Screen name="entrar/index" />
             <Stack.Screen name="entrar/codigo" />
             <Stack.Screen name="cuenta" options={{ presentation: 'modal' }} />
