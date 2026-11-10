@@ -128,7 +128,7 @@ export default function SettleUp() {
               </View>
               {x.to === 'tu' ? (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button label="Recordárselo" kind="secondary" height={48} />
+                  <Button label="Recordárselo" kind="secondary" height={48} onPress={() => Share.share({ message: `Hola ${people[x.from].name}: de Lisboa 2026 me quedan ${eurText(x.amount)} por cobrarte. Lo tienes en Zerow, ¡sin prisa!` })} />
                   <Button label="Ya me ha pagado" height={48} style={{ flex: 1 }} onPress={() => pay(x)} />
                 </View>
               ) : (

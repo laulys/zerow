@@ -11,7 +11,7 @@ import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
 import { Money, RollingMoney, useRollingNumber } from '../../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../../components/ui';
-import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
+import { PISO_SHARE, balancesFor, eurText, people, pisoGroup, settleUp, transferKey, usePisoBalance, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
 import { font, light, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
@@ -29,6 +29,7 @@ export default function TripRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { groups } = useTrip();
   const group = groups.find((g) => g.id === id);
+  if (id === 'piso') return <PisoGroup />;
   return group ? <EmptyGroup group={group} /> : <Trip />;
 }
 
@@ -41,12 +42,37 @@ const kindWord: Record<Group['kind'], string> = {
 
 // A group created in the app. Empty (6.5), the zero is the hero and the empty list
 // teaches the one thing to do next; with expenses, the same balance-and-list layout.
-function EmptyGroup({ group }: { group: Group }) {
+// Piso Calle Mayor (3.3): the sample flat, with its two bills and your share to Ana.
+function PisoGroup() {
+  const { t } = useTheme();
+  const { pisoPaid } = useTrip();
+  const mine = usePisoBalance();
+  return (
+    <EmptyGroup
+      group={pisoGroup}
+      mine={mine}
+      action={
+        pisoPaid ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 }}>
+            <Icon name="check" size={16} color={t.lime} />
+            <T v="caption" color={t.onPanelMuted}>
+              Pagaste {eurText(PISO_SHARE)} a Ana
+            </T>
+          </View>
+        ) : (
+          <Button label={`Pagar a Ana · ${eurText(PISO_SHARE)}`} height={48} style={{ marginTop: 16 }} onPress={() => router.push('/pagar')} />
+        )
+      }
+    />
+  );
+}
+
+function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; base?: Expense[]; mine?: number; action?: React.ReactNode }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { groupExpenses } = useTrip();
-  const list = groupExpenses[group.id] ?? [];
-  const mine = balancesFor(list).tu;
+  const list = [...(groupExpenses[group.id] ?? []), ...base];
+  const mine = fixed ?? balancesFor(list).tu;
   const meta = [group.dates, `${group.members.length} personas`, group.currency === 'EUR' ? 'en euros' : 'en dólares'].filter(Boolean).join(' · ');
   if (!list.length) return <ListeningEmpty group={group} />;
   return (
@@ -81,7 +107,7 @@ function EmptyGroup({ group }: { group: Group }) {
         </T>
         <Card bg={t.panel} style={{ padding: 20 }}>
           <T v="label" color={t.onPanelMuted}>
-            {list.length ? (mine >= 0 ? 'Te deben' : 'Debes') : `Saldo ${kindWord[group.kind]}`}
+            {list.length ? (Math.abs(mine) < 0.005 ? 'A mano' : mine > 0 ? 'Te deben' : 'Debes') : `Saldo ${kindWord[group.kind]}`}
           </T>
           <RollingMoney value={Math.abs(mine)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} currency={group.currency} duration={motion.numbers} />
           <View
@@ -97,6 +123,7 @@ function EmptyGroup({ group }: { group: Group }) {
               {list.length ? `${eurText(list.reduce((a, e) => a + e.amountEur, 0))} en ${list.length} gasto${list.length === 1 ? '' : 's'}` : `${group.members.length} personas · todavía nadie debe nada`}
             </T>
           </View>
+          {action}
         </Card>
         <T v="titleM" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }}>
           Gastos
@@ -105,7 +132,7 @@ function EmptyGroup({ group }: { group: Group }) {
           <Card bg={t.surface} style={{ paddingVertical: 4 }}>
             {list.map((e, i) => (
               <Animated.View key={e.id} entering={FadeInDown.duration(motion.standard)}>
-                <ExpenseRow e={e} />
+                <ExpenseRow e={e} group={group.id} />
                 {i < list.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
               </Animated.View>
             ))}
@@ -254,7 +281,12 @@ function Trip() {
             />
             {order.map((id, i) => (
               <View key={id}>
-                <View style={styles.balRow} accessible accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si confirmas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}`}>
+                <Tap
+                  onPress={() => router.push(id === 'tu' ? '/saldar' : { pathname: '/persona', params: { id } })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si confirmas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}. ${id === 'tu' ? 'Ir a saldar' : `Ver lo vuestro`}`}
+                  style={styles.balRow}
+                >
                   <Avatar id={id} size={34} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <T v="bodyStrong" color={t.onPanel}>
@@ -265,7 +297,7 @@ function Trip() {
                     </T>
                   </View>
                   <RollingText value={Math.abs(now[id])} color={t.onPanel} />
-                </View>
+                </Tap>
                 {i < order.length - 1 ? (
                   <View
                     style={{
@@ -288,7 +320,7 @@ function Trip() {
           <Card bg={t.surface} style={{ paddingVertical: 4 }}>
             {expenses.map((e, i) => (
               <Animated.View key={e.id} entering={FadeInDown.duration(motion.standard)}>
-                <ExpenseRow e={e} />
+                <ExpenseRow e={e} group={'lisboa'} />
                 {i < expenses.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
               </Animated.View>
             ))}
@@ -361,11 +393,11 @@ function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm:
   );
 }
 
-function ExpenseRow({ e }: { e: Expense }) {
+function ExpenseRow({ e, group }: { e: Expense; group: string }) {
   const { t } = useTheme();
   const who = e.splitWith.length > 2 ? `entre ${e.splitWith.length}` : `entre ${e.splitWith.map((p) => people[p].name).join(' y ')}`;
   return (
-    <View style={styles.expRow}>
+    <Tap onPress={() => router.push({ pathname: '/gasto', params: { grupo: group, id: e.id } })} accessibilityRole="button" accessibilityLabel={`${e.title}, ${eurText(e.amountEur)}. Pagó ${people[e.payer].name}, ${who}. Ver detalle`} style={styles.expRow}>
       <Avatar id={e.payer} size={40} />
       <View style={{ flex: 1, marginLeft: 12 }}>
         <T v="bodyStrong" color={t.ink}>
@@ -386,7 +418,7 @@ function ExpenseRow({ e }: { e: Expense }) {
           </T>
         ) : null}
       </View>
-    </View>
+    </Tap>
   );
 }
 

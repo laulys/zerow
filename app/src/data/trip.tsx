@@ -80,6 +80,23 @@ export function settleUp(balances: Record<PersonId, number>): Transfer[] {
 
 export const transferKey = (t: Transfer) => `${t.from}>${t.to}`;
 
+/** Piso Calle Mayor: the sample shared-flat group. Your 18,40 € share is to Ana. */
+export const pisoGroup: Group = { id: 'piso', name: 'Piso Calle Mayor', kind: 'piso', dates: 'noviembre', currency: 'EUR', members: ['tu', 'ana', 'luis'] };
+export const pisoExpenses: Expense[] = [
+  { id: 'luz', title: 'Luz y agua de noviembre', payer: 'ana', amountEur: 55.2, splitWith: ['tu', 'ana', 'luis'] },
+  { id: 'wifi', title: 'Internet de noviembre', payer: 'luis', amountEur: 30, splitWith: ['ana', 'luis'] },
+];
+export const PISO_SHARE = 18.4;
+
+/** Settled groups shown under "Anteriores" on Inicio. */
+export const pastGroups = [
+  { id: 'roma', kind: 'Viaje', name: 'Roma', meta: 'Mar 2025 · 4 personas', total: 612.4, suggestions: ['🇮🇹', '✈️', '🍕', '🏟️', '🏖️', '⛰️', '🧳', '🍷'] },
+  { id: 'malasana', kind: 'Piso', name: 'Piso Malasaña', meta: '2023–24 · 3 personas', total: 4812.3, suggestions: ['🏠', '🛋️', '🔑', '🧺', '🪴', '🛒', '💡', '🇪🇸'] },
+  { id: 'regalo', kind: 'Regalo', name: 'Regalo de Marta', meta: 'Feb 2025 · entre 3', total: 96, suggestions: ['🎁', '🎂', '🎉', '💐', '🎈', '🥳', '💝', '🍰'] },
+  { id: 'navidad', kind: 'Una cuenta', name: 'Cena de Navidad', meta: 'Dic 2024 · 6 personas', total: 245.6, suggestions: ['🎄', '🍽️', '🍷', '🥂', '🎅', '⭐️', '🦃', '🎁'] },
+] as const;
+export type PastGroupId = (typeof pastGroups)[number]['id'];
+
 export type GroupKind = 'viaje' | 'piso' | 'evento' | 'otro';
 
 export type Group = { id: string; name: string; kind: GroupKind; dates: string; currency: 'EUR' | 'USD'; members: PersonId[] };
@@ -90,6 +107,8 @@ type TripState = {
   /** Expenses of the groups created in the app (Lisboa keeps `expenses`). */
   groupExpenses: Record<string, Expense[]>;
   addToGroup: (groupId: string, e: Expense) => void;
+  /** Delete an expense from Lisboa ('lisboa') or any other group. */
+  removeExpense: (groupId: string, id: string) => void;
   expenses: Expense[];
   draft: Expense | null;
   confirmDraft: () => void;
@@ -101,6 +120,9 @@ type TripState = {
   /** Your share in Piso Calle Mayor (sample group without its own ledger yet). */
   pisoPaid: boolean;
   payPiso: () => void;
+  /** Emoji chosen for each settled group, by id (falls back to the type icon). */
+  pastEmoji: Record<string, string>;
+  setPastEmoji: (id: string, emoji: string | null) => void;
   markPaid: (t: Transfer) => void;
   unmarkPaid: (t: Transfer) => void;
 };
@@ -113,14 +135,21 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [lastSaved, setLastSaved] = useState<Expense | null>(null);
   const [paid, setPaid] = useState<Set<string>>(new Set());
   const [pisoPaid, setPisoPaid] = useState(false);
+  const [pastEmoji, setPastEmojiState] = useState<Record<string, string>>({ roma: '🇮🇹', malasana: '🏠', regalo: '🎁', navidad: '🎄' });
   const [groups, setGroups] = useState<Group[]>([]);
-  const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>({});
+  const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>({ piso: pisoExpenses });
 
   const value = useMemo<TripState>(
     () => ({
       groups,
       groupExpenses,
       addToGroup: (groupId, e) => setGroupExpenses((all) => ({ ...all, [groupId]: [e, ...(all[groupId] ?? [])] })),
+      removeExpense: (groupId, id) => {
+        if (groupId === 'lisboa') {
+          setExpenses((list) => list.filter((e) => e.id !== id));
+          setPaid(new Set());
+        } else setGroupExpenses((all) => ({ ...all, [groupId]: (all[groupId] ?? []).filter((e) => e.id !== id) }));
+      },
       createGroup: (g) => {
         const slug = g.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'grupo';
         const made = { ...g, id: `${slug}-${Date.now().toString(36).slice(-4)}` };
@@ -133,6 +162,14 @@ export function TripProvider({ children }: { children: ReactNode }) {
       paid,
       pisoPaid,
       payPiso: () => setPisoPaid(true),
+      pastEmoji,
+      setPastEmoji: (id, emoji) =>
+        setPastEmojiState((all) => {
+          const next = { ...all };
+          if (emoji) next[id] = emoji;
+          else delete next[id];
+          return next;
+        }),
       markPaid: (t) => setPaid((s) => new Set(s).add(transferKey(t))),
       unmarkPaid: (t) =>
         setPaid((s) => {
@@ -159,7 +196,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
         setLastSaved(null);
       },
     }),
-    [groups, groupExpenses, expenses, draft, lastSaved, paid, pisoPaid],
+    [groups, groupExpenses, expenses, draft, lastSaved, paid, pisoPaid, pastEmoji],
   );
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
@@ -184,4 +221,55 @@ export function formatEur(n: number, currency: Currency = 'EUR'): { whole: strin
 export function eurText(n: number, currency: Currency = 'EUR'): string {
   const { whole, cents } = formatEur(n, currency);
   return `${whole}${cents}`;
+}
+
+/** One open group's balance between you and someone. `amount` > 0: they owe you. */
+export type PersonPart = { key: string; group: string; amount: number; to: string };
+export type PersonBalance = { id: Exclude<PersonId, 'tu'>; net: number; parts: PersonPart[] };
+
+/**
+ * What you and each person owe each other across the open groups, for the
+ * "Personas" row on Inicio. Lisboa uses the settle-up transfers still unpaid;
+ * Piso is your share to Ana; groups made in the app add theirs (euros only).
+ * Ordered with pending money first.
+ */
+export function usePeopleBalances(): PersonBalance[] {
+  const { expenses, paid, pisoPaid, groups, groupExpenses } = useTrip();
+  return useMemo(() => {
+    const ids: Exclude<PersonId, 'tu'>[] = ['ana', 'luis', 'marta'];
+    const out = Object.fromEntries(ids.map((id) => [id, { id, net: 0, parts: [] as PersonPart[] }])) as Record<Exclude<PersonId, 'tu'>, PersonBalance>;
+    const add = (who: PersonId, part: PersonPart) => {
+      if (who === 'tu') return;
+      out[who].parts.push(part);
+    };
+    const fromTransfers = (list: Transfer[], key: string, group: string, to: string, members: PersonId[], skipPaid: boolean) => {
+      for (const m of members) {
+        if (m === 'tu') continue;
+        const amount = list
+          .filter((x) => !(skipPaid && paid.has(transferKey(x))))
+          .reduce((a, x) => a + (x.from === m && x.to === 'tu' ? x.amount : x.from === 'tu' && x.to === m ? -x.amount : 0), 0);
+        add(m, { key, group, amount: Math.round(amount * 100) / 100, to });
+      }
+    };
+    fromTransfers(settleUp(balancesFor(expenses)), 'lisboa', 'Lisboa 2026', '/trip/lisboa', ['ana', 'luis', 'marta'], true);
+    // Every part links to its group, so a row "a mano" still opens somewhere.
+    // Piso: its bills (Ana's share is 18,40 € until you pay her), like any group.
+    const pisoTransfers = settleUp(balancesFor(groupExpenses.piso ?? []));
+    for (const m of ['ana', 'luis'] as const) {
+      const owed = pisoTransfers.reduce((a, x) => a + (x.from === m && x.to === 'tu' ? x.amount : x.from === 'tu' && x.to === m ? -x.amount : 0), 0);
+      const amount = Math.round((owed + (m === 'ana' && pisoPaid ? PISO_SHARE : 0)) * 100) / 100;
+      add(m, { key: 'piso', group: 'Piso Calle Mayor', amount, to: amount < 0 && m === 'ana' && !pisoPaid ? '/pagar' : '/trip/piso' });
+    }
+    for (const g of groups.filter((g) => g.currency === 'EUR')) {
+      fromTransfers(settleUp(balancesFor(groupExpenses[g.id] ?? [])), g.id, g.name, `/trip/${g.id}`, g.members, false);
+    }
+    for (const p of Object.values(out)) p.net = Math.round(p.parts.reduce((a, x) => a + x.amount, 0) * 100) / 100;
+    return ids.map((id) => out[id]).sort((a, b) => Number(b.net !== 0) - Number(a.net !== 0));
+  }, [expenses, paid, pisoPaid, groups, groupExpenses]);
+}
+
+/** Your balance in Piso Calle Mayor: −18,40 € to Ana until you pay, plus anything added in the app. */
+export function usePisoBalance(): number {
+  const { pisoPaid, groupExpenses } = useTrip();
+  return Math.round((balancesFor(groupExpenses.piso ?? []).tu + (pisoPaid ? PISO_SHARE : 0)) * 100) / 100;
 }

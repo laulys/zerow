@@ -22,6 +22,7 @@ export default function Profile() {
   const insets = useSafeAreaInsets();
   const { expenses, paid, groups } = useTrip();
   const [notify, setNotify] = useState(true);
+  const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
 
   const mine = balancesFor(expenses).tu;
   const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
@@ -81,7 +82,7 @@ export default function Profile() {
 
           <Animated.View entering={at(360)} style={{ marginTop: 12 }}>
             <Row icon="user" label="Foto de perfil" value="Memoji" />
-            <Row icon="receipt" label="Moneda por defecto" value="EUR" />
+            <Row icon="receipt" label="Moneda por defecto" value={currency === 'EUR' ? 'Euros (€)' : 'Dólares (US$)'} onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))} />
             <Row icon="bell" label="Avisos de gastos y pagos" right={<Switch value={notify} onValueChange={setNotify} trackColor={{ true: t.lime, false: t.line }} accessibilityLabel="Avisos de gastos y pagos" />} />
             <Row icon="users" label="Cómo funciona Zerow" onPress={() => router.push('/')} />
             <Row icon="log-out" label="Cerrar sesión" danger onPress={() => router.replace('/')} last />

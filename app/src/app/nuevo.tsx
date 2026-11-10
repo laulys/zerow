@@ -25,11 +25,11 @@ export default function NewExpense() {
   const insets = useSafeAreaInsets();
   const { expenses, addExpense, groups, groupExpenses, addToGroup } = useTrip();
   const params = useLocalSearchParams<{ grupo?: string; ejemplo?: string }>();
-  const options = [{ id: 'lisboa', name: 'Lisboa 2026' }, ...groups.map((g) => ({ id: g.id, name: g.name }))];
+  const options = [{ id: 'lisboa', name: 'Lisboa 2026' }, { id: 'piso', name: 'Piso Calle Mayor' }, ...groups.map((g) => ({ id: g.id, name: g.name }))];
   const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
   const [picking, setPicking] = useState(false);
   const groupName = options.find((o) => o.id === groupId)?.name ?? 'Lisboa 2026';
-  const members = groupId === 'lisboa' ? (['tu', 'ana', 'luis', 'marta'] as Expense['splitWith']) : (groups.find((g) => g.id === groupId)?.members ?? ['tu']);
+  const members = groupId === 'lisboa' ? (['tu', 'ana', 'luis', 'marta'] as Expense['splitWith']) : groupId === 'piso' ? (['tu', 'ana', 'luis'] as Expense['splitWith']) : (groups.find((g) => g.id === groupId)?.members ?? ['tu']);
   const ledger = groupId === 'lisboa' ? expenses : (groupExpenses[groupId] ?? []);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
