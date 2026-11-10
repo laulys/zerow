@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +24,7 @@ export default function NewExpense() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { expenses, addExpense, groups, groupExpenses, addToGroup } = useTrip();
-  const params = useLocalSearchParams<{ grupo?: string }>();
+  const params = useLocalSearchParams<{ grupo?: string; ejemplo?: string }>();
   const options = [{ id: 'lisboa', name: 'Lisboa 2026' }, ...groups.map((g) => ({ id: g.id, name: g.name }))];
   const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
   const [picking, setPicking] = useState(false);
@@ -68,6 +68,16 @@ export default function NewExpense() {
       say('zerow', `Así quedas: te deberán ${eurText(after)} en vez de ${eurText(before)}.`);
     }, 900);
   };
+
+  // Opened from a tapped example (6.5): send it as if the user had said it.
+  const sentExample = useRef(false);
+  useEffect(() => {
+    if (!params.ejemplo || sentExample.current) return;
+    sentExample.current = true;
+    const id = setTimeout(() => send(params.ejemplo), 350);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.ejemplo]);
 
   const confirm = () => {
     if (!draft) return;

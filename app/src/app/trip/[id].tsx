@@ -12,7 +12,7 @@ import { Orb } from '../../components/Orb';
 import { Money, RollingMoney, useRollingNumber } from '../../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
-import { light, motion } from '../../theme/tokens';
+import { font, light, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 const order: PersonId[] = ['tu', 'luis', 'ana', 'marta'];
@@ -48,6 +48,7 @@ function EmptyGroup({ group }: { group: Group }) {
   const list = groupExpenses[group.id] ?? [];
   const mine = balancesFor(list).tu;
   const meta = [group.dates, `${group.members.length} personas`, group.currency === 'EUR' ? 'en euros' : 'en dólares'].filter(Boolean).join(' · ');
+  if (!list.length) return <ListeningEmpty group={group} />;
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <ScrollView
@@ -119,6 +120,61 @@ function EmptyGroup({ group }: { group: Group }) {
           </T>
         </Card>
         )}
+      </ScrollView>
+      <CaptureBar bottom={insets.bottom} group={group.id} />
+    </View>
+  );
+}
+
+const firstExamples = ['Pagué el hotel, 300 euros, entre todos', 'Pagué el taxi, 45 dólares, para Ana y para mí', 'Pagué la cena, 84 euros, entre todos'];
+
+// 6.5 Viaje sin gastos (option B): an empty group is an invitation to talk.
+// Zerow's orb, one sentence, and examples you can tap to try straight away.
+function ListeningEmpty({ group }: { group: Group }) {
+  const { t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const sym = group.currency === 'EUR' ? '€' : 'US$';
+  const at = (ms: number) => FadeInDown.delay(ms).duration(300);
+  const tryIt = (ejemplo?: string) => router.push({ pathname: '/nuevo', params: { grupo: group.id, ...(ejemplo ? { ejemplo } : {}) } });
+  return (
+    <View style={{ flex: 1, backgroundColor: t.page }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 150, flexGrow: 1 }}>
+        <View style={[styles.header, { gap: 10 }]}>
+          <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} accessible accessibilityLabel={`${group.name}. ${group.members.length} personas. Saldo 0,00 ${sym}, sin gastos`}>
+            <AvatarStack ids={group.members} size={28} overlap={6} />
+            <View style={{ flex: 1 }}>
+              <T v="bodyStrong" color={t.ink} numberOfLines={1}>
+                {group.name}
+              </T>
+              <T v="caption" color={t.inkMuted}>
+                Saldo 0,00 {sym} · sin gastos
+              </T>
+            </View>
+          </View>
+          <IconButton name="user-plus" label="Invitar al grupo" bg={t.surface} color={t.ink} onPress={() => router.push({ pathname: '/invitar', params: { nombre: group.name } })} />
+        </View>
+
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24 }}>
+          <Orb size={150} state="listening" label="Zerow te escucha" />
+          <Animated.View entering={at(150)}>
+            <T v="titleL" color={t.ink} style={{ textAlign: 'center', marginTop: 28 }} accessibilityRole="header">
+              Cuéntame el primer gasto
+            </T>
+            <T v="body" color={t.inkMuted} style={{ textAlign: 'center', marginTop: 10, paddingHorizontal: 12 }}>
+              Dilo como se lo dirías a un amigo. Yo lo convierto en un borrador y nada cuenta hasta que lo confirmes.
+            </T>
+          </Animated.View>
+          <Animated.View entering={at(280)} style={{ alignItems: 'center', gap: 8, marginTop: 24 }}>
+            {firstExamples.map((ex) => (
+              <Tap key={ex} onPress={() => tryIt(ex)} accessibilityRole="button" accessibilityLabel={`Probar: ${ex}`} style={[styles.example, { backgroundColor: t.surface }]}>
+                <T v="label" color={t.ink} style={{ fontFamily: font.medium }}>
+                  «{ex.replace(' euros', ' €')}»
+                </T>
+              </Tap>
+            ))}
+          </Animated.View>
+        </View>
       </ScrollView>
       <CaptureBar bottom={insets.bottom} group={group.id} />
     </View>
@@ -362,6 +418,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  example: { borderRadius: 22, paddingHorizontal: 16, paddingVertical: 11 },
   balRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   draft: { borderRadius: 22, padding: 18 },
   expRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
