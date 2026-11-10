@@ -29,6 +29,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
             <Stack.Screen name="trip/[id]" />
             <Stack.Screen name="saldar" />
+            <Stack.Screen name="pago" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
             <Stack.Screen name="nuevo" options={{ presentation: 'modal' }} />
             <Stack.Screen name="dividir" options={sheet(t.surface)} />
             <Stack.Screen name="invitar" options={sheet(t.surface)} />

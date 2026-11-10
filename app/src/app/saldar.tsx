@@ -29,6 +29,12 @@ export default function SettleUp() {
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
   const [showBalances, setShowBalances] = useState(false);
 
+  // When you're one side of the payment, show the confirmation with its receipt.
+  const pay = (x: Transfer) => {
+    markPaid(x);
+    if (x.from === 'tu' || x.to === 'tu') router.push({ pathname: '/pago', params: { de: x.from, para: x.to, importe: String(x.amount), grupo: 'Lisboa 2026' } });
+  };
+
   const celebrated = useRef(false);
   useEffect(() => {
     if (settled && !celebrated.current) {
@@ -121,10 +127,10 @@ export default function SettleUp() {
               {x.to === 'tu' ? (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   <Button label="Recordárselo" kind="secondary" height={48} />
-                  <Button label="Ya me ha pagado" height={48} style={{ flex: 1 }} onPress={() => markPaid(x)} />
+                  <Button label="Ya me ha pagado" height={48} style={{ flex: 1 }} onPress={() => pay(x)} />
                 </View>
               ) : (
-                <Button label="Marcar como pagado" height={48} onPress={() => markPaid(x)} />
+                <Button label="Marcar como pagado" height={48} onPress={() => pay(x)} />
               )}
             </Card>
           </Animated.View>
