@@ -10,6 +10,8 @@ import { afterSheet } from '../data/session';
 import { eurText, people, usePeopleBalances, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
+const LIME_DIM = 'rgba(203, 242, 107, 0.6)';
+
 // 2.9 Tú y Ana (sheet): what you and one person owe each other across your open
 // groups, netted into one number. Each group row goes to where you'd settle it.
 export default function Person() {
@@ -50,10 +52,11 @@ export default function Person() {
       </View>
 
       <View style={{ marginTop: 18 }} accessible accessibilityLabel={p.net === 0 ? label : `${label} ${eurText(Math.abs(p.net))}`}>
-        <T v="label" color={t.inkMuted}>
+        <T v="label" color={t.inkMuted} style={{ marginBottom: 6 }}>
           {label}
         </T>
-        <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} centsColor={t.inkMuted} />
+        {/* Owed to you: the whole number in lime and the cents in the same lime, dimmer. */}
+        <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} centsColor={p.net > 0 ? LIME_DIM : t.inkMuted} />
       </View>
 
       <View style={[styles.box, { backgroundColor: t.page }]}>
