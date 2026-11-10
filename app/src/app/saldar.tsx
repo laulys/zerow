@@ -105,7 +105,7 @@ export default function SettleUp() {
               {eurText(total)} en {expenses.length} gastos · saldado con {transfers.length} pagos
             </T>
             <View style={{ marginTop: 18 }}>
-              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={40} />
+              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={40} outline="#D3F27F" />
             </View>
           </BrandGradient>
         </Animated.View>

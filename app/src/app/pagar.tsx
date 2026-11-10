@@ -68,7 +68,7 @@ export default function Pay() {
       <View style={styles.head}>
         <Avatar id="ana" size={44} decorative={false} />
         <View>
-          <T v="titleM" color={t.ink} style={{ fontSize: 20 }} accessibilityRole="header">
+          <T v="titleM" color={t.ink} accessibilityRole="header">
             Pagar a Ana
           </T>
           <T v="caption" color={t.inkMuted}>
