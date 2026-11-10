@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { TripProvider } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
-// Short tasks open as native sheets that hug their content (2.4, 5.1, 1.7).
+// Short tasks open as native sheets that hug their content (2.4, 5.1).
 const sheet = (bg: string) =>
   ({
     presentation: 'formSheet',
@@ -32,8 +32,7 @@ export default function RootLayout() {
             <Stack.Screen name="nuevo" options={{ presentation: 'modal' }} />
             <Stack.Screen name="dividir" options={sheet(t.surface)} />
             <Stack.Screen name="invitar" options={sheet(t.surface)} />
-            <Stack.Screen name="entrar/index" options={sheet(t.surface)} />
-            <Stack.Screen name="entrar/correo" />
+            <Stack.Screen name="entrar/index" />
             <Stack.Screen name="entrar/codigo" />
             <Stack.Screen name="cuenta" options={{ presentation: 'modal' }} />
             <Stack.Screen name="grupo-nuevo" options={{ presentation: 'modal' }} />

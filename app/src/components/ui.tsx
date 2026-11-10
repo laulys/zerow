@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
@@ -24,12 +25,32 @@ export function T({ v, color, style, children, ...rest }: Omit<TextProps, 'style
   );
 }
 
-/** Any tappable thing: scales to 0.97 on press (Emil Kowalski's rule). */
-export function Tap({ style, children, ...props }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+/**
+ * Any tappable thing. It sinks to 0.97 and comes back on a spring (Apple's
+ * interruptible press feel), not an instant jump. Still with Reduce Motion.
+ */
+const APressable = Animated.createAnimatedComponent(Pressable);
+export const pressSpring = { damping: 18, stiffness: 420, mass: 0.6 } as const;
+
+export function Tap({ style, children, onPressIn, onPressOut, ...props }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const scale = useSharedValue(1);
+  const reduce = useReducedMotion();
+  const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Pressable {...props} style={({ pressed }) => [style, { transform: [{ scale: pressed ? 0.97 : 1 }] }, pressed && { opacity: 0.92 }]}>
+    <APressable
+      {...props}
+      onPressIn={(e) => {
+        if (!reduce) scale.value = withSpring(0.97, pressSpring);
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        scale.value = withSpring(1, pressSpring);
+        onPressOut?.(e);
+      }}
+      style={[style, anim]}
+    >
       {children}
-    </Pressable>
+    </APressable>
   );
 }
 
