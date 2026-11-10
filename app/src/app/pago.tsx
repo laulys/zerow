@@ -17,7 +17,7 @@ const CHECK_LEN = 63;
 const RECEIPT_H = 300;
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 
-// Pago enviado (option A): a quiet, Apple Pay-like confirmation. The lime disc
+// Pago enviado (option A), only when you pay: a quiet, Apple Pay-like confirmation. The lime disc
 // springs in and the check draws itself, a ring pulses out, then the receipt
 // slides down out of a slot as if it were being printed. Saved for a single
 // payment; the big celebration stays with "A mano".
@@ -25,13 +25,10 @@ export default function PaymentSent() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
-  const p = useLocalSearchParams<{ de: PersonId; para: PersonId; importe: string; grupo?: string }>();
-  const from = (p.de ?? 'tu') as PersonId;
+  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string }>();
   const to = (p.para ?? 'ana') as PersonId;
   const amount = Number(p.importe ?? 0);
   const group = p.grupo ?? 'Lisboa 2026';
-  const iPaid = from === 'tu';
-  const other = iPaid ? to : from;
 
   const when = useMemo(() => {
     const d = new Date();
@@ -64,23 +61,23 @@ export default function PaymentSent() {
   const at = (ms: number) => (reduce ? undefined : FadeInDown.delay(ms).duration(300));
 
   const rows: [string, string, PersonId?][] = [
-    [iPaid ? 'Para' : 'De', name(other), other],
+    ['Para', name(to), to],
     ['Grupo', group],
-    ['Concepto', `Saldar ${group}`],
+    ['Concepto', p.concepto ?? `Saldar ${group}`],
     ['Fecha', when],
     ['Referencia', ref],
   ];
 
   const share = () =>
     Share.share({
-      message: `${iPaid ? `Pagué ${eurText(amount)} a ${name(to)}` : `${name(from)} me pagó ${eurText(amount)}`} · ${group} · ${when} · Ref. ${ref}. Hecho con Zerow.`,
+      message: `Pagué ${eurText(amount)} a ${name(to)} · ${group} · ${when} · Ref. ${ref}. Hecho con Zerow.`,
     });
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <StatusBar style="light" />
       <View style={{ flex: 1, paddingTop: insets.top + 36, paddingHorizontal: 20 }}>
-        <View style={styles.badgeWrap} accessible accessibilityLabel={`${iPaid ? 'Pagado' : 'Recibido'}: ${eurText(amount)}`}>
+        <View style={styles.badgeWrap} accessible accessibilityLabel={`Pagado: ${eurText(amount)}`}>
           <Animated.View style={[styles.ring, { borderColor: t.lime }, ringStyle]} />
           <Animated.View style={[styles.disc, { backgroundColor: t.lime }, discStyle]}>
             <Svg width={44} height={34} viewBox="-2 -2 46 36">
@@ -91,11 +88,11 @@ export default function PaymentSent() {
 
         <Animated.View entering={at(500)} style={{ alignItems: 'center', marginTop: 18 }}>
           <T v="bodyStrong" color={t.inkMuted}>
-            {iPaid ? 'Pagado' : 'Recibido'}
+            Pagado
           </T>
           <Money value={amount} size={72} color={t.ink} centsColor={t.inkMuted} />
           <T v="label" color={t.inkMuted} style={{ marginTop: 6, textAlign: 'center' }}>
-            {iPaid ? `Ya no debes nada en ${group}` : `${name(from)} ya está a mano contigo`}
+            Ya no debes nada en {group}
           </T>
         </Animated.View>
 
@@ -117,7 +114,7 @@ export default function PaymentSent() {
                 </View>
               ))}
               <T v="caption" color={t.inkMuted} style={{ marginTop: 12 }}>
-                {iPaid ? `Marcado como pagado por ti · ${name(to)} lo confirmará` : `Marcado como recibido por ti`}
+                Marcado como pagado por ti · {name(to)} lo confirmará
               </T>
             </View>
             <Svg width="100%" height={14} viewBox="0 0 320 14" preserveAspectRatio="none">

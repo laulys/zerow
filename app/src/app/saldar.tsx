@@ -29,10 +29,12 @@ export default function SettleUp() {
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
   const [showBalances, setShowBalances] = useState(false);
 
-  // When you're one side of the payment, show the confirmation with its receipt.
+  // Only the person who pays gets a receipt (it's theirs to keep and share).
+  // When someone pays you, it just moves to "Pagado" with undo.
   const pay = (x: Transfer) => {
     markPaid(x);
-    if (x.from === 'tu' || x.to === 'tu') router.push({ pathname: '/pago', params: { de: x.from, para: x.to, importe: String(x.amount), grupo: 'Lisboa 2026' } });
+    if (x.from === 'tu') router.push({ pathname: '/pago', params: { para: x.to, importe: String(x.amount), grupo: 'Lisboa 2026' } });
+    else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
   const celebrated = useRef(false);

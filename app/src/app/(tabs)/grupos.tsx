@@ -26,7 +26,7 @@ const past: { icon: IconName; kind: string; name: string; meta: string; total: n
 export default function Home() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, draft, groups, groupExpenses } = useTrip();
+  const { expenses, draft, groups, groupExpenses, pisoPaid } = useTrip();
   const mine = balancesFor(expenses).tu;
 
   // Open groups, front to back: the trip in progress first, on the brand gradient.
@@ -61,18 +61,19 @@ export default function Home() {
     },
     {
       key: 'piso',
-      title: 'Piso Calle Mayor. Debes 18,40 €',
+      title: pisoPaid ? 'Piso Calle Mayor. A mano' : 'Piso Calle Mayor. Debes 18,40 €. Toca para pagar a Ana',
+      onPress: pisoPaid ? undefined : () => router.push('/pagar'),
       content: (
         <View style={[styles.cardBody, { backgroundColor: t.panelRaised }]}>
           <CardTop title="Piso Calle Mayor" meta="3 personas · 2 gastos este mes" color={t.onPanel} muted={t.onPanelMuted} people={['tu', 'ana', 'luis']} outline={t.panelRaised} />
           <T v="label" color={t.onPanelMuted} style={{ marginTop: 'auto' }}>
-            Debes
+            {pisoPaid ? 'A mano' : 'Debes'}
           </T>
-          <Money value={18.4} size={60} color={t.onPanel} centsColor={t.onPanelMuted} />
+          <RollingMoney value={pisoPaid ? 0 : 18.4} size={60} color={t.onPanel} centsColor={t.onPanelMuted} />
           <View style={styles.cardFoot}>
-            <Icon name="house" size={16} color={t.onPanelMuted} />
+            <Icon name={pisoPaid ? 'check' : 'house'} size={16} color={pisoPaid ? t.lime : t.onPanelMuted} />
             <T v="caption" color={t.onPanelMuted}>
-              Alquiler, súper y facturas
+              {pisoPaid ? 'Pagaste 18,40 € a Ana' : 'Toca para pagar a Ana'}
             </T>
           </View>
         </View>
