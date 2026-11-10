@@ -1,0 +1,298 @@
+import * as Haptics from 'expo-haptics';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, FadeOutDown, LinearTransition, ZoomOut } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Avatar, AvatarStack } from '../../components/Avatar';
+import { BrandGradient } from '../../components/BrandGradient';
+import { Icon } from '../../components/Icon';
+import { Money, RollingMoney, useRollingNumber } from '../../components/Money';
+import { Button, Card, Hairline, IconButton, T, Tap } from '../../components/ui';
+import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
+import { light, motion } from '../../theme/tokens';
+import { useTheme } from '../../theme/useTheme';
+
+const order: PersonId[] = ['tu', 'luis', 'ana', 'marta'];
+
+function caption(id: PersonId, v: number) {
+  if (Math.abs(v) < 0.005) return 'a mano';
+  if (id === 'tu') return v > 0 ? 'te deben' : 'debes';
+  return v > 0 ? 'le deben' : 'debe';
+}
+
+// 3.1 Lisboa: balances as numbers only (audit option A), the AI draft on the brand
+// gradient, and the expense list. Confirming makes every balance roll to its new value.
+export default function TripRoute() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { groups } = useTrip();
+  const group = groups.find((g) => g.id === id);
+  return group ? <EmptyGroup group={group} /> : <Trip />;
+}
+
+const kindWord: Record<Group['kind'], string> = { viaje: 'del viaje', piso: 'del piso', evento: 'del evento', otro: 'del grupo' };
+
+// 6.5 Grupo sin gastos: what a group looks like the moment it's created.
+// The zero is the hero; the empty list teaches the one thing to do next.
+function EmptyGroup({ group }: { group: Group }) {
+  const { t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const meta = [group.dates, `${group.members.length} personas`, group.currency === 'EUR' ? 'en euros' : 'en dólares'].filter(Boolean).join(' · ');
+  return (
+    <View style={{ flex: 1, backgroundColor: t.page }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 150 }}>
+        <View style={styles.header}>
+          <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+          <IconButton name="user-plus" label="Invitar al grupo" bg={t.surface} color={t.ink} onPress={() => router.push({ pathname: '/invitar', params: { nombre: group.name } })} />
+        </View>
+        <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
+          {group.name}
+        </T>
+        <T v="caption" color={t.inkMuted} style={{ marginTop: 2, marginBottom: 16 }}>
+          {meta}
+        </T>
+        <Card bg={t.panel} style={{ padding: 20 }}>
+          <T v="label" color={t.onPanelMuted}>
+            Saldo {kindWord[group.kind]}
+          </T>
+          <Money value={0} size={64} color={t.onPanel} centsColor={t.onPanelMuted} currency={group.currency} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 }}>
+            <AvatarStack ids={group.members} size={30} />
+            <T v="caption" color={t.onPanelMuted}>
+              {group.members.length} personas · todavía nadie debe nada
+            </T>
+          </View>
+        </Card>
+        <T v="titleM" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }}>
+          Gastos
+        </T>
+        <Card bg={t.surface} style={{ padding: 20, alignItems: 'flex-start' }}>
+          <T v="bodyStrong" color={t.ink}>
+            Aún no hay gastos
+          </T>
+          <T v="label" color={t.inkMuted} style={{ marginTop: 4 }}>
+            Cuéntale el primero al micro, por ejemplo: «Pagué el taxi, 45 dólares, para Ana y para mí».
+          </T>
+        </Card>
+      </ScrollView>
+      <CaptureBar bottom={insets.bottom} />
+    </View>
+  );
+}
+
+function Trip() {
+  const { t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { expenses, draft, confirmDraft, discardDraft, undoLast, lastSaved } = useTrip();
+  const now = balancesFor(expenses);
+  const next = draft ? balancesFor([draft, ...expenses]) : null;
+  const total = expenses.reduce((s, e) => s + e.amountEur, 0);
+  const [toast, setToast] = useState(false);
+  const { paid } = useTrip();
+  const pendingPayments = settleUp(now).filter((x) => !paid.has(transferKey(x))).length;
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(false), 10000);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  const onConfirm = () => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    confirmDraft();
+    setToast(true);
+  };
+
+  return (
+    <View style={{ flex: 1, backgroundColor: t.page }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 150 }}>
+        <View style={styles.header}>
+          <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <IconButton name="user-plus" label="Invitar al grupo" bg={t.surface} color={t.ink} onPress={() => router.push('/invitar')} />
+            <Button label={pendingPayments ? `Saldar · ${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A mano'} icon="arrow-left-right" kind="secondary" height={44} onPress={() => router.push('/saldar')} />
+          </View>
+        </View>
+        <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
+          Lisboa 2026
+        </T>
+        <T v="caption" color={t.inkMuted} style={{ marginTop: 2, marginBottom: 16 }}>
+          12–18 nov · 4 personas · en euros
+        </T>
+
+        <Card bg={t.panel} style={{ padding: 20 }}>
+          <T v="label" color={t.onPanelMuted}>
+            {caption('tu', now.tu) === 'debes' ? 'Debes' : 'Te deben'}
+          </T>
+          <RollingMoney value={Math.abs(now.tu)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} duration={motion.numbers} />
+          <T v="caption" color={next ? t.lime : t.onPanelMuted} style={{ marginTop: 6 }}>
+            {next ? `→ ${eurText(next.tu)} si confirmas el almuerzo` : `${eurText(total)} en ${expenses.length} gastos confirmados`}
+          </T>
+          <View style={{ height: 1, backgroundColor: t.onPanel, opacity: 0.1, marginVertical: 14 }} />
+          {order.map((id, i) => (
+            <View key={id}>
+              <View style={styles.balRow} accessible accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si confirmas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}`}>
+                <Avatar id={id} size={34} />
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <T v="bodyStrong" color={t.onPanel}>
+                    {people[id].name}
+                  </T>
+                  <T v="caption" color={t.onPanelMuted}>
+                    {caption(id, now[id])}
+                  </T>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <RollingText value={Math.abs(now[id])} color={t.onPanel} />
+                  {next ? (
+                    <T v="caption" color={t.lime}>
+                      → {eurText(Math.abs(next[id]))}
+                    </T>
+                  ) : null}
+                </View>
+              </View>
+              {i < order.length - 1 ? <View style={{ height: 1, backgroundColor: t.onPanel, opacity: 0.08, marginLeft: 46 }} /> : null}
+            </View>
+          ))}
+        </Card>
+
+        {draft ? (
+          <Animated.View key={draft.id} entering={FadeInDown.duration(motion.standard)} exiting={ZoomOut.duration(motion.standard)} style={{ marginTop: 12 }}>
+            <DraftCard draft={draft} onConfirm={onConfirm} onDiscard={discardDraft} />
+          </Animated.View>
+        ) : null}
+
+        <Animated.View layout={LinearTransition.duration(motion.standard)}>
+          <T v="titleM" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }}>
+            Gastos
+          </T>
+          <Card bg={t.surface} style={{ paddingVertical: 4 }}>
+            {expenses.map((e, i) => (
+              <Animated.View key={e.id} entering={FadeInDown.duration(motion.standard)}>
+                <ExpenseRow e={e} />
+                {i < expenses.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
+              </Animated.View>
+            ))}
+          </Card>
+        </Animated.View>
+      </ScrollView>
+
+      {toast && lastSaved ? (
+        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOutDown.duration(160)} style={[styles.toast, { backgroundColor: t.panel, bottom: insets.bottom + 84 }]} accessibilityLiveRegion="polite">
+          <T v="label" color={t.onPanel} style={{ flex: 1 }}>
+            {lastSaved.title} guardado en Lisboa 2026
+          </T>
+          <Tap
+            onPress={() => {
+              undoLast();
+              setToast(false);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel="Deshacer"
+            style={styles.undo}
+          >
+            <Icon name="undo" size={16} color={t.onPanel} />
+            <T v="labelStrong" color={t.onPanel}>
+              Deshacer
+            </T>
+          </Tap>
+        </Animated.View>
+      ) : null}
+
+      <CaptureBar bottom={insets.bottom} />
+    </View>
+  );
+}
+
+function RollingText({ value, color }: { value: number; color: string }) {
+  return (
+    <View style={{ height: 22, justifyContent: 'center' }}>
+      <T v="bodyStrong" color={color} style={{ fontVariant: ['tabular-nums'] }}>
+        {eurText(useRollingNumber(value, motion.numbers))}
+      </T>
+    </View>
+  );
+}
+
+function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm: () => void; onDiscard: () => void }) {
+  const ink = light.inkFixed;
+  const each = draft.amountEur / draft.splitWith.length;
+  return (
+    <BrandGradient style={styles.draft} seed={7}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <Icon name="pen" size={14} color={ink} />
+        <T v="caption" color={ink}>
+          Borrador: aún no cuenta
+        </T>
+      </View>
+      <View style={[styles.rowBetween, { marginTop: 10 }]}>
+        <T v="titleM" color={ink}>
+          {draft.title}
+        </T>
+        <Money value={draft.amountEur} size={36} color={ink} centsColor={light.inkMutedFixed} />
+      </View>
+      <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 4 }}>
+        Pagó {people[draft.payer].name} · {eurText(each)} cada uno, entre {draft.splitWith.length}
+      </T>
+      <View style={[styles.rowBetween, { marginTop: 16, gap: 8 }]}>
+        <Button label="Descartar" kind="text" color={ink} height={48} onPress={onDiscard} style={{ paddingHorizontal: 12 }} />
+        <Button label="Confirmar" icon="check" kind="onGradient" height={48} onPress={onConfirm} style={{ flex: 1 }} />
+      </View>
+    </BrandGradient>
+  );
+}
+
+function ExpenseRow({ e }: { e: Expense }) {
+  const { t } = useTheme();
+  const who = e.splitWith.length === 4 ? 'entre 4' : `entre ${e.splitWith.map((p) => people[p].name).join(' y ')}`;
+  return (
+    <View style={styles.expRow}>
+      <Avatar id={e.payer} size={40} />
+      <View style={{ flex: 1, marginLeft: 12 }}>
+        <T v="bodyStrong" color={t.ink}>
+          {e.title}
+        </T>
+        <T v="caption" color={t.inkMuted}>
+          Pagó {people[e.payer].name} · {who}
+          {e.note ? ` · ${e.note}` : ''}
+        </T>
+      </View>
+      <View style={{ alignItems: 'flex-end' }}>
+        <T v="bodyStrong" color={t.ink}>
+          {eurText(e.amountEur)}
+        </T>
+        {e.originalUsd ? (
+          <T v="caption" color={t.inkMuted}>
+            {e.originalUsd.toFixed(2).replace('.', ',')} US$
+          </T>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+function CaptureBar({ bottom }: { bottom: number }) {
+  const { t } = useTheme();
+  return (
+    <Tap onPress={() => router.push('/nuevo')} accessibilityRole="button" accessibilityLabel="Cuéntame un gasto" style={[styles.capture, { backgroundColor: t.panel, bottom: Math.max(bottom - 8, 12) }]}>
+      <T v="body" color={t.onPanelMuted} style={{ flex: 1 }}>
+        Cuéntame un gasto…
+      </T>
+      <Icon name="keyboard" size={22} color={t.onPanelMuted} />
+      <View style={[styles.mic, { backgroundColor: t.onPanel }]}>
+        <Icon name="mic" size={22} color={t.inkFixed} />
+      </View>
+    </Tap>
+  );
+}
+
+const styles = StyleSheet.create({
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  balRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+  draft: { borderRadius: 22, padding: 18 },
+  expRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
+  toast: { position: 'absolute', left: 20, right: 20, borderRadius: 18, flexDirection: 'row', alignItems: 'center', paddingLeft: 16, paddingRight: 6, height: 56 },
+  undo: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12, borderRadius: 22 },
+  capture: { position: 'absolute', left: 20, right: 20, height: 64, borderRadius: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8, gap: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+  mic: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+});

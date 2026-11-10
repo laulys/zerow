@@ -16,3 +16,6 @@ venv/
 
 # Local trip database
 *.db
+
+# Design process files (Oil UI)
+.oil-ui/
