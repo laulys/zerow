@@ -6,6 +6,7 @@ import Animated, { FadeInDown, FadeOutDown, LinearTransition, ZoomOut } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, AvatarStack } from '../../components/Avatar';
 import { BrandGradient } from '../../components/BrandGradient';
+import { Glass } from '../../components/Glass';
 import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
 import { Money, RollingMoney, useRollingNumber } from '../../components/Money';
@@ -336,7 +337,8 @@ function ExpenseRow({ e }: { e: Expense }) {
 function CaptureBar({ bottom, group = 'lisboa' }: { bottom: number; group?: string }) {
   const { t } = useTheme();
   return (
-    <Tap onPress={() => router.push({ pathname: '/nuevo', params: { grupo: group } })} accessibilityRole="button" accessibilityLabel="Cuéntame un gasto" style={[styles.capture, { backgroundColor: t.panel, bottom: Math.max(bottom - 8, 12) }]}>
+    <Tap onPress={() => router.push({ pathname: '/nuevo', params: { grupo: group } })} accessibilityRole="button" accessibilityLabel="Cuéntame un gasto" style={[styles.captureWrap, { bottom: Math.max(bottom - 8, 12) }]}>
+      <Glass fallback={t.panel} style={styles.capture}>
       <T v="body" color={t.onPanelMuted} style={{ flex: 1 }}>
         Cuéntame un gasto…
       </T>
@@ -344,6 +346,7 @@ function CaptureBar({ bottom, group = 'lisboa' }: { bottom: number; group?: stri
       <View style={[styles.mic, { backgroundColor: t.onPanel }]}>
         <Icon name="mic" size={22} color={t.inkFixed} />
       </View>
+      </Glass>
     </Tap>
   );
 }
@@ -381,22 +384,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     borderRadius: 22,
   },
-  capture: {
-    position: 'absolute',
-    left: 20,
-    right: 20,
-    height: 64,
-    borderRadius: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 20,
-    paddingRight: 8,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-  },
+  captureWrap: { position: 'absolute', left: 20, right: 20, height: 64, borderRadius: 32, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+  capture: { flex: 1, borderRadius: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8, gap: 12 },
   mic: {
     width: 48,
     height: 48,
