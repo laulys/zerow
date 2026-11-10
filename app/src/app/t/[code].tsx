@@ -1,25 +1,26 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Avatar } from '../../components/Avatar';
-import { Button, Card, T } from '../../components/ui';
-import { balancesFor, useTrip, type PersonId } from '../../data/trip';
-import { motion } from '../../theme/tokens';
+import { Avatar, AvatarStack } from '../../components/Avatar';
+import { BrandGradient } from '../../components/BrandGradient';
+import { Icon } from '../../components/Icon';
+import { Money } from '../../components/Money';
+import { Button, T } from '../../components/ui';
+import { font, light } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
-const others: PersonId[] = ['luis', 'ana', 'marta'];
+const facts = ['Lo que pagaron antes no te toca', 'Verás los gastos y podrás añadir los tuyos', 'Nada cuenta hasta que alguien lo confirma'];
 
-// 5.2 Te invitaron: opened from a zerow.app/t/… link. The one thing a new member
-// worries about ("do I owe for what happened before me?") is answered visually:
-// everyone else sits where their balance is, you land exactly on zero.
+// 5.2 Te invitaron (option A): the invitation is a ticket on the brand gradient,
+// like a boarding pass. Top: the trip and who's in. A perforated line. Bottom:
+// the one thing a new member worries about — you start at 0,00 €.
 export default function Invited() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses } = useTrip();
-  const b = balancesFor(expenses);
-  const max = Math.max(...others.map((p) => Math.abs(b[p])), 1);
+  const at = (ms: number) => FadeInDown.delay(ms).duration(300);
 
   const join = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -28,58 +29,85 @@ export default function Invited() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 24, paddingHorizontal: 20, paddingBottom: 24 }}>
-        <Avatar id="ana" size={80} />
-        <T v="label" color={t.inkMuted} style={{ marginTop: 20 }}>
-          Ana te invitó a
-        </T>
-        <T v="titleL" color={t.ink} style={styles.big} accessibilityRole="header">
-          Lisboa 2026
-        </T>
-        <T v="caption" color={t.inkMuted}>
-          12–18 nov · 4 personas · en euros
-        </T>
+      <StatusBar style="light" />
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
+        <Animated.View entering={at(0)} style={styles.from}>
+          <Avatar id="ana" size={36} />
+          <T v="bodyStrong" color={t.ink}>
+            Ana te invita a un viaje
+          </T>
+        </Animated.View>
 
-        <Card bg={t.panel} style={{ marginTop: 28, padding: 18 }}>
-          <T v="bodyStrong" color={t.onPanel}>
-            Entras en cero
-          </T>
-          <T v="caption" color={t.onPanelMuted} style={{ marginTop: 2 }}>
-            Lo que ya pagaron antes no te toca.
-          </T>
-          <View style={styles.plot} accessible accessibilityLabel="Luis, Ana y Marta tienen saldos de antes. Tú empiezas en cero.">
-            <View style={[styles.zero, { backgroundColor: t.lime }]} />
-            {others.map((p, i) => (
-              <Animated.View key={p} entering={FadeIn.delay(i * 80).duration(motion.standard)} style={[styles.dot, { top: 8 + i * 34, left: `${50 + (b[p] / max) * 30}%` }]}>
-                <Avatar id={p} size={28} />
-              </Animated.View>
-            ))}
-            <Animated.View entering={FadeInDown.delay(350).duration(motion.bigMoment)} style={[styles.dot, styles.you]}>
-              <Avatar id="tu" size={28} />
-              <T v="caption" color={t.onPanel}>
-                Tú
-              </T>
-            </Animated.View>
+        <Animated.View entering={ZoomIn.springify().damping(16).delay(120)} style={{ marginTop: 20 }}>
+          <View accessible accessibilityLabel="Lisboa 2026, del 12 al 18 de noviembre, en euros. Ana, Luis y Marta ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.">
+            <BrandGradient style={styles.ticket} seed={8}>
+              <View style={styles.top}>
+                <T v="titleL" color={light.inkFixed} style={styles.trip}>
+                  Lisboa 2026
+                </T>
+                <T v="body" color={light.inkMutedFixed}>
+                  12–18 nov · Portugal · en euros
+                </T>
+                <View style={styles.people}>
+                  <AvatarStack ids={['ana', 'luis', 'marta']} size={44} overlap={10} />
+                  <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium }}>
+                    3 personas ya dentro
+                  </T>
+                </View>
+              </View>
+
+              <View style={styles.perf}>
+                <View style={[styles.notch, { left: -16, backgroundColor: t.page }]} />
+                <View style={styles.dashes}>
+                  {Array.from({ length: 24 }).map((_, i) => (
+                    <View key={i} style={styles.dash} />
+                  ))}
+                </View>
+                <View style={[styles.notch, { right: -16, backgroundColor: t.page }]} />
+              </View>
+
+              <View style={styles.bottom}>
+                <T v="label" color={light.inkMutedFixed}>
+                  Tú entras con
+                </T>
+                <Money value={0} size={88} color={light.inkFixed} centsColor={light.inkMutedFixed} />
+                <View style={{ gap: 10, marginTop: 14 }}>
+                  {facts.map((f) => (
+                    <View key={f} style={styles.fact}>
+                      <View style={[styles.ok, { backgroundColor: light.inkFixed }]}>
+                        <Icon name="check" size={12} color={t.lime} />
+                      </View>
+                      <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium, flex: 1 }}>
+                        {f}
+                      </T>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </BrandGradient>
           </View>
-        </Card>
-
-        <T v="body" color={t.ink} style={{ marginTop: 20 }}>
-          Verás los gastos del viaje y podrás añadir los tuyos. Nada cuenta hasta que alguien lo confirma.
-        </T>
+        </Animated.View>
       </ScrollView>
 
-      <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
+      <Animated.View entering={at(400)} style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
         <Button label="Unirme al viaje" icon="check" onPress={join} />
         <Button label="Ahora no" kind="text" height={48} style={{ marginTop: 6 }} onPress={() => (router.canGoBack() ? router.back() : router.replace('/grupos'))} />
-      </View>
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  big: { fontSize: 48, lineHeight: 52, letterSpacing: -1.4, marginTop: 4, marginBottom: 6 },
-  plot: { height: 150, marginTop: 12 },
-  zero: { position: 'absolute', left: '50%', top: 4, bottom: 14, width: 3, marginLeft: -1.5, borderRadius: 2 },
-  dot: { position: 'absolute', marginLeft: -14 },
-  you: { left: '50%', bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  from: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ticket: { borderRadius: 28 },
+  top: { padding: 24, paddingBottom: 20 },
+  trip: { fontSize: 40, lineHeight: 44, letterSpacing: -1.2, marginBottom: 6 },
+  people: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
+  perf: { height: 32, justifyContent: 'center' },
+  notch: { position: 'absolute', top: 0, width: 32, height: 32, borderRadius: 16 },
+  dashes: { marginHorizontal: 28, flexDirection: 'row', justifyContent: 'space-between', overflow: 'hidden' },
+  dash: { width: 6, height: 1.5, borderRadius: 1, backgroundColor: 'rgba(18,18,18,0.35)' },
+  bottom: { padding: 24, paddingTop: 16 },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ok: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
 });
