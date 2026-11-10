@@ -202,7 +202,7 @@ export default function Home() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: headerTop + HEADER_H + 20,
+          paddingTop: headerTop + HEADER_H + 28,
           paddingHorizontal: 20,
           paddingBottom: 140,
         }}
