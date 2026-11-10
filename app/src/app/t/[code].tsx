@@ -49,7 +49,7 @@ export default function Invited() {
                   12–18 nov · Portugal · en euros
                 </T>
                 <View style={styles.people}>
-                  <AvatarStack ids={['ana', 'luis', 'marta']} size={44} overlap={10} />
+                  <AvatarStack ids={['ana', 'luis', 'marta']} size={44} outline="#D3F27F" />
                   <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium }}>
                     3 personas ya dentro
                   </T>

@@ -37,7 +37,7 @@ export default function Home() {
       onPress: () => router.push('/trip/lisboa'),
       content: (
         <BrandGradient style={styles.cardBody} seed={3}>
-          <CardTop title="Lisboa 2026" meta="12–18 nov · en curso" color={light.inkFixed} muted={light.inkMutedFixed} people={['tu', 'ana', 'luis', 'marta']} />
+          <CardTop title="Lisboa 2026" meta="12–18 nov · en curso" color={light.inkFixed} muted={light.inkMutedFixed} people={['tu', 'ana', 'luis', 'marta']} outline="#D3F27F" />
           <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto' }}>
             {mine >= 0 ? 'Te deben' : 'Debes'}
           </T>
@@ -64,7 +64,7 @@ export default function Home() {
       title: 'Piso Calle Mayor. Debes 18,40 €',
       content: (
         <View style={[styles.cardBody, { backgroundColor: t.panelRaised }]}>
-          <CardTop title="Piso Calle Mayor" meta="3 personas · 2 gastos este mes" color={t.onPanel} muted={t.onPanelMuted} people={['tu', 'ana', 'luis']} />
+          <CardTop title="Piso Calle Mayor" meta="3 personas · 2 gastos este mes" color={t.onPanel} muted={t.onPanelMuted} people={['tu', 'ana', 'luis']} outline={t.panelRaised} />
           <T v="label" color={t.onPanelMuted} style={{ marginTop: 'auto' }}>
             Debes
           </T>
@@ -87,7 +87,7 @@ export default function Home() {
         onPress: () => router.push({ pathname: '/trip/[id]', params: { id: g.id } }),
         content: (
           <View style={[styles.cardBody, { backgroundColor: t.panelRaised }]}>
-            <CardTop title={g.name} meta={`${g.members.length} personas${g.dates ? ' · ' + g.dates : ''}`} color={t.onPanel} muted={t.onPanelMuted} people={g.members} />
+            <CardTop title={g.name} meta={`${g.members.length} personas${g.dates ? ' · ' + g.dates : ''}`} color={t.onPanel} muted={t.onPanelMuted} people={g.members} outline={t.panelRaised} />
             <T v="label" color={t.onPanelMuted} style={{ marginTop: 'auto' }}>
               {list.length ? (bal >= 0 ? 'Te deben' : 'Debes') : 'Saldo'}
             </T>
@@ -152,7 +152,7 @@ export default function Home() {
   );
 }
 
-function CardTop({ title, meta, color, muted, people }: { title: string; meta: string; color: string; muted: string; people: PersonId[] }) {
+function CardTop({ title, meta, color, muted, people, outline }: { title: string; meta: string; color: string; muted: string; people: PersonId[]; outline: string }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
       <View style={{ flex: 1 }}>
@@ -163,7 +163,7 @@ function CardTop({ title, meta, color, muted, people }: { title: string; meta: s
           {meta}
         </T>
       </View>
-      <AvatarStack ids={people} size={30} overlap={-4} />
+      <AvatarStack ids={people} size={32} outline={outline} />
     </View>
   );
 }

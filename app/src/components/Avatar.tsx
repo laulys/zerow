@@ -15,11 +15,27 @@ export function Avatar({ id, size = 32, decorative = true }: { id: PersonId; siz
   );
 }
 
-export function AvatarStack({ ids, size = 30, overlap = 8 }: { ids: PersonId[]; size?: number; overlap?: number }) {
+/**
+ * Faces that overlap like a small group photo. Each face gets a thin ring in
+ * the colour behind the stack (`outline`), so the overlap reads as a cut-out
+ * instead of circles piled on top of each other.
+ */
+export function AvatarStack({ ids, size = 30, overlap, outline }: { ids: PersonId[]; size?: number; overlap?: number; outline?: string }) {
+  const ov = overlap ?? Math.round(size * 0.34);
+  const ring = outline ? 2 : 0;
   return (
     <View style={{ flexDirection: 'row' }} importantForAccessibility="no-hide-descendants">
       {ids.map((id, i) => (
-        <View key={id} style={{ marginLeft: i === 0 ? 0 : -overlap, zIndex: ids.length - i }}>
+        <View
+          key={id}
+          style={{
+            marginLeft: i === 0 ? 0 : -ov,
+            zIndex: ids.length - i,
+            borderRadius: (size + ring * 2) / 2,
+            borderWidth: ring,
+            borderColor: outline ?? 'transparent',
+          }}
+        >
           <Avatar id={id} size={size} />
         </View>
       ))}

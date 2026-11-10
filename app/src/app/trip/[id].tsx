@@ -92,7 +92,7 @@ function EmptyGroup({ group }: { group: Group }) {
               marginTop: 14,
             }}
           >
-            <AvatarStack ids={group.members} size={30} />
+            <AvatarStack ids={group.members} size={30} outline={t.panel} />
             <T v="caption" color={t.onPanelMuted}>
               {list.length ? `${eurText(list.reduce((a, e) => a + e.amountEur, 0))} en ${list.length} gasto${list.length === 1 ? '' : 's'}` : `${group.members.length} personas · todavía nadie debe nada`}
             </T>
@@ -142,7 +142,7 @@ function ListeningEmpty({ group }: { group: Group }) {
         <View style={[styles.header, { gap: 10 }]}>
           <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} accessible accessibilityLabel={`${group.name}. ${group.members.length} personas. Saldo 0,00 ${sym}, sin gastos`}>
-            <AvatarStack ids={group.members} size={28} overlap={6} />
+            <AvatarStack ids={group.members} size={28} outline={t.page} />
             <View style={{ flex: 1 }}>
               <T v="bodyStrong" color={t.ink} numberOfLines={1}>
                 {group.name}

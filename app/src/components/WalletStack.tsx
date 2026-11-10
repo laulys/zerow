@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown, LinearTransition, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../theme/useTheme';
 
 export type WalletCard = { key: string; title: string; content: ReactNode; onPress?: () => void };
@@ -53,7 +53,7 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
             return;
           }
           const dir = Math.sign(g.dx || g.vx);
-          x.value = withTiming(dir * 440, { duration: 170 }, (done) => {
+          x.value = withTiming(dir * 460, { duration: 220 }, (done) => {
             if (done) runOnJS(afterFling)(dir);
           });
         },
@@ -91,7 +91,7 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
         }}
       >
         {behind ? (
-          <Animated.View key={'back-' + behind.key} entering={FadeIn.duration(220)} style={styles.slot} pointerEvents="none">
+          <Animated.View key={'back-' + behind.key} entering={FadeInDown.springify().damping(15).stiffness(160)} style={styles.slot} pointerEvents="none">
             <Animated.View style={[styles.card, backStyle]}>{behind.content}</Animated.View>
           </Animated.View>
         ) : null}
@@ -105,7 +105,7 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
         <View style={styles.dots}>
           {cards.map((c, i) => (
             <Pressable key={c.key} onPress={() => setFront(i)} accessibilityRole="button" accessibilityLabel={`Ver ${c.title}`} hitSlop={10}>
-              <View style={[styles.dot, { width: i === front ? 18 : 6, backgroundColor: i === front ? t.ink : t.line }]} />
+              <Animated.View layout={LinearTransition.springify().damping(18)} style={[styles.dot, { width: i === front ? 18 : 6, backgroundColor: i === front ? t.ink : t.line }]} />
             </Pressable>
           ))}
         </View>
