@@ -154,7 +154,7 @@ export default function NewExpense() {
             {examples.map((ex) => (
               <Tap key={ex} onPress={() => send(ex)} accessibilityRole="button" style={[styles.example, { backgroundColor: t.surface }]}>
                 <T v="label" color={t.ink}>
-                  «{ex}»
+                  «{ex.replace(' euros', ' €')}»
                 </T>
               </Tap>
             ))}

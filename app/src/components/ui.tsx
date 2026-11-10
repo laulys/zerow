@@ -8,6 +8,7 @@ import { Icon, type IconName } from './Icon';
 
 /** Type scale from the Figma text styles. */
 export const type = StyleSheet.create({
+  display: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -1.2 },
   titleL: { fontFamily: font.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
   titleM: { fontFamily: font.medium, fontSize: 22, lineHeight: 26, letterSpacing: -0.3 },
   body: { fontFamily: font.regular, fontSize: 16, lineHeight: 22 },

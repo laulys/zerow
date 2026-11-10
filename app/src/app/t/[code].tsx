@@ -42,7 +42,7 @@ export default function Invited() {
           <View accessible accessibilityLabel="Lisboa 2026, del 12 al 18 de noviembre, en euros. Ana, Luis y Marta ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.">
             <BrandGradient style={styles.ticket} seed={8}>
               <View style={styles.top}>
-                <T v="titleL" color={light.inkFixed} style={styles.trip}>
+                <T v="display" color={light.inkFixed} style={styles.trip}>
                   Lisboa 2026
                 </T>
                 <T v="body" color={light.inkMutedFixed}>
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   from: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ticket: { borderRadius: 28 },
   top: { padding: 24, paddingBottom: 20 },
-  trip: { fontSize: 40, lineHeight: 44, letterSpacing: -1.2, marginBottom: 6 },
+  trip: { marginBottom: 6 },
   people: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },
   perf: { height: 32, justifyContent: 'center' },
   notch: { position: 'absolute', top: 0, width: 32, height: 32, borderRadius: 16 },

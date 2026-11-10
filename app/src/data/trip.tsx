@@ -176,7 +176,8 @@ export type Currency = 'EUR' | 'USD';
 export function formatEur(n: number, currency: Currency = 'EUR'): { whole: string; cents: string } {
   const fixed = Math.abs(n).toFixed(2);
   const [w, c] = fixed.split('.');
-  const whole = Number(w).toLocaleString('es-ES');
+  // Always group thousands (4.812,30 €), as in the designs; es-ES skips it for 4 digits.
+  const whole = w.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   return { whole, cents: `,${c} ${currency === 'EUR' ? '€' : 'US$'}` };
 }
 

@@ -8,7 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { BrandGradient } from '../components/BrandGradient';
 import { Money } from '../components/Money';
 import { Orb } from '../components/Orb';
-import { Button, Lockup, T, type as tp } from '../components/ui';
+import { Button, Lockup, T } from '../components/ui';
 import { font, light } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
@@ -129,7 +129,7 @@ function Demo() {
 
       <View style={{ flex: 1 }} />
       <Animated.View entering={at(1250)}>
-        <T v="titleL" color={t.ink} style={styles.headline}>
+        <T v="display" color={t.ink} style={{ marginBottom: 10 }}>
           Dilo en voz alta. Zerow hace las cuentas.
         </T>
         <T v="body" color={t.inkMuted} style={{ marginBottom: 24 }}>
@@ -152,5 +152,4 @@ const styles = StyleSheet.create({
   speaker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, marginBottom: 6, marginLeft: 2 },
   card: { borderRadius: 22, padding: 18, paddingTop: 0 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  headline: { ...tp.titleL, fontSize: 40, lineHeight: 42, letterSpacing: -1.2, marginBottom: 10 },
 });

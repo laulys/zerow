@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { Avatar, AvatarStack } from '../../components/Avatar';
 import { Icon, type IconName } from '../../components/Icon';
 import { BrandGradient } from '../../components/BrandGradient';
@@ -107,6 +108,7 @@ export default function Home() {
 
   return (
     <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 140 }}>
+      <FocusStatusBar style="light" />
       <View style={styles.header}>
         <T v="titleL" color={t.ink} accessibilityRole="header">
           Tus grupos

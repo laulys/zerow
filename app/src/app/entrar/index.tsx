@@ -52,7 +52,7 @@ export default function SignIn() {
             <Lockup color={light.inkFixed} size={28} />
           </Animated.View>
           <Animated.View entering={at(200)}>
-            <T v="titleL" color={light.inkFixed} style={styles.hello}>
+            <T v="display" color={light.inkFixed} style={styles.hello}>
               Hola de nuevo.
             </T>
             <T v="body" color={light.inkMutedFixed}>
@@ -130,7 +130,7 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  hello: { fontSize: 36, lineHeight: 40, letterSpacing: -1, marginTop: 22, marginBottom: 4 },
+  hello: { marginTop: 22, marginBottom: 4 },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28 },
   rule: { flex: 1, height: StyleSheet.hairlineWidth * 2 },
   social: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 24 },

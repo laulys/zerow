@@ -108,7 +108,7 @@ export default function PaymentSent() {
                   </T>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
                     {who ? <Avatar id={who} size={22} /> : null}
-                    <T v="bodyStrong" color={t.ink} style={{ fontSize: 15 }} numberOfLines={1}>
+                    <T v="labelStrong" color={t.ink} numberOfLines={1}>
                       {v}
                     </T>
                   </View>

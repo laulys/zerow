@@ -58,7 +58,7 @@ export default function Invite() {
 
       {nombre ? null : (
         <View style={[styles.rowBetween, { marginTop: 16, justifyContent: 'flex-start', gap: 12 }]}>
-          <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={30} />
+          <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={30} outline={t.surface} />
           <T v="label" color={t.inkMuted}>
             4 personas ya dentro
           </T>

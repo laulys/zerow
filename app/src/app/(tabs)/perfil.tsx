@@ -1,10 +1,10 @@
-import { router, useFocusEffect } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useState } from 'react';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 import Animated, { Easing, FadeInDown, ZoomIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/Avatar';
+import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { BrandGradient } from '../../components/BrandGradient';
 import { Icon, type IconName } from '../../components/Icon';
 import { StretchyScroll } from '../../components/StretchyScroll';
@@ -22,14 +22,7 @@ export default function Profile() {
   const insets = useSafeAreaInsets();
   const { expenses, paid, groups } = useTrip();
   const [notify, setNotify] = useState(true);
-  // Tabs stay mounted, so the dark status bar (for the gradient) only applies while this tab is shown.
-  const [focused, setFocused] = useState(false);
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
+
   const mine = balancesFor(expenses).tu;
   const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
   const open = 2 + groups.length;
@@ -40,7 +33,7 @@ export default function Profile() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
-      {focused ? <StatusBar style="dark" /> : null}
+      <FocusStatusBar style="dark" />
       <StretchyScroll background={header} backgroundHeight={HEADER} contentContainerStyle={{ paddingBottom: 140 }}>
         <View style={{ height: HEADER, paddingTop: insets.top + 8, paddingHorizontal: 20, alignItems: 'center' }}>
           <T v="titleL" color={light.inkFixed} style={{ alignSelf: 'flex-start' }} accessibilityRole="header">
@@ -53,7 +46,7 @@ export default function Profile() {
             </View>
           </Animated.View>
           <Animated.View entering={at(180)} style={{ alignItems: 'center' }}>
-            <T v="titleM" color={light.inkFixed} style={{ marginTop: 14, fontSize: 24, lineHeight: 28 }}>
+            <T v="titleM" color={light.inkFixed} style={{ marginTop: 14 }}>
               Laura
             </T>
             <T v="label" color={light.inkMutedFixed} style={{ marginTop: 2 }}>
@@ -75,7 +68,7 @@ export default function Profile() {
                 <Icon name="arrow-left-right" size={20} color={t.inkFixed} />
               </View>
               <View style={{ flex: 1 }}>
-                <T v="bodyStrong" color={t.onPanel} style={{ fontSize: 17 }}>
+                <T v="bodyStrong" color={t.onPanel}>
                   {mine >= 0 ? 'Te deben' : 'Debes'} {eurText(Math.abs(mine))}
                 </T>
                 <T v="caption" color={t.onPanelMuted}>
