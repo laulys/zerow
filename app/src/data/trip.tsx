@@ -98,6 +98,9 @@ type TripState = {
   lastSaved: Expense | null;
   addExpense: (e: Expense) => void;
   paid: Set<string>;
+  /** Your share in Piso Calle Mayor (sample group without its own ledger yet). */
+  pisoPaid: boolean;
+  payPiso: () => void;
   markPaid: (t: Transfer) => void;
   unmarkPaid: (t: Transfer) => void;
 };
@@ -109,6 +112,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<Expense | null>(lunchDraft);
   const [lastSaved, setLastSaved] = useState<Expense | null>(null);
   const [paid, setPaid] = useState<Set<string>>(new Set());
+  const [pisoPaid, setPisoPaid] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>({});
 
@@ -127,6 +131,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
       draft,
       lastSaved,
       paid,
+      pisoPaid,
+      payPiso: () => setPisoPaid(true),
       markPaid: (t) => setPaid((s) => new Set(s).add(transferKey(t))),
       unmarkPaid: (t) =>
         setPaid((s) => {
@@ -153,7 +159,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
         setLastSaved(null);
       },
     }),
-    [groups, groupExpenses, expenses, draft, lastSaved, paid],
+    [groups, groupExpenses, expenses, draft, lastSaved, paid, pisoPaid],
   );
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
