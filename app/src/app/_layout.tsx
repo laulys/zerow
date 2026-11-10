@@ -3,17 +3,20 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { glassSheets } from '../components/Glass';
 import { TripProvider } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
-// Short tasks open as native sheets that hug their content (2.4, 5.1).
+// Short tasks open as native sheets that hug their content (2.4, 5.1). On iOS 26
+// they're clear, so the system draws its Liquid Glass (like Revolut's menus);
+// older iOS keeps the solid surface.
 const sheet = (bg: string) =>
   ({
     presentation: 'formSheet',
     sheetAllowedDetents: 'fitToContents',
     sheetGrabberVisible: true,
     sheetCornerRadius: 28,
-    contentStyle: { backgroundColor: bg },
+    contentStyle: { backgroundColor: glassSheets ? 'transparent' : bg },
   }) as const;
 
 export default function RootLayout() {

@@ -5,6 +5,7 @@ import { Icon, type IconName } from '../components/Icon';
 import { T, Tap } from '../components/ui';
 import { afterSheet } from '../data/session';
 import type { GroupKind } from '../data/trip';
+import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
 const options: { icon: IconName; title: string; hint: string; go: () => void }[] = [
@@ -24,13 +25,13 @@ export default function WhatToSplit() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <View style={{ paddingHorizontal: 16, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: t.surface }}>
+    <View style={{ paddingHorizontal: 16, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
       <T v="titleM" color={t.ink} style={{ marginBottom: 14, marginLeft: 4 }} accessibilityRole="header">
         ¿Qué quieres dividir?
       </T>
       {options.map((o) => (
-        <Tap key={o.title} onPress={o.go} accessibilityRole="button" accessibilityLabel={`${o.title}. ${o.hint}`} style={[styles.row, { backgroundColor: t.page }]}>
-          <View style={[styles.tile, { backgroundColor: t.surface }]}>
+        <Tap key={o.title} onPress={o.go} accessibilityRole="button" accessibilityLabel={`${o.title}. ${o.hint}`} style={[styles.row, { backgroundColor: t.fill }]}>
+          <View style={[styles.tile, { backgroundColor: t.fillStrong }]}>
             <Icon name={o.icon} size={20} color={t.ink} />
           </View>
           <View style={{ flex: 1, marginLeft: 12 }}>

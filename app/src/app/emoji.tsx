@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, T, Tap } from '../components/ui';
 import { pastGroups, useTrip } from '../data/trip';
 import { font } from '../theme/tokens';
+import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
 /** The last real emoji in what was typed: flags, ZWJ families, skin tones, keycaps. */
@@ -43,9 +44,9 @@ export default function GroupEmoji() {
   };
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: t.surface }}>
+    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
       <View style={{ alignItems: 'center' }}>
-        <Animated.View style={[styles.current, { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: chosen ? t.lime : t.line }, popStyle]} accessible accessibilityLabel={chosen ? `Emoji elegido: ${chosen}` : 'Sin emoji'}>
+        <Animated.View style={[styles.current, { backgroundColor: t.fill, borderColor: chosen ? t.lime : t.line }, popStyle]} accessible accessibilityLabel={chosen ? `Emoji elegido: ${chosen}` : 'Sin emoji'}>
           {chosen ? <Text style={styles.big}>{chosen}</Text> : <T v="caption" color={t.inkMuted}>Sin emoji</T>}
         </Animated.View>
         <T v="titleM" color={t.ink} style={{ marginTop: 14 }} accessibilityRole="header">
@@ -63,14 +64,14 @@ export default function GroupEmoji() {
         {group.suggestions.map((e) => {
           const on = e === chosen;
           return (
-            <Tap key={e} onPress={() => pick(e)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={e} style={[styles.option, { backgroundColor: 'rgba(255,255,255,0.07)', borderColor: on ? t.lime : 'rgba(255,255,255,0.08)' }]}>
+            <Tap key={e} onPress={() => pick(e)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={e} style={[styles.option, { backgroundColor: t.fill, borderColor: on ? t.lime : 'rgba(255,255,255,0.08)' }]}>
               <Text style={styles.mid}>{e}</Text>
             </Tap>
           );
         })}
       </View>
 
-      <Tap onPress={() => input.current?.focus()} accessibilityRole="none" style={[styles.field, { backgroundColor: t.page, borderColor: t.line }]}>
+      <Tap onPress={() => input.current?.focus()} accessibilityRole="none" style={[styles.field, { backgroundColor: t.fill, borderColor: t.line }]}>
         <Text style={styles.small}>☺️</Text>
         <TextInput
           ref={input}

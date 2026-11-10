@@ -23,6 +23,9 @@ export type Tokens = {
   selected: string;
   onSelected: string;
   danger: string;
+  /** Rows, fields and tiles that sit on a glass sheet: translucent so the glass shows. */
+  fill: string;
+  fillStrong: string;
 };
 
 export const light: Tokens = {
@@ -44,6 +47,8 @@ export const light: Tokens = {
   selected: '#121212',
   onSelected: '#FFFFFF',
   danger: '#C8372D',
+  fill: 'rgba(18,18,18,0.05)',
+  fillStrong: 'rgba(18,18,18,0.09)',
 };
 
 export const dark: Tokens = {
@@ -65,6 +70,8 @@ export const dark: Tokens = {
   selected: '#EEF3E8',
   onSelected: '#121212',
   danger: '#F0675E',
+  fill: 'rgba(255,255,255,0.07)',
+  fillStrong: 'rgba(255,255,255,0.12)',
 };
 
 /**
@@ -73,13 +80,15 @@ export const dark: Tokens = {
  */
 export const graphite: Tokens = {
   ...dark,
-  page: '#0B0B0C',
-  surface: '#17171A',
-  line: '#2A2A2F',
+  // Lifted from near-black (#0B0B0C) so the page reads as a surface, not a hole;
+  // every step above it moves up by the same amount to keep the layering.
+  page: '#141416',
+  surface: '#1D1D20',
+  line: '#2E2E33',
   ink: '#F2F2EE',
   inkMuted: '#A0A09B',
-  panel: '#1E1E22',
-  panelRaised: '#2A2A2F',
+  panel: '#232327',
+  panelRaised: '#2E2E33',
   onPanel: '#F5F5F1',
   onPanelMuted: '#A6A6A1',
   selected: '#F2F2EE',

@@ -139,7 +139,7 @@ export default function QuickSplit() {
         </T>
         <View style={styles.wrap}>
           {everyone.map((p) => (
-            <Chip key={p} label={name(p)} selected={who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} />} />
+            <Chip key={p} label={name(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} />} />
           ))}
         </View>
 

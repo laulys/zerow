@@ -88,6 +88,10 @@ export const pisoExpenses: Expense[] = [
 ];
 export const PISO_SHARE = 18.4;
 
+/** Emoji for the open groups (settled ones keep theirs in `pastEmoji`). */
+export const openEmoji: Record<string, string> = { lisboa: '🇵🇹', piso: '🔑' };
+export const kindEmoji: Record<GroupKind, string> = { viaje: '✈️', piso: '🏠', evento: '🎉', otro: '🧾' };
+
 /** Settled groups shown under "Anteriores" on Inicio. */
 export const pastGroups = [
   { id: 'roma', kind: 'Viaje', name: 'Roma', meta: 'Mar 2025 · 4 personas', total: 612.4, suggestions: ['🇮🇹', '✈️', '🍕', '🏟️', '🏖️', '⛰️', '🧳', '🍷'] },

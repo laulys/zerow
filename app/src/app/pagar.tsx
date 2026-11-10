@@ -12,6 +12,7 @@ import { Button, T, Tap } from '../components/ui';
 import { afterSheet } from '../data/session';
 import { useTrip } from '../data/trip';
 import { font, motion } from '../theme/tokens';
+import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
 type Method = { key: string; name: string; sub: string; icon?: IconName };
@@ -58,13 +59,13 @@ export default function Pay() {
     ) : m.key === 'paypal' ? (
       <PayPalTile />
     ) : (
-      <View style={[styles.tile, { backgroundColor: t.panelRaised }]}>
+      <View style={[styles.tile, { backgroundColor: t.fillStrong }]}>
         <Icon name={m.icon ?? 'landmark'} size={20} color={t.ink} />
       </View>
     );
 
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: t.surface }}>
+    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
       <View style={styles.head}>
         <Avatar id="ana" size={44} decorative={false} />
         <View>
@@ -81,7 +82,7 @@ export default function Pay() {
         <Money value={AMOUNT} size={64} color={t.ink} centsColor={t.inkMuted} />
       </View>
 
-      <Animated.View layout={LinearTransition.duration(motion.standard)} style={[styles.box, { backgroundColor: t.page }]}>
+      <Animated.View layout={LinearTransition.duration(motion.standard)} style={[styles.box, { backgroundColor: t.fill }]}>
         {choosing ? (
           methods.map((m, i) => (
             <Animated.View key={m.key} entering={FadeIn.duration(180)}>

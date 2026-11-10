@@ -59,7 +59,7 @@ type ButtonKind = 'primary' | 'secondary' | 'onGradient' | 'text';
 
 export function Button({ label, onPress, kind = 'primary', icon, leading, style, height = 56, color, disabled }: { label: string; onPress?: () => void; kind?: ButtonKind; icon?: IconName; leading?: ReactNode; style?: StyleProp<ViewStyle>; height?: number; color?: string; disabled?: boolean }) {
   const { t } = useTheme();
-  const bg = kind === 'primary' ? t.action : kind === 'onGradient' ? t.inkFixed : kind === 'secondary' ? t.surface : 'transparent';
+  const bg = kind === 'primary' ? t.action : kind === 'onGradient' ? t.inkFixed : kind === 'secondary' ? t.fill : 'transparent';
   const fg = color ?? (kind === 'primary' ? t.onAction : kind === 'onGradient' ? '#FFFFFF' : t.ink);
   return (
     <Tap
@@ -125,7 +125,7 @@ export function Chip({ label, selected, onPress, icon, leading, dashed, off }: {
       accessibilityState={{ selected: off === undefined ? !!selected : !off }}
       accessibilityLabel={label}
       style={[
-        { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: leading ? 6 : 14, paddingRight: 14, backgroundColor: selected ? t.selected : t.surface },
+        { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: leading ? 6 : 14, paddingRight: 14, backgroundColor: selected ? t.selected : t.fill },
         dashed && { backgroundColor: 'transparent', borderWidth: 1, borderColor: t.line },
         off && { opacity: 0.4 },
       ]}
