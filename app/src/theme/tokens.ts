@@ -67,6 +67,24 @@ export const dark: Tokens = {
   danger: '#F0675E',
 };
 
+/**
+ * Rediseño v2 ("Dark · Grafito" in Figma): neutral graphite surfaces so lime is
+ * the only colour. The old green-tinted `dark` stays for comparison.
+ */
+export const graphite: Tokens = {
+  ...dark,
+  page: '#0B0B0C',
+  surface: '#17171A',
+  line: '#2A2A2F',
+  ink: '#F2F2EE',
+  inkMuted: '#A0A09B',
+  panel: '#1E1E22',
+  panelRaised: '#2A2A2F',
+  onPanel: '#F5F5F1',
+  onPanelMuted: '#A6A6A1',
+  selected: '#F2F2EE',
+};
+
 /** The brand gradient (lime + mint), used only for brand moments. */
 export const gradientStops = ['#7FD8A8', '#B6EE7A', '#CBF26B', '#EFFBD2'] as const;
 

@@ -30,8 +30,10 @@ export default function QuickSplit() {
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [who, setWho] = useState<PersonId[]>(everyone);
   const amountRef = useRef<TextInputInstance>(null);
+  const before = useRef('84');
 
-  const base = Math.max(0, parseFloat(amountText.replace(',', '.')) || 0);
+  const typed = parseFloat(amountText.replace(',', '.'));
+  const base = Math.max(0, Number.isFinite(typed) ? typed : parseFloat(before.current.replace(',', '.')) || 0);
   const total = Math.round(base * (1 + tip / 100) * 100) / 100;
   const each = who.length ? Math.round((total / who.length) * 100) / 100 : 0;
   const owedToPayer = who.includes(payer) ? total - each : total;
@@ -88,42 +90,43 @@ export default function QuickSplit() {
         )}
 
         <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 20 }} accessible accessibilityLabel={`${eurText(each, currency)} cada uno`}>
-          <RollingMoney value={each} size={88} color={t.ink} centsColor={t.inkMuted} duration={motion.standard} currency={currency} />
+          <RollingMoney value={each} size={each >= 1000 ? 60 : 88} color={t.ink} centsColor={t.inkMuted} duration={motion.standard} currency={currency} />
           <T v="body" color={t.inkMuted} style={{ marginLeft: 8 }}>
             cada uno
           </T>
         </View>
 
-        {editingAmount ? (
-          <View style={styles.amountRow}>
-            <T v="label" color={t.inkMuted}>
-              Total sin propina
-            </T>
-            <TextInput
-              ref={amountRef}
-              value={amountText}
-              onChangeText={(v) => setAmountText(v.replace(/[^0-9.,]/g, ''))}
-              keyboardType="decimal-pad"
-              autoFocus
-              selectTextOnFocus
-              onBlur={() => setEditingAmount(false)}
-              style={[styles.amountInput, { color: t.ink, borderColor: t.line, backgroundColor: t.surface }]}
-              accessibilityLabel="Total sin propina"
-            />
-            <T v="label" color={t.inkMuted}>
-              {currency === 'EUR' ? '€' : 'US$'}
-            </T>
-          </View>
-        ) : (
-          <Tap onPress={() => setEditingAmount(true)} accessibilityRole="button" accessibilityLabel={`Total ${eurText(base, currency)}. Cambiar importe`} style={{ marginTop: 8, paddingVertical: 4 }}>
-            <T v="caption" color={t.inkMuted}>
-              <T v="caption" color={t.ink} style={{ textDecorationLine: 'underline' }}>
-                {eurText(base, currency)}
-              </T>
-              {tip ? ` + ${tip} % de propina = ${eurText(total, currency)}` : ''} · entre {who.length}
-            </T>
-          </Tap>
-        )}
+        <Tap onPress={() => amountRef.current?.focus()} accessibilityRole="none" style={[styles.totalField, { backgroundColor: t.surface, borderColor: editingAmount ? t.ink : t.line }]}>
+          <T v="label" color={t.inkMuted} style={{ flex: 1 }}>
+            Total de la cuenta
+          </T>
+          <TextInput
+            ref={amountRef}
+            value={editingAmount ? amountText : eurText(base, currency).replace(/ (€|US\$)$/, '')}
+            placeholder={eurText(base, currency).replace(/ (€|US\$)$/, '')}
+            placeholderTextColor={t.inkMuted}
+            onChangeText={(v) => setAmountText(v.replace(/[^0-9.,]/g, ''))}
+            onFocus={() => {
+              before.current = amountText;
+              setAmountText('');
+              setEditingAmount(true);
+            }}
+            onBlur={() => {
+              if (!amountText.trim()) setAmountText(before.current);
+              setEditingAmount(false);
+            }}
+            keyboardType="decimal-pad"
+            style={[styles.totalInput, { color: t.ink }]}
+            accessibilityLabel="Total de la cuenta, sin propina"
+          />
+          <T v="bodyStrong" color={t.ink}>
+            {currency === 'EUR' ? '€' : 'US$'}
+          </T>
+          <Icon name="pen" size={16} color={t.inkMuted} />
+        </Tap>
+        <T v="caption" color={t.inkMuted} style={{ marginTop: 8 }}>
+          {tip ? `+ ${tip} % de propina = ${eurText(total, currency)} · ` : ''}entre {who.length}
+        </T>
 
         <View style={[styles.pill, { backgroundColor: t.lime }]} accessibilityLiveRegion="polite">
           <T v="labelStrong" color={t.onLime}>
@@ -161,8 +164,8 @@ export default function QuickSplit() {
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, alignSelf: 'flex-start', minHeight: 44 },
   titleInput: { fontFamily: font.medium, fontSize: 22, marginTop: 4, height: 44, borderBottomWidth: 1 },
-  amountRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
-  amountInput: { fontFamily: font.medium, fontSize: 18, height: 44, minWidth: 110, borderRadius: 12, borderWidth: 1, paddingHorizontal: 12 },
+  totalField: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 52, borderRadius: 16, borderWidth: 1, paddingLeft: 16, paddingRight: 14, marginTop: 16 },
+  totalInput: { fontFamily: font.medium, fontSize: 17, minWidth: 60, textAlign: 'right', paddingVertical: 0 },
   pill: { alignSelf: 'flex-start', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, marginTop: 12 },
   section: { marginTop: 28, marginBottom: 10 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
