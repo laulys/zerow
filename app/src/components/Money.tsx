@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Text, View, type TextStyle } from 'react-native';
 import { eurText, formatEur, type Currency } from '../data/trip';
 import { font } from '../theme/tokens';
+import { NumericText } from './NumericText';
 
 /** Giant numeral with smaller, dimmer cents: "36,23 €". */
 export function Money({ value, size = 64, color, centsColor, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor: string; currency?: Currency }) {
@@ -60,7 +61,31 @@ export function useRollingNumber(target: number, duration = 400, from?: number):
   return Math.round(shown * 100) / 100;
 }
 
-export function RollingMoney(props: { value: number; size?: number; color: string; centsColor: string; duration?: number; from?: number; currency?: Currency }) {
-  const v = useRollingNumber(props.value, props.duration, props.from);
-  return <Money {...props} value={v} />;
+/**
+ * Money that changes on screen (the cards, a group's balance): the digits that
+ * change roll like SwiftUI's numericText, up or down with the value.
+ */
+export function RollingMoney({ value, size = 64, color, centsColor, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor: string; duration?: number; from?: number; currency?: Currency }) {
+  const last = useRef(value);
+  const down = value < last.current;
+  useEffect(() => {
+    last.current = value;
+  }, [value]);
+  const { whole, cents } = formatEur(value, currency);
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
+      <NumericText text={whole} countsDown={down} style={[numStyle(size), { color }]} label={eurText(value, currency)} />
+      <NumericText text={cents} countsDown={down} style={[numStyle(size / 2), { color: centsColor }]} label="" />
+    </View>
+  );
+}
+
+/** A small amount (a row's balance) with the same numeric transition. */
+export function RollingAmount({ value, style, currency = 'EUR' }: { value: number; style: TextStyle | TextStyle[]; currency?: Currency }) {
+  const last = useRef(value);
+  const down = value < last.current;
+  useEffect(() => {
+    last.current = value;
+  }, [value]);
+  return <NumericText text={eurText(value, currency)} countsDown={down} style={style} />;
 }

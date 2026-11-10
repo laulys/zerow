@@ -9,8 +9,8 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { Glass } from '../../components/Glass';
 import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
-import { Money, RollingMoney, useRollingNumber } from '../../components/Money';
-import { Button, Card, Hairline, IconButton, T, Tap } from '../../components/ui';
+import { Money, RollingAmount, RollingMoney } from '../../components/Money';
+import { Button, Card, Hairline, IconButton, T, Tap, type as typeScale } from '../../components/ui';
 import { PISO_SHARE, balancesFor, eurText, people, pisoGroup, settleUp, transferKey, usePisoBalance, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
 import { font, light, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
@@ -358,9 +358,7 @@ function Trip() {
 function RollingText({ value, color }: { value: number; color: string }) {
   return (
     <View style={{ height: 22, justifyContent: 'center' }}>
-      <T v="bodyStrong" color={color} style={{ fontVariant: ['tabular-nums'] }}>
-        {eurText(useRollingNumber(value, motion.numbers))}
-      </T>
+      <RollingAmount value={value} style={[typeScale.bodyStrong, { color, fontVariant: ['tabular-nums'] }]} />
     </View>
   );
 }
@@ -404,7 +402,7 @@ function ExpenseRow({ e, group }: { e: Expense; group: string }) {
           {e.title}
         </T>
         <T v="caption" color={t.inkMuted}>
-          Pagó {people[e.payer].name} · {who}
+          {e.payer === 'tu' ? 'Pagaste tú' : `Pagó ${people[e.payer].name}`} · {who}
           {e.note ? ` · ${e.note}` : ''}
         </T>
       </View>
