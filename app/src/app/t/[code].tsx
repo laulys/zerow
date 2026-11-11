@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, useReducedMotion, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, AvatarStack } from '../../components/Avatar';
 import { BrandGradient } from '../../components/BrandGradient';
@@ -13,6 +13,20 @@ import { font, light } from '../../theme/tokens';
 import { invite, people, useTrip } from '../../data/trip';
 import { useTheme } from '../../theme/useTheme';
 
+// The ticket settles in: it rises a little from 94 % with a strong ease-out and
+// no overshoot (the old spring started from nothing and bounced past full size).
+const ticketIn = () => {
+  'worklet';
+  const ease = Easing.bezier(0.23, 1, 0.32, 1);
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 16 }, { scale: 0.94 }] },
+    animations: {
+      opacity: withDelay(120, withTiming(1, { duration: 280, easing: Easing.out(Easing.quad) })),
+      transform: [{ translateY: withDelay(120, withTiming(0, { duration: 480, easing: ease })) }, { scale: withDelay(120, withTiming(1, { duration: 480, easing: ease })) }],
+    },
+  };
+};
+
 const facts = ['Lo que pagaron antes no te toca', 'Verás los gastos y podrás añadir los tuyos', 'Nada cuenta hasta que alguien lo confirma'];
 
 // 5.2 Te invitaron (option A): the invitation is a ticket on the brand gradient,
@@ -22,6 +36,7 @@ export default function Invited() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const at = (ms: number) => FadeInDown.delay(ms).duration(300);
+  const reduce = useReducedMotion();
 
   const { groups, createGroup } = useTrip();
   const from = people[invite.from].name;
@@ -43,7 +58,7 @@ export default function Invited() {
           </T>
         </Animated.View>
 
-        <Animated.View entering={ZoomIn.springify().damping(16).delay(120)} style={{ marginTop: 20 }}>
+        <Animated.View entering={reduce ? undefined : ticketIn} style={{ marginTop: 20 }}>
           <View accessible accessibilityLabel={`${invite.name}, ${invite.dates}, en euros. ${invite.inside.map((p) => people[p].name).join(', ')} ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.`}>
             <BrandGradient style={styles.ticket} seed={8}>
               <View style={styles.top}>
