@@ -175,7 +175,7 @@ function ListeningEmpty({ group }: { group: Group }) {
                 {group.name}
               </T>
               <T v="caption" color={t.inkMuted}>
-                Saldo 0,00 {sym} · sin gastos
+                Saldo 0,00 {sym}
               </T>
             </View>
           </View>
