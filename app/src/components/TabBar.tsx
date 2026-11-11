@@ -54,7 +54,7 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
                 style={[styles.tab, on && { backgroundColor: t.onPanel }]}
               >
                 <Icon name={tab.icon} size={20} color={color} />
-                <T v="caption" color={color} style={styles.tabLabel}>
+                <T v="caption" color={color} style={styles.tabLabel} maxFontSizeMultiplier={1}>
                   {tab.label}
                 </T>
               </Tap>

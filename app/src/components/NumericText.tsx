@@ -48,6 +48,7 @@ function Cell({ char, style, dir, delay }: { char: string; style: StyleProp<Text
   const p = useSharedValue(1);
   const d = useSharedValue(dir);
   const size = (StyleSheet.flatten(style)?.fontSize as number) ?? 16;
+  const cap = size >= 28 ? 1.15 : undefined;
 
   useEffect(() => {
     if (char === state.cur) return;
@@ -73,13 +74,21 @@ function Cell({ char, style, dir, delay }: { char: string; style: StyleProp<Text
   }));
 
   return (
-    <Animated.View entering={reduce ? undefined : FadeIn.duration(220)} exiting={reduce ? undefined : FadeOut.duration(160)} layout={reduce ? undefined : LinearTransition.duration(DURATION).easing(ease)}>
+    <Animated.View
+      entering={reduce ? undefined : FadeIn.duration(220)}
+      exiting={reduce ? undefined : FadeOut.duration(160)}
+      layout={reduce ? undefined : LinearTransition.duration(DURATION).easing(ease)}
+    >
       <Animated.View style={inStyle}>
-        <Text style={style}>{state.cur}</Text>
+        <Text style={style} maxFontSizeMultiplier={cap}>
+          {state.cur}
+        </Text>
       </Animated.View>
       {state.old !== null ? (
         <Animated.View style={[StyleSheet.absoluteFill, outStyle]} pointerEvents="none">
-          <Text style={style}>{state.old}</Text>
+          <Text style={style} maxFontSizeMultiplier={cap}>
+            {state.old}
+          </Text>
         </Animated.View>
       ) : null}
     </Animated.View>
