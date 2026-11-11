@@ -233,7 +233,7 @@ export type PersonBalance = { id: Exclude<PersonId, 'tu'>; net: number; parts: P
 
 /**
  * What you and each person owe each other across the open groups, for the
- * "Personas" row on Inicio. Lisboa uses the settle-up transfers still unpaid;
+ * "Contactos" row on Inicio. Lisboa uses the settle-up transfers still unpaid;
  * Piso is your share to Ana; groups made in the app add theirs (euros only).
  * Ordered with pending money first.
  */

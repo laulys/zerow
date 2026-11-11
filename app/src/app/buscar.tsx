@@ -90,7 +90,7 @@ export default function Search() {
   const match = (r: Row) => !term || fold(`${r.title} ${r.sub}`).includes(term);
   const sections = [
     { title: 'Grupos', rows: groupRows.filter(match) },
-    { title: 'Personas', rows: personRows.filter(match) },
+    { title: 'Contactos', rows: personRows.filter(match) },
     { title: 'Gastos', rows: term ? expenseRows.filter(match) : [] },
   ].filter((s) => s.rows.length);
 
@@ -103,7 +103,7 @@ export default function Search() {
             value={q}
             onChangeText={setQ}
             autoFocus
-            placeholder="Grupos, personas o gastos"
+            placeholder="Grupos, contactos o gastos"
             placeholderTextColor={t.inkMuted}
             selectionColor={t.lime}
             returnKeyType="search"
@@ -144,17 +144,10 @@ export default function Search() {
                   <View key={r.key}>
                     <Tap onPress={r.go} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.sub}${r.right ? `. ${r.right}` : ''}`} style={styles.row}>
                       {r.lead.avatar ? (
-                        <Avatar id={r.lead.avatar} size={40} />
+                        <Avatar id={r.lead.avatar} size={40} bg={t.panelRaised} />
                       ) : (
-                        <View
-                          style={[
-                            styles.tile,
-                            {
-                              backgroundColor: 'rgba(255,255,255,0.07)',
-                              borderColor: 'rgba(255,255,255,0.08)',
-                            },
-                          ]}
-                        >
+                        // Solid, one step above the card, no border: same as the faces in Contactos.
+                        <View style={[styles.tile, { backgroundColor: t.panelRaised }]}>
                           {r.lead.emoji ? <Text style={styles.emoji}>{r.lead.emoji}</Text> : <Icon name={r.lead.icon ?? 'shapes'} size={20} color={t.ink} />}
                         </View>
                       )}
@@ -184,7 +177,7 @@ export default function Search() {
               Nada con «{q.trim()}»
             </T>
             <T v="label" color={t.inkMuted} style={{ marginTop: 4, textAlign: 'center' }}>
-              Prueba con el nombre de un grupo, de una persona o de un gasto.
+              Prueba con el nombre de un grupo, de un contacto o de un gasto.
             </T>
           </View>
         )}
@@ -223,7 +216,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

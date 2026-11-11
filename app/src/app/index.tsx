@@ -150,6 +150,6 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, paddingHorizontal: 20 },
   bubble: { alignSelf: 'flex-end', borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },
   speaker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, marginBottom: 6, marginLeft: 2 },
-  card: { borderRadius: 22, padding: 18, paddingTop: 0 },
+  card: { borderRadius: 26, padding: 18, paddingTop: 0 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
 });

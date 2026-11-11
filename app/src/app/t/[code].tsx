@@ -32,7 +32,7 @@ export default function Invited() {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
         <Animated.View entering={at(0)} style={styles.from}>
-          <Avatar id="ana" size={36} />
+          <Avatar id="ana" size={36} bg={t.surface} />
           <T v="bodyStrong" color={t.ink}>
             Ana te invita a un viaje
           </T>
@@ -49,7 +49,7 @@ export default function Invited() {
                   12–18 nov · Portugal · en euros
                 </T>
                 <View style={styles.people}>
-                  <AvatarStack ids={['ana', 'luis', 'marta']} size={44} outline="#D3F27F" />
+                  <AvatarStack ids={['ana', 'luis', 'marta']} size={44} outline="#D3F27F" on="lime" />
                   <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium }}>
                     3 personas ya dentro
                   </T>
@@ -99,7 +99,7 @@ export default function Invited() {
 
 const styles = StyleSheet.create({
   from: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ticket: { borderRadius: 28 },
+  ticket: { borderRadius: 32 },
   top: { padding: 24, paddingBottom: 20 },
   trip: { marginBottom: 6 },
   people: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 20 },

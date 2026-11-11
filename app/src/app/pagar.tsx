@@ -142,7 +142,7 @@ export default function Pay() {
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  box: { borderRadius: 18, marginTop: 14, overflow: 'hidden' },
+  box: { borderRadius: 22, marginTop: 14, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12, minHeight: 64 },
   tile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   other: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: 4 },
