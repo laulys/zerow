@@ -172,7 +172,8 @@ export function Card({ children, style, bg, sheen }: { children: ReactNode; styl
 }
 
 export function Hairline({ color, inset = 0 }: { color: string; inset?: number }) {
-  return <View style={{ height: StyleSheet.hairlineWidth * 2, backgroundColor: color, marginLeft: inset, opacity: 0.6 }} />;
+  // Soft: rows are already separated by spacing; the line only hints at the break.
+  return <View style={{ height: StyleSheet.hairlineWidth * 2, backgroundColor: color, marginLeft: inset, opacity: 0.35 }} />;
 }
 
 /** Pill used for choices (type, people, settings). Selected is neutral, never lime. */

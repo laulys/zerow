@@ -175,9 +175,11 @@ export default function Home() {
         {/* Quick actions, by how often you need them: add (the main one, on the brand
             gradient) · settle (a pending task, with its count) · split a bill. */}
         <View style={styles.actions}>
-          <QuickAction icon="mic" small="Añadir" big="Gasto" brand onPress={() => router.push('/nuevo')} />
-          <QuickAction icon="arrow-left-right" small="Saldar" big={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
-          <QuickAction icon="receipt" small="Dividir" big="Cuenta" onPress={() => router.push('/cuenta')} />
+          <AddExpense onPress={() => router.push('/nuevo')} />
+          <View style={{ flex: 1, gap: 8 }}>
+            <ActionRow icon="arrow-left-right" title="Saldar" sub={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
+            <ActionRow icon="receipt" title="Dividir" sub="Cuenta" onPress={() => router.push('/cuenta')} />
+          </View>
         </View>
 
         <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
@@ -219,8 +221,7 @@ export default function Home() {
         <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
           Anteriores
         </T>
-        {/* No sheen here: the glow above already lights this screen; a third shine would crowd it. */}
-        <Card bg={t.surface} sheen={false} style={{ paddingVertical: 4 }}>
+        <Card bg={t.surface} style={{ paddingVertical: 4 }}>
           {pastGroups.map((p, i) => (
             <View key={p.id}>
               <Tap
@@ -323,36 +324,46 @@ function CardTop({ title, meta, people, peek }: { title: string; meta: string; p
   );
 }
 
-function QuickAction({ icon, small, big, brand, onPress }: { icon: IconName; small: string; big: string; brand?: boolean; onPress: () => void }) {
-  const { t } = useTheme();
-  const fg = brand ? light.inkFixed : t.ink;
-  const sub = brand ? light.inkMutedFixed : t.inkMuted;
-  const body = (
-    <>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Icon name={icon} size={22} color={fg} />
-      </View>
-      <View>
-        <T v="caption" color={sub} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-          {small}
-        </T>
-        <T v="bodyStrong" color={fg} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-          {big}
-        </T>
-      </View>
-    </>
-  );
+/** The main action, on the brand gradient: the mic sits in a round, see-through disc. */
+function AddExpense({ onPress }: { onPress: () => void }) {
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${small} ${big}`} style={{ flex: 1 }}>
-      {brand ? (
-        <BrandGradient style={styles.action} seed={11}>
-          {body}
-        </BrandGradient>
-      ) : (
-        <Card bg={t.surface} style={[styles.action, { padding: 14 }]}>
-          {body}
-        </Card>
-      )}
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel="Añadir gasto. Dilo o escríbelo" style={{ flex: 1 }}>
+      <BrandGradient style={styles.addTile} seed={11}>
+        <View style={styles.micDisc}>
+          <Icon name="mic" size={20} color={light.inkFixed} />
+        </View>
+        <View>
+          <T v="titleM" color={light.inkFixed} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            Añadir gasto
+          </T>
+          <T v="caption" color={light.inkMutedFixed} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            Dilo o escríbelo
+          </T>
+        </View>
+      </BrandGradient>
+    </Tap>
+  );
+}
+
+/** A secondary action as a short row: icon, title with its detail, and a chevron because it opens a screen. */
+function ActionRow({ icon, title, sub, onPress }: { icon: IconName; title: string; sub: string; onPress: () => void }) {
+  const { t } = useTheme();
+  return (
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={{ flex: 1 }}>
+      <Card bg={t.surface} style={styles.actionRow}>
+        <View style={[styles.rowDisc, { backgroundColor: t.panelRaised }]}>
+          <Icon name={icon} size={16} color={t.ink} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <T v="labelStrong" color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            {title}
+          </T>
+          <T v="caption" color={t.inkMuted} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+            {sub}
+          </T>
+        </View>
+        <Icon name="chevron-right" size={16} color={t.inkMuted} />
+      </Card>
     </Tap>
   );
 }
@@ -414,15 +425,15 @@ function SpentOn({ expenses }: { expenses: Expense[] }) {
   );
 }
 
-/** The one thing to do on a card, as a real button shape: dark pill, lime words. */
+/** The one thing to do on a card, as a real button shape: a see-through dark pill, like the mic disc. */
 function ActionPill({ label, dot }: { label: string; dot?: boolean }) {
   return (
-    <View style={[styles.pill, { backgroundColor: light.inkFixed }]}>
+    <View style={styles.pill}>
       {dot ? <View style={styles.pillDot} /> : null}
-      <T v="caption" color="#CBF26B" style={{ fontFamily: font.medium }} maxFontSizeMultiplier={1.4}>
+      <T v="caption" color={light.inkFixed} style={{ fontFamily: font.medium }} maxFontSizeMultiplier={1.4}>
         {label}
       </T>
-      <Icon name="chevron-right" size={14} color="#CBF26B" />
+      <Icon name="chevron-right" size={14} color={light.inkFixed} />
     </View>
   );
 }
@@ -438,12 +449,15 @@ const FACE = 60;
 const styles = StyleSheet.create({
   emoji: { fontSize: 22, lineHeight: 28 },
   tabular: { fontVariant: ['tabular-nums'] },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
-  action: { height: 104, borderRadius: 22, padding: 14, justifyContent: 'space-between' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 20, height: 128 },
+  addTile: { height: 128, borderRadius: 22, padding: 16, justifyContent: 'space-between' },
+  micDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(18,18,18,0.12)', alignItems: 'center', justifyContent: 'center' },
+  actionRow: { flex: 1, borderRadius: 20, paddingVertical: 0, paddingLeft: 12, paddingRight: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowDisc: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   track: { height: 8, borderRadius: 4, overflow: 'hidden' },
   bar: { height: 8, borderRadius: 4 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, paddingLeft: 12, paddingRight: 10, paddingVertical: 7 },
-  pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#CBF26B' },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, paddingLeft: 12, paddingRight: 10, paddingVertical: 7, backgroundColor: 'rgba(18,18,18,0.12)' },
+  pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: light.inkFixed },
   cardBody: { flex: 1, padding: 20, paddingBottom: 18 },
   people: { paddingHorizontal: 20, gap: 14 },
   person: { minWidth: 64, alignItems: 'center' },
