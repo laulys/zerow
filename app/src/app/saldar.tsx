@@ -105,7 +105,7 @@ export default function SettleUp() {
               {eurText(total)} en {expenses.length} gastos · saldado con {transfers.length} pagos
             </T>
             <View style={{ marginTop: 18 }}>
-              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={40} outline="#D3F27F" />
+              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={40} outline="#D3F27F" on="lime" />
             </View>
           </BrandGradient>
         </Animated.View>
@@ -217,9 +217,9 @@ function TransferLine({ x }: { x: Transfer }) {
 
 const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  mano: { borderRadius: 24, padding: 20 },
+  mano: { borderRadius: 28, padding: 20 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 6 },
   paidRow: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 52, paddingLeft: 14, paddingRight: 10 },
   undo: { height: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 22 },
-  balancesToggle: { marginTop: 4, height: 52, borderRadius: 16, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
+  balancesToggle: { marginTop: 4, height: 52, borderRadius: 20, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16 },
 });

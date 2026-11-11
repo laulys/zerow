@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
-import Animated, { Easing, FadeInDown, ZoomIn, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../../components/Avatar';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
@@ -15,6 +15,19 @@ import { useTheme } from '../../theme/useTheme';
 
 const HEADER = 392;
 
+// The Memoji settles in: it fades up from 94 % with a strong ease-out and no
+// overshoot (the old spring started from nothing and bounced past full size).
+const settleIn = () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.94 }] },
+    animations: {
+      opacity: withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }),
+      transform: [{ scale: withTiming(1, { duration: 420, easing: Easing.bezier(0.23, 1, 0.32, 1) }) }],
+    },
+  };
+};
+
 // 2.3 Perfil: you, on the brand gradient, then the one thing worth acting on
 // (what you're owed) and a plain settings list. Pull down and the gradient stretches.
 export default function Profile() {
@@ -23,6 +36,7 @@ export default function Profile() {
   const { expenses, paid, groups } = useTrip();
   const [notify, setNotify] = useState(true);
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
+  const reduce = useReducedMotion();
 
   const mine = balancesFor(expenses).tu;
   const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
@@ -40,10 +54,10 @@ export default function Profile() {
           <T v="titleL" color={light.inkFixed} style={{ alignSelf: 'flex-start' }} accessibilityRole="header">
             Perfil
           </T>
-          <Animated.View entering={ZoomIn.springify().damping(14)} style={{ marginTop: 14 }}>
+          <Animated.View entering={reduce ? undefined : settleIn} style={{ marginTop: 14 }}>
             <Ring />
             <View style={styles.avatar}>
-              <Avatar id="tu" size={104} decorative={false} />
+              <Avatar id="tu" size={104} decorative={false} on="lime" />
             </View>
           </Animated.View>
           <Animated.View entering={at(180)} style={{ alignItems: 'center' }}>
@@ -138,7 +152,7 @@ const styles = StyleSheet.create({
   avatar: { position: 'absolute', top: 10, left: 10 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(18,18,18,0.08)', borderWidth: 1, borderColor: 'rgba(18,18,18,0.22)' },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  highlight: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 22, padding: 16, minHeight: 76 },
+  highlight: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 26, padding: 16, minHeight: 76 },
   highlightIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 58 },
 });

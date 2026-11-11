@@ -109,6 +109,6 @@ const slug = (s: string) =>
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 16, paddingLeft: 16, paddingRight: 6, height: 56, marginTop: 20 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, paddingLeft: 16, paddingRight: 6, height: 56, marginTop: 20 },
   copy: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12, borderRadius: 12 },
 });

@@ -102,6 +102,6 @@ export default function Person() {
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  box: { borderRadius: 18, marginTop: 16, overflow: 'hidden' },
+  box: { borderRadius: 22, marginTop: 16, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 60 },
 });

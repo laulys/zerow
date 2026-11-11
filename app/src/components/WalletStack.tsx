@@ -1,10 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { PanResponder, Pressable, StyleSheet, View } from 'react-native';
-import Animated, { FadeInDown, LinearTransition, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { PanResponder, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import Animated, { FadeInDown, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import { useTheme } from '../theme/useTheme';
 
-export type WalletCard = { key: string; title: string; content: ReactNode; onPress?: () => void };
+/** `content` can be a function of whether the card is in front (the one behind only shows its top strip). */
+export type WalletCard = { key: string; title: string; content: ReactNode | ((front: boolean) => ReactNode); onPress?: () => void };
+const face = (c: WalletCard, front: boolean) => (typeof c.content === 'function' ? c.content(front) : c.content);
 
 const CARD_H = 250;
 const PEEK = 48;
@@ -16,7 +18,7 @@ const settle = { damping: 17, stiffness: 220, mass: 0.9 } as const;
 
 /**
  * Open groups as a stack of cards, like Apple Wallet. Swipe the front card
- * sideways and the one behind comes forward on a spring; the dots below (and
+ * sideways and the one behind comes forward on a spring; tapping its edge (or
  * VoiceOver's swipe up/down) do the same. Built on PanResponder, so it needs no
  * extra native module.
  */
@@ -78,11 +80,17 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
 
   const current = cards[Math.min(front, n - 1)];
   const behind = n > 1 ? cards[(front + 1) % n] : null;
+  // Larger text needs a taller card; the stack grows with the reading size
+  // (up to 1.5×) instead of clipping the balance.
+  const { fontScale } = useWindowDimensions();
+  const cardH = Math.round(CARD_H * Math.min(Math.max(fontScale, 1), 1.5));
+  // With one group there is nothing peeking, so no room is kept for it.
+  const peek = behind ? PEEK : 0;
 
   return (
     <View>
       <View
-        style={{ height: CARD_H + PEEK }}
+        style={{ height: cardH + peek }}
         accessible
         accessibilityRole="adjustable"
         accessibilityLabel={`${current.title}. Grupo ${front + 1} de ${n}`}
@@ -94,9 +102,9 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
         }}
       >
         {behind ? (
-          <Animated.View key={'back-' + behind.key} entering={FadeInDown.springify().damping(15).stiffness(160)} style={styles.slot} pointerEvents="none">
+          <Animated.View key={'back-' + behind.key} entering={FadeInDown.springify().damping(15).stiffness(160)} style={[styles.slot, { top: peek, height: cardH }]} pointerEvents="none">
             <Animated.View style={[styles.card, backStyle]}>
-              {behind.content}
+              {face(behind, false)}
               <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: t.page }, dimStyle]} />
             </Animated.View>
           </Animated.View>
@@ -114,21 +122,12 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
             style={styles.peek}
           />
         ) : null}
-        <Animated.View key={'front-' + current.key} style={[styles.slot, styles.card, frontStyle]} {...responder.panHandlers}>
+        <Animated.View key={'front-' + current.key} style={[styles.slot, { top: peek, height: cardH }, styles.card, frontStyle]} {...responder.panHandlers}>
           <Pressable onPress={current.onPress} style={{ flex: 1 }} disabled={!current.onPress}>
-            {current.content}
+            {face(current, true)}
           </Pressable>
         </Animated.View>
       </View>
-      {n > 1 ? (
-        <View style={styles.dots}>
-          {cards.map((c, i) => (
-            <Pressable key={c.key} onPress={() => setFront(i)} accessibilityRole="button" accessibilityLabel={`Ver ${c.title}`} hitSlop={10}>
-              <Animated.View layout={LinearTransition.springify().damping(18)} style={[styles.dot, { width: i === front ? 18 : 6, backgroundColor: i === front ? t.ink : t.line }]} />
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -136,7 +135,5 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
 const styles = StyleSheet.create({
   slot: { position: 'absolute', top: PEEK, left: 0, right: 0, height: CARD_H },
   peek: { position: 'absolute', top: 0, left: 16, right: 16, height: PEEK },
-  card: { flex: 1, borderRadius: 28, overflow: 'hidden' },
-  dots: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: 14 },
-  dot: { height: 6, borderRadius: 3 },
+  card: { flex: 1, borderRadius: 32, overflow: 'hidden' },
 });

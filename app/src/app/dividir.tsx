@@ -50,6 +50,6 @@ export default function WhatToSplit() {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', borderRadius: 16, padding: 12, paddingRight: 16, marginBottom: 8, minHeight: 64 },
+  row: { flexDirection: 'row', alignItems: 'center', borderRadius: 20, padding: 12, paddingRight: 16, marginBottom: 8, minHeight: 64 },
   tile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

@@ -82,13 +82,16 @@ export const graphite: Tokens = {
   ...dark,
   // Lifted from near-black (#0B0B0C) so the page reads as a surface, not a hole;
   // every step above it moves up by the same amount to keep the layering.
+  // Cards sit one clear step above the page (1.16:1, Apple's dark grouped step is
+  // 1.23:1); panel and raised keep the same spacing above them, and the line moves
+  // up too so dividers still read on the lighter card. Muted text stays ≥ 4.85:1.
   page: '#141416',
-  surface: '#1D1D20',
-  line: '#2E2E33',
+  surface: '#222226',
+  line: '#34343A',
   ink: '#F2F2EE',
   inkMuted: '#A0A09B',
-  panel: '#232327',
-  panelRaised: '#2E2E33',
+  panel: '#28282D',
+  panelRaised: '#323238',
   onPanel: '#F5F5F1',
   onPanelMuted: '#A6A6A1',
   selected: '#F2F2EE',

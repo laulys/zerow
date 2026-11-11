@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 import { Icon, type IconName } from './Icon';
@@ -11,6 +11,8 @@ export const type = StyleSheet.create({
   display: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -1.2 },
   titleL: { fontFamily: font.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
   titleM: { fontFamily: font.medium, fontSize: 22, lineHeight: 26, letterSpacing: -0.3 },
+  /** Section headers on a screen (Contactos, Anteriores): a step under the card titles, like iOS grouped headers. */
+  section: { fontFamily: font.medium, fontSize: 19, lineHeight: 24, letterSpacing: -0.2 },
   body: { fontFamily: font.regular, fontSize: 16, lineHeight: 22 },
   bodyStrong: { fontFamily: font.medium, fontSize: 16, lineHeight: 22 },
   label: { fontFamily: font.regular, fontSize: 14, lineHeight: 18 },
@@ -57,7 +59,27 @@ export function Tap({ style, children, onPressIn, onPressOut, ...props }: Pressa
 
 type ButtonKind = 'primary' | 'secondary' | 'onGradient' | 'text';
 
-export function Button({ label, onPress, kind = 'primary', icon, leading, style, height = 56, color, disabled }: { label: string; onPress?: () => void; kind?: ButtonKind; icon?: IconName; leading?: ReactNode; style?: StyleProp<ViewStyle>; height?: number; color?: string; disabled?: boolean }) {
+export function Button({
+  label,
+  onPress,
+  kind = 'primary',
+  icon,
+  leading,
+  style,
+  height = 56,
+  color,
+  disabled,
+}: {
+  label: string;
+  onPress?: () => void;
+  kind?: ButtonKind;
+  icon?: IconName;
+  leading?: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  height?: number;
+  color?: string;
+  disabled?: boolean;
+}) {
   const { t } = useTheme();
   const bg = kind === 'primary' ? t.action : kind === 'onGradient' ? t.inkFixed : kind === 'secondary' ? t.fill : 'transparent';
   const fg = color ?? (kind === 'primary' ? t.onAction : kind === 'onGradient' ? '#FFFFFF' : t.ink);
@@ -68,7 +90,12 @@ export function Button({ label, onPress, kind = 'primary', icon, leading, style,
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
-      style={[disabled && { opacity: 0.4 }, { height, borderRadius: height / 2, backgroundColor: bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 20 }, kind === 'secondary' && { borderWidth: 1, borderColor: t.line }, style]}
+      style={[
+        disabled && { opacity: 0.4 },
+        { height, borderRadius: height / 2, backgroundColor: bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 20 },
+        kind === 'secondary' && { borderWidth: 1, borderColor: t.line },
+        style,
+      ]}
     >
       {leading}
       {icon ? <Icon name={icon} size={18} color={fg} /> : null}
@@ -81,7 +108,12 @@ export function Button({ label, onPress, kind = 'primary', icon, leading, style,
 
 export function IconButton({ name, label, onPress, bg, color, size = 44 }: { name: IconName; label: string; onPress?: () => void; bg: string; color: string; size?: number }) {
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+    <Tap
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}
+    >
       <Icon name={name} size={20} color={color} />
     </Tap>
   );
@@ -106,8 +138,37 @@ export function Lockup({ color, size = 32 }: { color: string; size?: number }) {
   );
 }
 
-export function Card({ children, style, bg }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg: string }) {
-  return <View style={[{ backgroundColor: bg, borderRadius: 20, padding: 16 }, style]}>{children}</View>;
+/**
+ * Dark cards catch a little of the lime glow: a soft green sheen from the top
+ * right corner that fades out before the middle, like light from the screen's
+ * glow falling on the card (Revolut does the same with its wallpaper). Only on
+ * the graphite surfaces; lime cards stay flat. Text sits on the plain part, so
+ * contrast doesn't change where it matters.
+ */
+export function Card({ children, style, bg, sheen }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg: string; sheen?: boolean }) {
+  const { t } = useTheme();
+  const id = useId().replace(/:/g, '');
+  const radius = (StyleSheet.flatten(style)?.borderRadius as number | undefined) ?? 26;
+  const glow = sheen ?? (bg === t.surface || bg === t.panel);
+  return (
+    <View style={[{ backgroundColor: bg, borderRadius: 26, padding: 16 }, style]}>
+      {glow ? (
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: 'hidden' }]}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <LinearGradient id={`sheen${id}`} x1="1" y1="0" x2="0.15" y2="0.9">
+                <Stop offset="0" stopColor={t.lime} stopOpacity={0.09} />
+                <Stop offset="0.35" stopColor={t.lime} stopOpacity={0.035} />
+                <Stop offset="0.7" stopColor={t.lime} stopOpacity={0} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill={`url(#sheen${id})`} />
+          </Svg>
+        </View>
+      ) : null}
+      {children}
+    </View>
+  );
 }
 
 export function Hairline({ color, inset = 0 }: { color: string; inset?: number }) {
@@ -115,7 +176,23 @@ export function Hairline({ color, inset = 0 }: { color: string; inset?: number }
 }
 
 /** Pill used for choices (type, people, settings). Selected is neutral, never lime. */
-export function Chip({ label, selected, onPress, icon, leading, dashed, off }: { label: string; selected?: boolean; onPress?: () => void; icon?: IconName; leading?: ReactNode; dashed?: boolean; off?: boolean }) {
+export function Chip({
+  label,
+  selected,
+  onPress,
+  icon,
+  leading,
+  dashed,
+  off,
+}: {
+  label: string;
+  selected?: boolean;
+  onPress?: () => void;
+  icon?: IconName;
+  leading?: ReactNode;
+  dashed?: boolean;
+  off?: boolean;
+}) {
   const { t } = useTheme();
   const fg = selected ? t.onSelected : t.ink;
   return (
@@ -147,7 +224,13 @@ export function Segmented<K extends string>({ options, value, onChange }: { opti
       {options.map((o) => {
         const on = o.key === value;
         return (
-          <Tap key={o.key} onPress={() => onChange(o.key)} accessibilityRole="radio" accessibilityState={{ checked: on }} style={{ flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}>
+          <Tap
+            key={o.key}
+            onPress={() => onChange(o.key)}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+            style={{ flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}
+          >
             <T v="labelStrong" color={on ? t.onLime : t.ink}>
               {o.label}
             </T>
