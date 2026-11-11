@@ -5,12 +5,20 @@ import { font } from '../theme/tokens';
 import { NumericText } from './NumericText';
 
 /** Giant numeral with smaller, dimmer cents: "36,23 €". */
+/** Text at 28 pt and up is display type: cap its growth at 1.15x so the layout holds at the largest sizes. */
+export const displayCap = (size: number) => (size >= 28 ? 1.15 : undefined);
+
 export function Money({ value, size = 64, color, centsColor, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor: string; currency?: Currency }) {
   const { whole, cents } = formatEur(value, currency);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
-      <Text style={[numStyle(size), { color }]}>{whole}</Text>
-      <Text style={[numStyle(size / 2), { color: centsColor }]}>{cents}</Text>
+      {/* Display-size figures are already large, so they grow only a little with Dynamic Type. */}
+      <Text style={[numStyle(size), { color }]} maxFontSizeMultiplier={displayCap(size)}>
+        {whole}
+      </Text>
+      <Text style={[numStyle(size / 2), { color: centsColor }]} maxFontSizeMultiplier={displayCap(size)}>
+        {cents}
+      </Text>
     </View>
   );
 }
@@ -65,7 +73,21 @@ export function useRollingNumber(target: number, duration = 400, from?: number):
  * Money that changes on screen (the cards, a group's balance): the digits that
  * change roll like SwiftUI's numericText, up or down with the value.
  */
-export function RollingMoney({ value, size = 64, color, centsColor, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor: string; duration?: number; from?: number; currency?: Currency }) {
+export function RollingMoney({
+  value,
+  size = 64,
+  color,
+  centsColor,
+  currency = 'EUR',
+}: {
+  value: number;
+  size?: number;
+  color: string;
+  centsColor: string;
+  duration?: number;
+  from?: number;
+  currency?: Currency;
+}) {
   const last = useRef(value);
   const down = value < last.current;
   useEffect(() => {

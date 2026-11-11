@@ -180,7 +180,7 @@ export default function Home() {
             <View style={[styles.face, styles.addFace, { borderColor: t.inkMuted }]}>
               <Icon name="plus" size={22} color={t.ink} />
             </View>
-            <T v="caption" color={t.inkMuted} style={styles.personName}>
+            <T v="caption" color={t.inkMuted} style={styles.personName} numberOfLines={1} maxFontSizeMultiplier={1.4}>
               Invitar
             </T>
           </Tap>
@@ -197,7 +197,7 @@ export default function Home() {
                 style={styles.person}
               >
                 <Avatar id={p.id} size={FACE} bg={t.surface} />
-                <T v="caption" color={t.ink} style={[styles.personName, { fontFamily: font.medium }]} numberOfLines={1}>
+                <T v="caption" color={t.ink} style={[styles.personName, { fontFamily: font.medium }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
                   {name}
                 </T>
               </Tap>
@@ -208,7 +208,8 @@ export default function Home() {
         <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
           Anteriores
         </T>
-        <Card bg={t.surface} style={{ paddingVertical: 4 }}>
+        {/* No sheen here: the glow above already lights this screen; a third shine would crowd it. */}
+        <Card bg={t.surface} sheen={false} style={{ paddingVertical: 4 }}>
           {pastGroups.map((p, i) => (
             <View key={p.id}>
               <Tap
@@ -270,7 +271,7 @@ export default function Home() {
         <Tap onPress={() => router.push('/buscar')} accessibilityRole="search" accessibilityLabel="Buscar grupos, contactos o gastos" style={{ flex: 1 }}>
           <Glass fallback={t.surface} style={styles.search}>
             <Icon name="search" size={18} color={t.ink} />
-            <T v="body" color={t.ink}>
+            <T v="body" color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.4}>
               Buscar
             </T>
           </Glass>
@@ -293,15 +294,15 @@ function CardTop({ title, meta, people, peek }: { title: string; meta: string; p
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
       <View style={{ flex: 1 }}>
-        <T v="titleM" color={light.inkFixed} numberOfLines={1}>
+        <T v="titleM" color={light.inkFixed} numberOfLines={1} maxFontSizeMultiplier={1.4}>
           {title}
         </T>
-        <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 2 }} numberOfLines={1}>
+        <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 2 }} numberOfLines={1} maxFontSizeMultiplier={1.4}>
           {meta}
         </T>
       </View>
       {peek ? (
-        <T v="bodyStrong" color={light.inkFixed} style={[styles.tabular, { marginTop: 2 }]} numberOfLines={1}>
+        <T v="bodyStrong" color={light.inkFixed} style={[styles.tabular, { marginTop: 2, flexShrink: 0 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {peek}
         </T>
       ) : (
@@ -316,7 +317,7 @@ function ActionPill({ label, dot }: { label: string; dot?: boolean }) {
   return (
     <View style={[styles.pill, { backgroundColor: light.inkFixed }]}>
       {dot ? <View style={styles.pillDot} /> : null}
-      <T v="caption" color="#CBF26B" style={{ fontFamily: font.medium }}>
+      <T v="caption" color="#CBF26B" style={{ fontFamily: font.medium }} maxFontSizeMultiplier={1.4}>
         {label}
       </T>
       <Icon name="chevron-right" size={14} color="#CBF26B" />
@@ -339,7 +340,7 @@ const styles = StyleSheet.create({
   pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#CBF26B' },
   cardBody: { flex: 1, padding: 20, paddingBottom: 18 },
   people: { paddingHorizontal: 20, gap: 14 },
-  person: { width: 64, alignItems: 'center' },
+  person: { minWidth: 64, alignItems: 'center' },
   personName: { marginTop: 6 },
   face: {
     width: FACE,
