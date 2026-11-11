@@ -11,7 +11,7 @@ import { WalletStack, type WalletCard } from '../../components/WalletStack';
 import { Glass } from '../../components/Glass';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Card, Hairline, T, Tap } from '../../components/ui';
-import { balancesFor, eurText, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, type GroupKind, type PersonId } from '../../data/trip';
+import { balancesFor, eurText, pastGroups, people, settleUp, transferKey, usePeopleBalances, usePisoBalance, useTrip, type Expense, type GroupKind, type PersonId } from '../../data/trip';
 import { font, light } from '../../theme/tokens';
 
 import { useTheme } from '../../theme/useTheme';
@@ -31,7 +31,8 @@ const kindIcon: Record<GroupKind, IconName> = {
 export default function Home() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, draft, groups, groupExpenses, pisoPaid, pastEmoji } = useTrip();
+  const { expenses, draft, groups, groupExpenses, pisoPaid, pastEmoji, paid } = useTrip();
+  const pendingPayments = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
   const mine = balancesFor(expenses).tu;
   const between = usePeopleBalances();
   const piso = usePisoBalance();
@@ -171,6 +172,14 @@ export default function Home() {
         </Svg>
         <WalletStack cards={cards} />
 
+        {/* Quick actions, by how often you need them: add (the main one, on the brand
+            gradient) · settle (a pending task, with its count) · split a bill. */}
+        <View style={styles.actions}>
+          <QuickAction icon="mic" small="Añadir" big="Gasto" brand onPress={() => router.push('/nuevo')} />
+          <QuickAction icon="arrow-left-right" small="Saldar" big={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
+          <QuickAction icon="receipt" small="Dividir" big="Cuenta" onPress={() => router.push('/cuenta')} />
+        </View>
+
         <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
           Contactos
         </T>
@@ -204,6 +213,8 @@ export default function Home() {
             );
           })}
         </ScrollView>
+
+        <SpentOn expenses={expenses} />
 
         <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
           Anteriores
@@ -312,6 +323,97 @@ function CardTop({ title, meta, people, peek }: { title: string; meta: string; p
   );
 }
 
+function QuickAction({ icon, small, big, brand, onPress }: { icon: IconName; small: string; big: string; brand?: boolean; onPress: () => void }) {
+  const { t } = useTheme();
+  const fg = brand ? light.inkFixed : t.ink;
+  const sub = brand ? light.inkMutedFixed : t.inkMuted;
+  const body = (
+    <>
+      <View style={{ alignItems: 'flex-end' }}>
+        <Icon name={icon} size={22} color={fg} />
+      </View>
+      <View>
+        <T v="caption" color={sub} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+          {small}
+        </T>
+        <T v="bodyStrong" color={fg} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+          {big}
+        </T>
+      </View>
+    </>
+  );
+  return (
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${small} ${big}`} style={{ flex: 1 }}>
+      {brand ? (
+        <BrandGradient style={styles.action} seed={11}>
+          {body}
+        </BrandGradient>
+      ) : (
+        <Card bg={t.surface} style={[styles.action, { padding: 14 }]}>
+          {body}
+        </Card>
+      )}
+    </Tap>
+  );
+}
+
+/**
+ * Where the open trip's money went: one row per expense (largest first, the rest
+ * folded into "Otros"), each with a thin lime bar of its share. One hue only:
+ * the name and amount carry identity, the bar only the proportion.
+ */
+function SpentOn({ expenses }: { expenses: Expense[] }) {
+  const { t } = useTheme();
+  if (!expenses.length) return null;
+  const total = expenses.reduce((a, e) => a + e.amountEur, 0);
+  const sorted = [...expenses].sort((a, b) => b.amountEur - a.amountEur);
+  const rows =
+    sorted.length > 4
+      ? [...sorted.slice(0, 3).map((e) => ({ key: e.id, name: e.title, v: e.amountEur })), { key: 'otros', name: 'Otros', v: sorted.slice(3).reduce((a, e) => a + e.amountEur, 0) }]
+      : sorted.map((e) => ({ key: e.id, name: e.title, v: e.amountEur }));
+  const max = rows[0].v;
+  return (
+    <Tap
+      onPress={() => router.push('/trip/lisboa')}
+      accessibilityRole="button"
+      accessibilityLabel={`En qué se fue Lisboa 2026: ${rows.map((r) => `${r.name} ${eurText(r.v)}`).join(', ')}`}
+      style={{ marginTop: 28 }}
+    >
+      <Card bg={t.surface} style={{ padding: 18, paddingBottom: 20, gap: 14 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View style={{ flex: 1 }}>
+            <T v="bodyStrong" color={t.ink}>
+              En qué se fue
+            </T>
+            <T v="caption" color={t.inkMuted}>
+              Lisboa 2026 · {eurText(total)} en {expenses.length} gastos
+            </T>
+          </View>
+          <Icon name="chevron-right" size={18} color={t.inkMuted} />
+        </View>
+        {rows.map((r) => (
+          <View key={r.key} style={{ gap: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <T v="label" color={t.ink} style={{ flex: 1 }} numberOfLines={1}>
+                {r.name}
+              </T>
+              <T v="caption" color={t.inkMuted} style={styles.tabular}>
+                {Math.round((r.v / total) * 100)} %
+              </T>
+              <T v="labelStrong" color={t.ink} style={styles.tabular}>
+                {eurText(r.v)}
+              </T>
+            </View>
+            <View style={[styles.track, { backgroundColor: t.panelRaised }]}>
+              <View style={[styles.bar, { width: `${Math.max(3, (r.v / max) * 100)}%`, backgroundColor: t.lime }]} />
+            </View>
+          </View>
+        ))}
+      </Card>
+    </Tap>
+  );
+}
+
 /** The one thing to do on a card, as a real button shape: dark pill, lime words. */
 function ActionPill({ label, dot }: { label: string; dot?: boolean }) {
   return (
@@ -336,6 +438,10 @@ const FACE = 60;
 const styles = StyleSheet.create({
   emoji: { fontSize: 22, lineHeight: 28 },
   tabular: { fontVariant: ['tabular-nums'] },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  action: { height: 104, borderRadius: 22, padding: 14, justifyContent: 'space-between' },
+  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  bar: { height: 8, borderRadius: 4 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, paddingLeft: 12, paddingRight: 10, paddingVertical: 7 },
   pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#CBF26B' },
   cardBody: { flex: 1, padding: 20, paddingBottom: 18 },

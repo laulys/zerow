@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { BrandGradient } from '../components/BrandGradient';
 import { Money } from '../components/Money';
-import { Orb } from '../components/Orb';
+import { AvatarStack } from '../components/Avatar';
 import { Button, Lockup, T } from '../components/ui';
 import { font, light } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
@@ -15,8 +15,9 @@ import { useTheme } from '../theme/useTheme';
 const COIN = 168;
 
 // 1.1 → 1.2 Bienvenida. First the brand: the two halves of the coin meet (the
-// bill is split, the accounts reach zero). Then the product: a sentence becomes
-// a draft. Tapping during the intro skips straight to the demo.
+// bill is split, the accounts reach zero). Then the product (option C, "así se
+// verá"): one sentence and the trip card it turns into. Tapping during the intro
+// skips straight to the demo.
 export default function Welcome() {
   const [phase, setPhase] = useState<'intro' | 'demo'>('intro');
   const reduceMotion = useReducedMotion();
@@ -94,46 +95,34 @@ function Demo() {
         <Lockup color={t.ink} size={30} />
       </Animated.View>
 
-      <View style={{ marginTop: 44 }} accessible accessibilityLabel="Ejemplo: dices «Pagué la cena, 84 euros, entre 4» y Zerow prepara un borrador: 21 euros cada uno.">
+      <View style={{ flex: 1, justifyContent: 'center' }} accessible accessibilityLabel="Ejemplo: dices «Pagué la cena, 84 euros, entre 4» y en tu viaje Lisboa 2026 te deben 63 euros.">
         <Animated.View entering={at(150)} style={[styles.bubble, { backgroundColor: t.lime }]}>
           <T v="body" color={t.onLime}>
             Pagué la cena, 84 €, entre 4
           </T>
         </Animated.View>
-        <Animated.View entering={at(600)} style={styles.speaker}>
-          <Orb size={16} />
-          <T v="caption" color={t.inkMuted}>
-            Zerow
-          </T>
-        </Animated.View>
-        <Animated.View entering={at(850)}>
-          <BrandGradient style={styles.card} seed={9}>
-            <View style={styles.speaker}>
-              <Orb size={18} onGradient />
-              <T v="caption" color={light.inkFixed}>
-                Borrador de Zerow · aún no cuenta
-              </T>
-            </View>
+        <Animated.View entering={at(650)} style={{ marginTop: 12 }}>
+          <BrandGradient style={styles.card} seed={3}>
             <View style={styles.rowBetween}>
               <T v="titleM" color={light.inkFixed}>
-                Cena
+                Lisboa 2026
               </T>
-              <Money value={84} size={34} color={light.inkFixed} centsColor={light.inkMutedFixed} />
+              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={30} outline="#D3F27F" on="lime" />
             </View>
-            <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 4 }}>
-              Pagaste tú · 21,00 € cada uno, entre 4
+            <T v="label" color={light.inkMutedFixed} style={{ marginTop: 36, marginBottom: 4 }}>
+              Te deben
             </T>
+            <Money value={63} size={56} color={light.inkFixed} centsColor={light.inkMutedFixed} />
           </BrandGradient>
         </Animated.View>
       </View>
 
-      <View style={{ flex: 1 }} />
       <Animated.View entering={at(1250)}>
         <T v="display" color={t.ink} style={{ marginBottom: 10 }}>
           Dilo en voz alta. Zerow hace las cuentas.
         </T>
         <T v="body" color={t.inkMuted} style={{ marginBottom: 24 }}>
-          Nada cuenta hasta que lo confirmas.
+          Tú revisas cada gasto antes de que sume.
         </T>
       </Animated.View>
       <Animated.View entering={at(1350)}>
@@ -149,7 +138,6 @@ const styles = StyleSheet.create({
   wordmark: { fontFamily: font.medium, fontSize: 40, letterSpacing: -1.6, color: light.inkFixed, marginTop: 10 },
   wrap: { flex: 1, paddingHorizontal: 20 },
   bubble: { alignSelf: 'flex-end', borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },
-  speaker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 18, marginBottom: 6, marginLeft: 2 },
-  card: { borderRadius: 26, padding: 18, paddingTop: 0 },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  card: { borderRadius: 32, padding: 20, paddingBottom: 18 },
+  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });
