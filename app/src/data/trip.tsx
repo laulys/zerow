@@ -105,6 +105,12 @@ export type GroupKind = 'viaje' | 'piso' | 'evento' | 'otro';
 
 export type Group = { id: string; name: string; kind: GroupKind; dates: string; currency: 'EUR' | 'USD'; members: PersonId[] };
 
+/**
+ * The invitation waiting for you (5.2): Ana asks you into a trip you're not in
+ * yet. It shows up in Actividad; joining turns it into one of your groups.
+ */
+export const invite = { code: 'oporto-4f9x', from: 'ana' as PersonId, name: 'Oporto', dates: '5–8 dic', place: 'Portugal', inside: ['ana', 'luis', 'marta'] as PersonId[], sentAt: '09:40' };
+
 type TripState = {
   groups: Group[];
   createGroup: (g: Omit<Group, 'id'>) => Group;

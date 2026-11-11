@@ -10,6 +10,7 @@ import { Icon } from '../../components/Icon';
 import { Money } from '../../components/Money';
 import { Button, T } from '../../components/ui';
 import { font, light } from '../../theme/tokens';
+import { invite, people, useTrip } from '../../data/trip';
 import { useTheme } from '../../theme/useTheme';
 
 const facts = ['Lo que pagaron antes no te toca', 'Verás los gastos y podrás añadir los tuyos', 'Nada cuenta hasta que alguien lo confirma'];
@@ -22,9 +23,13 @@ export default function Invited() {
   const insets = useSafeAreaInsets();
   const at = (ms: number) => FadeInDown.delay(ms).duration(300);
 
+  const { groups, createGroup } = useTrip();
+  const from = people[invite.from].name;
   const join = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.replace('/trip/lisboa');
+    // Joining makes the trip one of your groups (once); then you land in it.
+    const g = groups.find((x) => x.name === invite.name) ?? createGroup({ name: invite.name, kind: 'viaje', dates: invite.dates, currency: 'EUR', members: ['tu', ...invite.inside] });
+    router.replace({ pathname: '/trip/[id]', params: { id: g.id } });
   };
 
   return (
@@ -32,26 +37,26 @@ export default function Invited() {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
         <Animated.View entering={at(0)} style={styles.from}>
-          <Avatar id="ana" size={36} bg={t.surface} />
+          <Avatar id={invite.from} size={36} bg={t.surface} />
           <T v="bodyStrong" color={t.ink}>
-            Ana te invita a un viaje
+            {from} te invita a un viaje
           </T>
         </Animated.View>
 
         <Animated.View entering={ZoomIn.springify().damping(16).delay(120)} style={{ marginTop: 20 }}>
-          <View accessible accessibilityLabel="Lisboa 2026, del 12 al 18 de noviembre, en euros. Ana, Luis y Marta ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.">
+          <View accessible accessibilityLabel={`${invite.name}, ${invite.dates}, en euros. ${invite.inside.map((p) => people[p].name).join(', ')} ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.`}>
             <BrandGradient style={styles.ticket} seed={8}>
               <View style={styles.top}>
                 <T v="display" color={light.inkFixed} style={styles.trip}>
-                  Lisboa 2026
+                  {invite.name}
                 </T>
                 <T v="body" color={light.inkMutedFixed}>
-                  12–18 nov · Portugal · en euros
+                  {invite.dates} · {invite.place} · en euros
                 </T>
                 <View style={styles.people}>
-                  <AvatarStack ids={['ana', 'luis', 'marta']} size={44} outline="#D3F27F" on="lime" />
+                  <AvatarStack ids={invite.inside} size={44} outline="#D3F27F" on="lime" />
                   <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium }}>
-                    3 personas ya dentro
+                    {invite.inside.length} personas ya dentro
                   </T>
                 </View>
               </View>
