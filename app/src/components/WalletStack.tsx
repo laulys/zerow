@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
-import { PanResponder, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
-import Animated, { FadeInDown, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { PanResponder, Pressable, StyleSheet, useWindowDimensions, View, type GestureResponderHandlers } from 'react-native';
+import Animated, { Easing, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { useTheme } from '../theme/useTheme';
 
 /** `content` can be a function of whether the card is in front (the one behind only shows its top strip). */
@@ -23,21 +23,37 @@ const settle = { damping: 17, stiffness: 220, mass: 0.9 } as const;
  * extra native module.
  */
 export function WalletStack({ cards }: { cards: WalletCard[] }) {
-  const { t } = useTheme();
   const reduce = useReducedMotion();
   const [front, setFront] = useState(0);
   const x = useSharedValue(0);
+  // Which card the drag belongs to. When the stack swaps, the old front keeps
+  // owning `x` (it's off-screen), so the new front sits still at 0: no snap back.
+  const owner = useSharedValue(0);
   const n = cards.length;
   const nRef = useRef(n);
   nRef.current = n;
+  const frontRef = useRef(front);
+  frontRef.current = front;
 
   const advance = (dir: 1 | -1) => {
     Haptics.selectionAsync();
     setFront((f) => (f + dir + nRef.current) % nRef.current);
   };
-  const afterFling = (dir: number) => {
-    advance(dir < 0 ? 1 : -1);
-    x.value = 0;
+  const afterFling = (dir: number) => advance(dir < 0 ? 1 : -1);
+
+  // After the swap, ease `x` back to rest: the card that just went behind
+  // shrinks into place and dims, instead of jumping there.
+  useEffect(() => {
+    if (x.value === 0) return;
+    x.value = reduce ? 0 : withTiming(0, { duration: 280, easing: Easing.out(Easing.cubic) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [front]);
+
+  const fling = (dir: number) => {
+    owner.value = frontRef.current;
+    x.value = withTiming(dir * 460, { duration: 220 }, (done) => {
+      if (done) runOnJS(afterFling)(dir);
+    });
   };
 
   const responder = useMemo(
@@ -45,20 +61,16 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
       PanResponder.create({
         // Only claim clearly horizontal drags, so the page still scrolls vertically.
         onMoveShouldSetPanResponderCapture: (_, g) => nRef.current > 1 && Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
+        onPanResponderGrant: () => {
+          owner.value = frontRef.current;
+        },
         onPanResponderTerminationRequest: () => false,
         onPanResponderMove: (_, g) => {
           x.value = g.dx;
         },
         onPanResponderRelease: (_, g) => {
-          const fling = Math.abs(g.dx) > 90 || Math.abs(g.vx) > 0.7;
-          if (!fling) {
-            x.value = withSpring(0, settle);
-            return;
-          }
-          const dir = Math.sign(g.dx || g.vx);
-          x.value = withTiming(dir * 460, { duration: 220 }, (done) => {
-            if (done) runOnJS(afterFling)(dir);
-          });
+          if (Math.abs(g.dx) > 90 || Math.abs(g.vx) > 0.7) fling(Math.sign(g.dx || g.vx));
+          else x.value = withSpring(0, settle);
         },
         onPanResponderTerminate: () => {
           x.value = withSpring(0, settle);
@@ -68,18 +80,9 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
     [],
   );
 
-  const frontStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }, { rotate: `${reduce ? 0 : x.value / 22}deg` }],
-  }));
-  const backStyle = useAnimatedStyle(() => {
-    const p = Math.min(1, Math.abs(x.value) / 260);
-    return { transform: [{ translateY: -BACK_LIFT * (1 - p) }, { scale: BACK_SCALE + (1 - BACK_SCALE) * p }] };
-  });
-  // The card behind is the same colour, dimmed, and brightens as it comes forward.
-  const dimStyle = useAnimatedStyle(() => ({ opacity: BACK_DIM * (1 - Math.min(1, Math.abs(x.value) / 260)) }));
-
   const current = cards[Math.min(front, n - 1)];
-  const behind = n > 1 ? cards[(front + 1) % n] : null;
+  const behindIdx = n > 1 ? (front + 1) % n : -1;
+  const behind = behindIdx >= 0 ? cards[behindIdx] : null;
   // Larger text needs a taller card; the stack grows with the reading size
   // (up to 1.5×) instead of clipping the balance.
   const { fontScale } = useWindowDimensions();
@@ -101,39 +104,77 @@ export function WalletStack({ cards }: { cards: WalletCard[] }) {
           else current.onPress?.();
         }}
       >
-        {behind ? (
-          <Animated.View key={'back-' + behind.key} entering={FadeInDown.springify().damping(15).stiffness(160)} style={[styles.slot, { top: peek, height: cardH }]} pointerEvents="none">
-            <Animated.View style={[styles.card, backStyle]}>
-              {face(behind, false)}
-              <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: t.page }, dimStyle]} />
-            </Animated.View>
-          </Animated.View>
-        ) : null}
+        {/* Every card stays mounted under its own key and only changes role, so
+            the gradient never has to redraw from scratch when the stack swaps. */}
+        {cards.map((c, i) => {
+          const role: Role = i === front ? 'front' : i === behindIdx ? 'back' : 'hidden';
+          return (
+            <StackCard key={c.key} card={c} index={i} role={role} x={x} owner={owner} reduce={reduce} top={peek} height={cardH} panHandlers={role === 'front' ? responder.panHandlers : undefined} />
+          );
+        })}
         {behind ? (
           // The peeking edge of the card behind: tap it to bring that group forward.
-          <Pressable
-            onPress={() => {
-              x.value = withTiming(-460, { duration: 220 }, (done) => {
-                if (done) runOnJS(afterFling)(-1);
-              });
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Ver ${behind.title}`}
-            style={styles.peek}
-          />
+          <Pressable onPress={() => fling(-1)} accessibilityRole="button" accessibilityLabel={`Ver ${behind.title}`} style={styles.peek} />
         ) : null}
-        <Animated.View key={'front-' + current.key} style={[styles.slot, { top: peek, height: cardH }, styles.card, frontStyle]} {...responder.panHandlers}>
-          <Pressable onPress={current.onPress} style={{ flex: 1 }} disabled={!current.onPress}>
-            {face(current, true)}
-          </Pressable>
-        </Animated.View>
       </View>
     </View>
   );
 }
 
+type Role = 'front' | 'back' | 'hidden';
+
+function StackCard({
+  card,
+  index,
+  role,
+  x,
+  owner,
+  reduce,
+  top,
+  height,
+  panHandlers,
+}: {
+  card: WalletCard;
+  index: number;
+  role: Role;
+  x: SharedValue<number>;
+  owner: SharedValue<number>;
+  reduce: boolean;
+  top: number;
+  height: number;
+  panHandlers?: GestureResponderHandlers;
+}) {
+  const { t } = useTheme();
+  const style = useAnimatedStyle(() => {
+    if (role === 'front') {
+      const dx = owner.value === index ? x.value : 0;
+      return { opacity: 1, transform: [{ translateX: dx }, { translateY: 0 }, { scale: 1 }, { rotate: `${reduce ? 0 : dx / 22}deg` }] };
+    }
+    if (role === 'back') {
+      const p = Math.min(1, Math.abs(x.value) / 260);
+      return { opacity: 1, transform: [{ translateX: 0 }, { translateY: -BACK_LIFT * (1 - p) }, { scale: BACK_SCALE + (1 - BACK_SCALE) * p }, { rotate: '0deg' }] };
+    }
+    return { opacity: 0, transform: [{ translateX: 0 }, { translateY: -BACK_LIFT }, { scale: BACK_SCALE }, { rotate: '0deg' }] };
+  });
+  // The card behind is the same colour, dimmed, and brightens as it comes forward.
+  const dim = useAnimatedStyle(() => ({ opacity: role === 'back' ? BACK_DIM * (1 - Math.min(1, Math.abs(x.value) / 260)) : 0 }));
+  return (
+    <Animated.View
+      style={[styles.slot, { top, height, zIndex: role === 'front' ? 2 : role === 'back' ? 1 : 0 }, styles.card, style]}
+      pointerEvents={role === 'front' ? 'auto' : 'none'}
+      {...panHandlers}
+    >
+      <Pressable onPress={card.onPress} style={{ flex: 1 }} disabled={role !== 'front' || !card.onPress}>
+        {face(card, role === 'front')}
+      </Pressable>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.page }, dim]} />
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   slot: { position: 'absolute', top: PEEK, left: 0, right: 0, height: CARD_H },
-  peek: { position: 'absolute', top: 0, left: 16, right: 16, height: PEEK },
+  // Above the cards (they use zIndex 0-2) so the strip that shows is always tappable.
+  peek: { position: 'absolute', top: 0, left: 16, right: 16, height: PEEK, zIndex: 3 },
   card: { flex: 1, borderRadius: 32, overflow: 'hidden' },
 });
