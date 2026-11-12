@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,14 +12,15 @@ import { WalletStack, type WalletCard } from '../../components/WalletStack';
 import { Glass } from '../../components/Glass';
 import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Aurora } from '../../components/Aurora';
+import { LIST_PANE, useScreen } from '../../components/Screen';
+import { TripView } from '../trip/[id]';
 import { Card, Hairline, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, pastGroups, people, settleUp, transferKey, usePeopleBalances, usePisoBalance, useTrip, type Expense, type GroupKind, type PersonId } from '../../data/trip';
 import { light } from '../../theme/tokens';
 
 import { useTheme } from '../../theme/useTheme';
 
-const HEADER_H = 48;
-const GLOW_H = 520;
+const HEADER_H = 44;
 const GLOW_OVERSCROLL = 400;
 
 const kindIcon: Record<GroupKind, IconName> = {
@@ -29,7 +31,7 @@ const kindIcon: Record<GroupKind, IconName> = {
 };
 
 // 2.1 Inicio: your groups. Lisboa is the open trip; its balance rolls when it changes.
-export default function Home() {
+export default function Home({ initial }: { initial?: string }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { expenses, draft, groups, groupExpenses, pisoPaid, pastEmoji, paid } = useTrip();
@@ -37,6 +39,16 @@ export default function Home() {
   const mine = balancesFor(expenses).tu;
   const between = usePeopleBalances();
   const piso = usePisoBalance();
+  const { form } = useScreen();
+  const split = form === 'split';
+  // Which group the detail pane shows on the open Duo: the one in front of the stack.
+  const [shown, setShown] = useState(initial ?? 'lisboa');
+  // The glass strip's balance. In the open Duo's narrow list it's signed and short (Figma: «−18,40 €»).
+  const peekText = (v: number, currency?: Parameters<typeof eurText>[1]) => {
+    if (Math.abs(v) < 0.005) return 'A cero';
+    if (split) return `${v > 0 ? '+' : '−'}${eurText(Math.abs(v), currency)}`;
+    return `${v > 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(v), currency)}`;
+  };
   const pisoWord = Math.abs(piso) < 0.005 ? 'A cero' : piso > 0 ? 'Te deben' : 'Debes';
 
   // Open groups, front to back: the trip in progress first, on the brand gradient.
@@ -47,14 +59,8 @@ export default function Home() {
       onPress: () => router.push('/trip/lisboa'),
       content: (front: boolean) => (
         <Face front={front} seed={3}>
-          <CardTop
-            glass={!front}
-            title="Lisboa 2026"
-            meta="12–18 nov · en curso"
-            people={['tu', 'ana', 'luis', 'marta']}
-            peek={front ? undefined : `${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}`}
-          />
-          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', marginBottom: 4 }}>
+          <CardTop glass={!front} title="Lisboa 2026" meta="12–18 nov · en curso" people={['tu', 'ana', 'luis', 'marta']} peek={front ? undefined : peekText(mine)} />
+          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
             {mine >= 0 ? 'Te deben' : 'Debes'}
           </T>
           <RollingMoney value={Math.abs(mine)} size={heroSize(mine)} color={light.inkFixed} centsColor={light.inkMutedFixed} />
@@ -77,14 +83,8 @@ export default function Home() {
       onPress: () => router.push(pisoPaid ? '/trip/piso' : '/pagar'),
       content: (front: boolean) => (
         <Face front={front} seed={7} lively>
-          <CardTop
-            glass={!front}
-            title="Piso Calle Mayor"
-            meta="3 personas · 2 gastos este mes"
-            people={['tu', 'ana', 'luis']}
-            peek={front ? undefined : `${pisoWord}${Math.abs(piso) < 0.005 ? '' : ' ' + eurText(Math.abs(piso))}`}
-          />
-          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', marginBottom: 4 }}>
+          <CardTop glass={!front} title="Piso Calle Mayor" meta="3 personas · 2 gastos este mes" people={['tu', 'ana', 'luis']} peek={front ? undefined : peekText(piso)} />
+          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
             {pisoWord}
           </T>
           <RollingMoney value={Math.abs(piso)} size={heroSize(piso)} color={light.inkFixed} centsColor={light.inkMutedFixed} />
@@ -118,9 +118,9 @@ export default function Home() {
               title={g.name}
               meta={`${g.members.length} personas${g.dates ? ' · ' + g.dates : ''}`}
               people={g.members}
-              peek={front ? undefined : list.length ? `${bal >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(bal), g.currency)}` : 'Sin gastos'}
+              peek={front ? undefined : list.length ? peekText(bal, g.currency) : 'Sin gastos'}
             />
-            <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', marginBottom: 4 }}>
+            <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
               {list.length ? (bal >= 0 ? 'Te deben' : 'Debes') : 'Saldo'}
             </T>
             <Money value={Math.abs(bal)} size={heroSize(bal)} color={light.inkFixed} centsColor={light.inkMutedFixed} currency={g.currency} />
@@ -136,7 +136,8 @@ export default function Home() {
     }),
   ];
 
-  const headerTop = insets.top + 8;
+  // Figma: the header row starts right at the top inset (y 62 on a 62 pt inset).
+  const headerTop = insets.top;
   // The dark fade under the status bar only appears once you scroll, so at rest
   // it doesn't dim the glow.
   const y = useSharedValue(0);
@@ -145,10 +146,90 @@ export default function Home() {
   });
   const fadeStyle = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, 60], [0, 1], Extrapolation.CLAMP) }));
 
+  const meButton = (
+    <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={styles.ring}>
+      {/* Figma «Avatar · laura»: 44 pt on white 8 %, with a 1.5 pt ring from lime to mint that fades out. */}
+      <Avatar id="tu" size={44} bg="rgba(255,255,255,0.08)" />
+      <Svg width={44} height={44} style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <LinearGradient id="me" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={t.lime} stopOpacity={1} />
+            <Stop offset="0.55" stopColor={t.mint} stopOpacity={0.9} />
+            <Stop offset="1" stopColor={t.lime} stopOpacity={0.2} />
+          </LinearGradient>
+        </Defs>
+        <Circle cx={22} cy={22} r={21.25} stroke="url(#me)" strokeWidth={1.5} fill="none" />
+      </Svg>
+    </Tap>
+  );
+  const plusButton = (
+    <Tap onPress={() => router.push('/dividir')} accessibilityRole="button" accessibilityLabel="Dividir algo nuevo">
+      <Glass fallback={t.control} stroke style={styles.round}>
+        <Icon name="plus" size={24} color={t.ink} />
+      </Glass>
+    </Tap>
+  );
+  const actions = (
+    <View style={[styles.actions, split && { marginTop: 16 }]}>
+      <AddExpense onPress={() => router.push('/nuevo')} />
+      <View style={{ flex: 1, gap: 12 }}>
+        <ActionRow icon="arrow-left-right" title="Saldar" sub={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
+        <ActionRow icon="receipt" title="Dividir" sub="Una cuenta" onPress={() => router.push('/cuenta')} />
+      </View>
+    </View>
+  );
+
+  // iPhone Duo open (Figma «Duo abierto · 2.1 Inicio»): the list pane keeps your
+  // groups and the quick actions; the detail pane shows the group in front, so
+  // swapping cards changes what's on the right. Search moves to the bottom.
+  if (split) {
+    // The front card is already open on the right; only Piso's "Pagar a Ana" still acts.
+    const listCards = cards.map((c) => ({ ...c, onPress: c.key === 'piso' && !pisoPaid ? c.onPress : undefined }));
+    return (
+      <View style={{ flex: 1, backgroundColor: t.page, flexDirection: 'row' }}>
+        <FocusStatusBar style="light" />
+        <View pointerEvents="none" style={styles.glow}>
+          <Aurora preset="inicio" />
+        </View>
+        <View style={{ width: LIST_PANE, paddingTop: headerTop, paddingHorizontal: 20 }}>
+          <View style={styles.header}>
+            {meButton}
+            <T v="titleM" color={t.ink} style={{ flex: 1 }} accessibilityRole="header">
+              Grupos
+            </T>
+            {plusButton}
+          </View>
+          <View style={{ marginTop: 24 }}>
+            <WalletStack cards={listCards} onFrontChange={setShown} cardHeight={232} initialKey={initial} />
+          </View>
+          {actions}
+          <Tap
+            onPress={() => router.push('/buscar')}
+            accessibilityRole="search"
+            accessibilityLabel="Buscar grupos, contactos o gastos"
+            style={{ position: 'absolute', left: 20, right: 20, bottom: Math.max(insets.bottom, 20) + 8 }}
+          >
+            <Glass fallback={t.control} stroke style={styles.search}>
+              <Icon name="search" size={20} color={t.inkSoft} />
+              <T v="body" color={t.inkSoft} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                Buscar
+              </T>
+            </Glass>
+          </Tap>
+        </View>
+        <View style={[styles.fold, { backgroundColor: t.line }]} />
+        <View style={{ flex: 1 }}>
+          <TripView key={shown} id={shown} embedded />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <Animated.ScrollView
-        style={{ flex: 1 }}
+        // On the closed Duo the light reaches into the control column instead of stopping at its edge.
+        style={{ flex: 1, overflow: form === 'rail' ? 'visible' : undefined }}
         contentContainerStyle={{
           paddingTop: headerTop + HEADER_H + 24,
           paddingHorizontal: 20,
@@ -162,19 +243,13 @@ export default function Home() {
         {/* v3 Aurora: the brand's lime and mint as ambient light at the top, fading
             into the graphite page. It scrolls with the page. */}
         <View pointerEvents="none" style={styles.glow}>
-          <Aurora height={GLOW_H} overscroll={GLOW_OVERSCROLL} />
+          <Aurora preset="inicio" overscroll={GLOW_OVERSCROLL} />
         </View>
         <WalletStack cards={cards} />
 
         {/* Quick actions, by how often you need them: add (the main one, on the brand
             gradient) · settle (a pending task, with its count) · split a bill. */}
-        <View style={styles.actions}>
-          <AddExpense onPress={() => router.push('/nuevo')} />
-          <View style={{ flex: 1, gap: 12 }}>
-            <ActionRow icon="arrow-left-right" title="Saldar" sub={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
-            <ActionRow icon="receipt" title="Dividir" sub="Cuenta" onPress={() => router.push('/cuenta')} />
-          </View>
-        </View>
+        {actions}
 
         <T v="section" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
           Contactos
@@ -202,7 +277,7 @@ export default function Home() {
                 style={styles.person}
               >
                 <Avatar id={p.id} size={FACE} />
-                <T v="caption" color={t.ink} style={[styles.personName, { fontWeight: '600' }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                <T v="caption" color={t.ink} style={[styles.personName, { fontWeight: '500' }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
                   {name}
                 </T>
               </Tap>
@@ -215,16 +290,16 @@ export default function Home() {
         <T v="section" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
           Anteriores
         </T>
-        <Card style={{ paddingVertical: 4 }}>
+        <Card style={{ paddingVertical: 4, paddingHorizontal: 16 }}>
           {pastGroups.map((p, i) => (
             <View key={p.id}>
               <Tap
                 onPress={() => router.push({ pathname: '/emoji', params: { id: p.id } })}
                 accessibilityRole="button"
-                accessibilityLabel={`${p.kind}: ${p.name}. ${p.meta}. ${eurText(p.total)} en total, saldado. Cambiar emoji`}
+                accessibilityLabel={`${p.kind}: ${p.name}. ${p.meta}. ${eurText(p.total)}, a cero. Cambiar emoji`}
                 style={[styles.rowBetween, { paddingVertical: 12 }]}
               >
-                <View style={[styles.tile, { backgroundColor: t.panelRaised }]}>
+                <View style={[styles.tile, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
                   {pastEmoji[p.id] ? (
                     <Text style={styles.emoji}>{pastEmoji[p.id]}</Text>
                   ) : (
@@ -236,16 +311,16 @@ export default function Home() {
                     {p.name}
                   </T>
                   <T v="caption" color={t.inkMuted}>
-                    {p.meta} · saldado
+                    {p.meta}
                   </T>
                 </View>
                 {/* The figure is what the group spent in all; tabular digits keep the column straight. */}
                 <View style={{ alignItems: 'flex-end' }}>
-                  <T v="bodyStrong" color={t.ink} style={styles.tabular}>
+                  <T v="titleXS" color={t.ink} style={styles.tabular}>
                     {eurText(p.total)}
                   </T>
                   <T v="caption" color={t.inkMuted}>
-                    en total
+                    a cero
                   </T>
                 </View>
               </Tap>
@@ -271,32 +346,16 @@ export default function Home() {
         </Svg>
       </Animated.View>
       <View style={[styles.header, { position: 'absolute', top: headerTop, left: 20, right: 20 }]}>
-        <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={styles.ring}>
-          {/* A thin lime-to-mint ring around your own face (reference: Revolut). */}
-          <Svg width={48} height={48} style={StyleSheet.absoluteFill}>
-            <Defs>
-              <LinearGradient id="me" x1="0" y1="0" x2="1" y2="1">
-                <Stop offset="0" stopColor={t.lime} />
-                <Stop offset="1" stopColor={t.mint} />
-              </LinearGradient>
-            </Defs>
-            <Circle cx={24} cy={24} r={23.25} stroke="url(#me)" strokeWidth={1.5} fill="none" />
-          </Svg>
-          <Avatar id="tu" size={40} bg={t.glass} />
-        </Tap>
+        {meButton}
         <Tap onPress={() => router.push('/buscar')} accessibilityRole="search" accessibilityLabel="Buscar grupos, contactos o gastos" style={{ flex: 1 }}>
-          <Glass fallback={t.glass} style={styles.search}>
-            <Icon name="search" size={18} color={t.ink} />
-            <T v="body" color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+          <Glass fallback={t.control} stroke style={styles.search}>
+            <Icon name="search" size={20} color={t.inkSoft} />
+            <T v="body" color={t.inkSoft} numberOfLines={1} maxFontSizeMultiplier={1.4}>
               Buscar
             </T>
           </Glass>
         </Tap>
-        <Tap onPress={() => router.push('/dividir')} accessibilityRole="button" accessibilityLabel="Dividir algo nuevo">
-          <Glass fallback={t.glass} style={styles.round}>
-            <Icon name="plus" size={20} color={t.ink} />
-          </Glass>
-        </Tap>
+        {plusButton}
       </View>
     </View>
   );
@@ -308,24 +367,29 @@ export default function Home() {
  */
 function CardTop({ title, meta, people, peek, glass }: { title: string; meta: string; people: PersonId[]; peek?: string; glass?: boolean }) {
   const { t } = useTheme();
+  const split = useScreen().form === 'split';
   const ink = glass ? t.ink : light.inkFixed;
   const muted = glass ? t.inkMuted : light.inkMutedFixed;
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
       <View style={{ flex: 1 }}>
-        <T v="titleM" color={ink} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+        {/* On the glass strip the name steps down (Figma: 17 pt), so it fits next to the balance. */}
+        <T v={glass ? 'titleXS' : split ? 'section' : 'titleM'} color={ink} numberOfLines={1} maxFontSizeMultiplier={1.4}>
           {title}
         </T>
-        <T v="caption" color={muted} style={{ marginTop: 2 }} numberOfLines={1} maxFontSizeMultiplier={1.4}>
-          {meta}
-        </T>
+        {/* The strip shows only the name and the balance (Figma «Franja»). */}
+        {glass ? null : (
+          <T v="caption" color={muted} style={{ fontWeight: '500' }} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+            {meta}
+          </T>
+        )}
       </View>
       {peek ? (
-        <T v="bodyStrong" color={ink} style={[styles.tabular, { marginTop: 2, flexShrink: 0 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+        <T v="labelStrong" color={ink} style={[styles.tabular, { flexShrink: 0 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {peek}
         </T>
       ) : (
-        <AvatarStack ids={people} size={28} max={4} on="lime" />
+        <AvatarStack ids={people} size={split ? 24 : 30} max={split ? 3 : 4} on="lime" />
       )}
     </View>
   );
@@ -338,39 +402,47 @@ function Face({ front, seed, lively, children }: { front: boolean; seed: number;
       {children}
     </BrandGradient>
   ) : (
-    <View style={styles.cardBody}>{children}</View>
+    <View style={styles.strip}>{children}</View>
   );
 }
 
-/** The main action, on the brand gradient: the mic sits in a round, see-through disc. */
+/**
+ * Figma «Añadir gasto»: a glass card (white 7 % + blur) with the mic on a 52 pt
+ * brand-gradient disc that glows softly, the title in Título S and its hint below.
+ */
 function AddExpense({ onPress }: { onPress: () => void }) {
+  const { t } = useTheme();
+  // The open Duo's list pane is narrower: the label steps down so it fits whole.
+  const split = useScreen().form === 'split';
   return (
     <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel="Añadir gasto. Dilo o escríbelo" style={{ flex: 1 }}>
-      <BrandGradient style={styles.addTile} seed={11}>
-        <View style={styles.micDisc}>
-          <Icon name="mic" size={20} color={light.inkFixed} />
+      <Card style={styles.addTile}>
+        <View style={styles.micGlow}>
+          <BrandGradient style={styles.micDisc} seed={11}>
+            <Icon name="mic" size={24} color={light.inkFixed} />
+          </BrandGradient>
         </View>
         <View>
-          <T v="titleM" color={light.inkFixed} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+          <T v={split ? 'titleXS' : 'section'} color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.3}>
             Añadir gasto
           </T>
-          <T v="caption" color={light.inkMutedFixed} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+          <T v="caption" color={t.inkMuted} numberOfLines={1} maxFontSizeMultiplier={1.3}>
             Dilo o escríbelo
           </T>
         </View>
-      </BrandGradient>
+      </Card>
     </Tap>
   );
 }
 
-/** A secondary action as a short row: icon, title with its detail, and a chevron because it opens a screen. */
+/** Figma «Saldar» / «Dividir»: a 60 pt glass row with a lime-tinted icon disc, title, detail and a chevron. */
 function ActionRow({ icon, title, sub, onPress }: { icon: IconName; title: string; sub: string; onPress: () => void }) {
   const { t } = useTheme();
   return (
     <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={{ flex: 1 }}>
       <Card style={styles.actionRow}>
-        <View style={[styles.rowDisc, { backgroundColor: t.panelRaised }]}>
-          <Icon name={icon} size={16} color={t.ink} />
+        <View style={[styles.rowDisc, { backgroundColor: 'rgba(203,242,107,0.14)' }]}>
+          <Icon name={icon} size={20} color={t.lime} />
         </View>
         <View style={{ flex: 1 }}>
           <T v="labelStrong" color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.3}>
@@ -400,7 +472,6 @@ function SpentOn({ expenses }: { expenses: Expense[] }) {
     sorted.length > 4
       ? [...sorted.slice(0, 3).map((e) => ({ key: e.id, name: e.title, v: e.amountEur })), { key: 'otros', name: 'Otros', v: sorted.slice(3).reduce((a, e) => a + e.amountEur, 0) }]
       : sorted.map((e) => ({ key: e.id, name: e.title, v: e.amountEur }));
-  const max = rows[0].v;
   return (
     <Tap
       onPress={() => router.push('/trip/lisboa')}
@@ -408,33 +479,34 @@ function SpentOn({ expenses }: { expenses: Expense[] }) {
       accessibilityLabel={`En qué se fue Lisboa 2026: ${rows.map((r) => `${r.name} ${eurText(r.v)}`).join(', ')}`}
       style={{ marginTop: 24 }}
     >
-      <Card style={{ padding: 20, gap: 16 }}>
+      <Card style={{ padding: 16, gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
-            <T v="bodyStrong" color={t.ink}>
+            <T v="section" color={t.ink}>
               En qué se fue
             </T>
             <T v="caption" color={t.inkMuted}>
               Lisboa 2026 · {eurText(total)} en {expenses.length} gastos
             </T>
           </View>
-          <Icon name="chevron-right" size={18} color={t.inkMuted} />
+          <Icon name="chevron-right" size={16} color={t.inkMuted} />
         </View>
         {rows.map((r) => (
-          <View key={r.key} style={{ gap: 6 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <T v="label" color={t.ink} style={{ flex: 1 }} numberOfLines={1}>
+          <View key={r.key} style={{ gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <T v="label" color={t.ink} style={{ flex: 1, fontWeight: '500' }} numberOfLines={1}>
                 {r.name}
               </T>
               <T v="caption" color={t.inkMuted} style={styles.tabular}>
                 {Math.round((r.v / total) * 100)} %
               </T>
-              <T v="labelStrong" color={t.ink} style={styles.tabular}>
+              <T v="titleXS" color={t.ink} style={styles.tabular}>
                 {eurText(r.v)}
               </T>
             </View>
-            <View style={[styles.track, { backgroundColor: t.panelRaised }]}>
-              <View style={[styles.bar, { width: `${Math.max(3, (r.v / max) * 100)}%`, backgroundColor: t.lime }]} />
+            {/* The bar is the expense's share of the total (Figma: 60 % of the track). */}
+            <View style={[styles.track, { backgroundColor: 'rgba(255,255,255,0.10)' }]}>
+              <View style={[styles.bar, { width: `${Math.max(3, (r.v / total) * 100)}%`, backgroundColor: t.lime }]} />
             </View>
           </View>
         ))}
@@ -448,10 +520,10 @@ function ActionPill({ label, dot }: { label: string; dot?: boolean }) {
   return (
     <View style={styles.pill}>
       {dot ? <View style={styles.pillDot} /> : null}
-      <T v="caption" color={light.inkFixed} style={{ fontWeight: '600' }} maxFontSizeMultiplier={1.4}>
+      <T v="labelStrong" color={light.inkFixed} maxFontSizeMultiplier={1.4}>
         {label}
       </T>
-      <Icon name="chevron-right" size={14} color={light.inkFixed} />
+      <Icon name="chevron-right" size={16} color={light.inkFixed} />
     </View>
   );
 }
@@ -459,27 +531,31 @@ function ActionPill({ label, dot }: { label: string; dot?: boolean }) {
 /** The balance shrinks a step for every extra digit so 4.812,30 € still fits the card. */
 const heroSize = (v: number) => {
   const digits = Math.floor(Math.abs(v)).toString().length;
-  return digits <= 3 ? 60 : digits === 4 ? 50 : 42;
+  // Figma: v3/Importe XL (76) for the open group; fewer points as the figure gets longer.
+  return digits <= 3 ? 76 : digits === 4 ? 60 : 50;
 };
 
-const FACE = 60;
+const FACE = 56;
 
 const styles = StyleSheet.create({
-  emoji: { fontSize: 22, lineHeight: 28 },
+  emoji: { fontSize: 24, lineHeight: 30 },
   tabular: { fontVariant: ['tabular-nums'] },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 24, height: 128 },
-  addTile: { height: 128, borderRadius: 28, padding: 16, justifyContent: 'space-between' },
-  micDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(18,18,18,0.12)', alignItems: 'center', justifyContent: 'center' },
-  actionRow: { flex: 1, borderRadius: 20, paddingVertical: 0, paddingLeft: 12, paddingRight: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  rowDisc: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  track: { height: 8, borderRadius: 4, overflow: 'hidden' },
-  bar: { height: 8, borderRadius: 4 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, paddingLeft: 12, paddingRight: 10, paddingVertical: 7, backgroundColor: 'rgba(18,18,18,0.12)' },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 20, height: 132 },
+  addTile: { height: 132, borderRadius: 28, padding: 16, justifyContent: 'space-between' },
+  micGlow: { width: 52, height: 52, borderRadius: 26, shadowColor: '#B6F03A', shadowOpacity: 0.22, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  micDisc: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  actionRow: { flex: 1, borderRadius: 22, paddingVertical: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  rowDisc: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  track: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  bar: { height: 6, borderRadius: 3 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, paddingLeft: 16, paddingRight: 12, backgroundColor: 'rgba(17,17,18,0.12)' },
   pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: light.inkFixed },
-  cardBody: { flex: 1, padding: 20, paddingBottom: 18 },
-  people: { paddingHorizontal: 20, gap: 16 },
-  person: { minWidth: 64, alignItems: 'center' },
-  personName: { marginTop: 6 },
+  cardBody: { flex: 1, padding: 20 },
+  // Figma «Franja»: the strip's name and balance sit 12 from the top, 16 from the sides.
+  strip: { flex: 1, paddingTop: 12, paddingHorizontal: 16 },
+  people: { paddingHorizontal: 20, gap: 20 },
+  person: { width: 56, alignItems: 'center' },
+  personName: { marginTop: 8 },
   face: {
     width: FACE,
     height: FACE,
@@ -491,9 +567,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 10,
+    marginTop: 12,
+    minHeight: 44,
   },
   glow: { position: 'absolute', left: 0, top: 0 },
+  // The Duo's hinge between the two panes.
+  fold: { width: StyleSheet.hairlineWidth * 2, opacity: 0.6 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   search: {
     height: 48,
@@ -532,8 +611,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   tile: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

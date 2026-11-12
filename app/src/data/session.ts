@@ -12,7 +12,8 @@ export function enterApp() {
 /** Stand-in for the API: any 6 digits work until the auth endpoint exists. */
 export async function verifyCode(code: string): Promise<boolean> {
   await new Promise((r) => setTimeout(r, 500));
-  return /^\d{6}$/.test(code);
+  // Demo: any six digits sign you in, except this one, so «Código incorrecto» (6.8) can be seen.
+  return /^\d{6}$/.test(code) && code !== '000000';
 }
 
 /**

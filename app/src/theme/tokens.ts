@@ -33,6 +33,17 @@ export type Tokens = {
   /** v3 Aurora. Dark buttons that sit on a lime card. */
   onLimeButton: string;
   mint: string;
+  /** v3 «ink-soft»: placeholders, inactive tabs, the line under a title. */
+  inkSoft: string;
+  /** v3 header and navigation controls (search, round buttons): white 10 % with a white 8 % edge. */
+  control: string;
+  controlStroke: string;
+  /** v3 row dividers inside cards: white 9 %. */
+  hairline: string;
+  /** v3 faces on a dark card (the page's tone, darker than the card). */
+  faceOnCard: string;
+  /** v3 «sheet»: sheets and alerts. */
+  sheet: string;
 };
 
 export const light: Tokens = {
@@ -58,6 +69,12 @@ export const light: Tokens = {
   fillStrong: 'rgba(18,18,18,0.09)',
   card: '#FFFFFF',
   glass: 'rgba(18,18,18,0.06)',
+  inkSoft: '#4A4A45',
+  control: 'rgba(18,18,18,0.06)',
+  controlStroke: 'rgba(18,18,18,0.08)',
+  hairline: 'rgba(18,18,18,0.09)',
+  faceOnCard: '#EDEDE8',
+  sheet: '#FFFFFF',
   onLimeButton: '#121212',
   mint: '#7FD8A8',
 };
@@ -87,6 +104,13 @@ export const dark: Tokens = {
   glass: 'rgba(255,255,255,0.12)',
   onLimeButton: '#121212',
   mint: '#7FD8A8',
+  inkSoft: '#C9C9C4',
+  // Figma draws these as white 10 % + «Glass» (which lightens them); 14 % matches what it renders.
+  control: 'rgba(255,255,255,0.14)',
+  controlStroke: 'rgba(255,255,255,0.18)',
+  hairline: 'rgba(255,255,255,0.09)',
+  faceOnCard: '#1E1E22',
+  sheet: '#222226',
 };
 
 /**
@@ -145,6 +169,14 @@ export const aurora: Tokens = {
   glass: 'rgba(255,255,255,0.12)',
   onLimeButton: '#25252A',
   mint: '#7FD8A8',
+  // v3 / Color: ink-soft, the controls of the header and navigation, dividers, faces on cards, sheets.
+  inkSoft: '#C9C9C4',
+  // Figma draws these as white 10 % + «Glass» (which lightens them); 14 % matches what it renders.
+  control: 'rgba(255,255,255,0.14)',
+  controlStroke: 'rgba(255,255,255,0.18)',
+  hairline: 'rgba(255,255,255,0.09)',
+  faceOnCard: '#1E1E22',
+  sheet: '#222226',
 };
 
 /** Sheets, alerts and the share sheet: #26262A at 62 % over a 32 % black veil. */

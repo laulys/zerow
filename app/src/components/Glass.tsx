@@ -1,22 +1,15 @@
-import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
+import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { useEffect, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import { useTheme } from '../theme/useTheme';
+import { Frost } from './Frost';
 
 const liquid = isLiquidGlassAvailable();
 
 /** iOS 26: sheets get the system's Liquid Glass when their background is clear. */
 export const glassSheets = liquid;
 
-function useReduceTransparency() {
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    AccessibilityInfo.isReduceTransparencyEnabled().then(setOn);
-    const sub = AccessibilityInfo.addEventListener('reduceTransparencyChanged', setOn);
-    return () => sub.remove();
-  }, []);
-  return on;
-}
+export { useReduceTransparency } from './Frost';
 
 /** iOS "Increase Contrast" (darker system colours): glass turns solid with a visible edge. */
 function useIncreaseContrast() {
@@ -30,26 +23,21 @@ function useIncreaseContrast() {
 }
 
 /**
- * iOS 26 Liquid Glass for controls that float over content (the tab bar, the
- * capture bar). Per Apple's guidance it's only for the navigation layer, never
- * for content. Falls back to the solid `fallback` colour on older iOS, Android,
- * or when the user turns on Reduce Transparency or Increase Contrast; the solid
- * version has no outline (v3) unless Increase Contrast asks for one.
+ * The v3 glass for things that float (the header controls, the tab bar, the
+ * capture bar): a translucent white fill over a background blur, as in Figma,
+ * where these are drawn with «Background blur» and, in the header and the
+ * navigation, a white 8 % edge (`stroke`). The system Liquid Glass read darker
+ * than the design, so it is no longer used here. With Increase Contrast the
+ * edge turns solid; Reduce Transparency is handled by `Frost`.
  */
-export function Glass({ fallback, style, children, ...rest }: ViewProps & { fallback: string; style?: StyleProp<ViewStyle>; children?: ReactNode }) {
+export function Glass({ fallback, stroke, style, children, ...rest }: ViewProps & { fallback: string; stroke?: boolean; style?: StyleProp<ViewStyle>; children?: ReactNode }) {
   const { t } = useTheme();
-  const reduce = useReduceTransparency();
   const contrast = useIncreaseContrast();
-  if (!liquid || reduce || contrast) {
-    return (
-      <View {...rest} style={[style, { backgroundColor: fallback }, contrast && { borderWidth: 1.5, borderColor: t.inkMuted }]}>
-        {children}
-      </View>
-    );
-  }
+  const r = (StyleSheet.flatten(style)?.borderRadius as number | undefined) ?? 0;
   return (
-    <GlassView {...rest} glassEffectStyle="regular" colorScheme="dark" style={style}>
+    <View {...rest} style={[style, stroke && { borderWidth: 1, borderColor: t.controlStroke }, contrast && { borderWidth: 1.5, borderColor: t.inkMuted }]}>
+      <Frost fill={fallback} radius={r} intensity={stroke ? 16 : 20} />
       {children}
-    </GlassView>
+    </View>
   );
 }

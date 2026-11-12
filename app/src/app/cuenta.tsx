@@ -1,9 +1,11 @@
 import { Aurora } from '../components/Aurora';
+import { Spread } from '../components/Duo';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
 import { RollingMoney } from '../components/Money';
@@ -71,13 +73,13 @@ export default function QuickSplit() {
     router.push('/trip/lisboa');
   };
 
-  return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Aurora height={380} strength={0.75} />
-      <ScrollView contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+  const amount = (
+    <>
+      <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
 
-        <T v="label" color={t.inkMuted} style={{ marginTop: 24 }}>
+      {/* Figma «Importe»: a column 8 apart, 16 below the close button. */}
+      <View style={{ marginTop: 16, gap: 8 }}>
+        <T v="caption" color={t.inkMuted}>
           Dividir una cuenta
         </T>
         {editingTitle ? (
@@ -92,28 +94,28 @@ export default function QuickSplit() {
             accessibilityLabel="Nombre de la cuenta"
           />
         ) : (
-          <Tap onPress={() => setEditingTitle(true)} accessibilityRole="button" accessibilityLabel={`${title}. Cambiar nombre`} style={styles.titleRow}>
+          <Tap onPress={() => setEditingTitle(true)} accessibilityRole="button" accessibilityLabel={`${title}. Cambiar nombre`} style={styles.titleRow} hitSlop={8}>
             <T v="titleM" color={t.ink}>
               {title || 'Sin nombre'}
             </T>
-            <Icon name="pen" size={16} color={t.inkMuted} />
+            <Icon name="pen" size={20} color={t.inkSoft} weight={1.75} />
           </Tap>
         )}
 
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 20 }} accessible accessibilityLabel={`${eurText(each, currency)} cada uno`}>
-          <RollingMoney value={each} size={each >= 1000 ? 60 : 88} color={t.ink} centsColor={t.inkMuted} duration={motion.standard} currency={currency} />
-          <T v="body" color={t.inkMuted} style={{ marginLeft: 8 }}>
+        <View style={styles.each} accessible accessibilityLabel={`${eurText(each, currency)} cada uno`}>
+          <RollingMoney value={each} size={each >= 1000 ? 56 : 76} color={t.ink} duration={motion.standard} currency={currency} />
+          <T v="label" color={t.inkMuted}>
             cada uno
           </T>
         </View>
 
         <Tap onPress={() => amountRef.current?.focus()} accessibilityRole="none" style={[styles.totalField, { backgroundColor: t.fill, borderColor: editingAmount ? t.ink : 'transparent' }]}>
-          <T v="label" color={t.inkMuted} style={{ flex: 1 }}>
+          <T v="body" color={t.inkMuted} style={{ flex: 1 }}>
             Total de la cuenta
           </T>
           <TextInput
             ref={amountRef}
-            value={editingAmount ? amountText : eurText(base, currency).replace(/ (€|US\$)$/, '')}
+            value={editingAmount ? amountText : eurText(base, currency)}
             placeholder={eurText(base, currency).replace(/ (€|US\$)$/, '')}
             placeholderTextColor={t.inkMuted}
             onChangeText={(v) => setAmountText(v.replace(/[^0-9.,]/g, ''))}
@@ -130,54 +132,108 @@ export default function QuickSplit() {
             style={[styles.totalInput, { color: t.ink }]}
             accessibilityLabel="Total de la cuenta, sin propina"
           />
-          <T v="bodyStrong" color={t.ink}>
-            {currency === 'EUR' ? '€' : 'US$'}
-          </T>
-          <Icon name="pen" size={16} color={t.inkMuted} />
+          {/* While typing, the currency stays after the number, a space apart. */}
+          {editingAmount ? (
+            <T v="bodyStrong" color={t.ink} style={{ marginLeft: -8 }}>
+              {currency === 'EUR' ? '€' : 'US$'}
+            </T>
+          ) : null}
+          <Icon name="pen" size={20} color={t.inkSoft} weight={1.75} />
         </Tap>
-        <T v="caption" color={t.inkMuted} style={{ marginTop: 8 }}>
+        <T v="caption" color={t.inkMuted} style={{ marginTop: 12 }}>
           {tip ? `+ ${tip} % de propina = ${eurText(total, currency)} · ` : ''}entre {who.length}
         </T>
 
         <View style={[styles.pill, { backgroundColor: t.lime }]} accessibilityLiveRegion="polite">
-          <T v="labelStrong" color={t.onLime}>
+          <T v="caption" color={t.inkFixed} style={{ fontWeight: '600' }}>
             {summary}
           </T>
         </View>
-
-        <T v="label" color={t.inkMuted} style={styles.section}>
-          Entre
-        </T>
-        <View style={styles.wrap}>
-          {everyone.map((p) => (
-            <Chip key={p} label={name(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} />} />
-          ))}
-        </View>
-
-        <T v="label" color={t.inkMuted} style={styles.section}>
-          Ajustes
-        </T>
-        <View style={styles.wrap}>
-          <Chip label={tip ? `Propina ${tip} %` : 'Sin propina'} onPress={() => setTip(tips[(tips.indexOf(tip) + 1) % tips.length])} />
-          <Chip label={payer === 'tu' ? 'Pagaste tú' : `Pagó ${name(payer)}`} onPress={nextPayer} />
-          <Chip label={currency === 'EUR' ? 'En euros' : 'En dólares'} onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))} />
-        </View>
-      </ScrollView>
-
-      <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8, gap: 10 }}>
-        <Button label="Guardar en Lisboa 2026" kind="secondary" onPress={saveToGroup} />
-        <Button label="Compartir lo que pone cada uno" icon="share" onPress={() => Share.share({ message: shareText() })} />
       </View>
-    </KeyboardAvoidingView>
+    </>
+  );
+  const choices = (
+    <View style={{ gap: 12 }}>
+      <T v="labelStrong" color={t.inkMuted}>
+        Entre
+      </T>
+      <View style={styles.wrap}>
+        {everyone.map((p) => (
+          <Chip key={p} label={name(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} bg={t.faceOnCard} />} />
+        ))}
+      </View>
+
+      <T v="labelStrong" color={t.inkMuted} style={{ marginTop: 18 }}>
+        Ajustes
+      </T>
+      <View style={styles.wrap}>
+        <Chip label={tip ? `Propina ${tip} %` : 'Sin propina'} onPress={() => setTip(tips[(tips.indexOf(tip) + 1) % tips.length])} />
+        <Chip label={payer === 'tu' ? 'Pagaste tú' : `Pagó ${name(payer)}`} onPress={nextPayer} />
+        <Chip label={currency === 'EUR' ? 'En euros' : 'En dólares'} onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))} />
+      </View>
+    </View>
+  );
+  const actions = (
+    <>
+      <Button label="Guardar en Lisboa 2026" kind="secondary" onPress={saveToGroup} />
+      <Button label="Compartir lo que pone cada uno" icon="share" onPress={() => Share.share({ message: shareText() })} />
+    </>
+  );
+  // Figma: 12 above the buttons, 12 between them, 34 under them (the home indicator).
+  const bottom = Math.max(insets.bottom, 16);
+  const footer = 12 + 56 + 12 + 56 + bottom;
+
+  // Open iPhone Duo (Figma «Duo abierto · 2.5»): what each one puts in on the left; who and how on the right.
+  return (
+    <Spread
+      phone={
+        <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Aurora preset="onboarding" />
+          <View style={{ flex: 1 }}>
+            {/* Full screen (Figma): the close button sits at the top inset. */}
+            <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: footer + 6 }} keyboardShouldPersistTaps="handled">
+              {amount}
+              <View style={{ marginTop: 24 }}>{choices}</View>
+            </ScrollView>
+            {/* Figma «Fundido»: the page rises from clear behind the buttons, so the list scrolls away under them. */}
+            <View pointerEvents="box-none" style={[styles.footer, { height: footer, paddingBottom: bottom }]}>
+              <Fundido />
+              {actions}
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      }
+      left={amount}
+      right={<View style={{ marginTop: 40 }}>{choices}</View>}
+      footer={<View style={{ gap: 12 }}>{actions}</View>}
+    />
+  );
+}
+
+/** Figma «Fundido»: page colour from clear to solid at 60 %. */
+function Fundido() {
+  const { t } = useTheme();
+  return (
+    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
+      <Defs>
+        <LinearGradient id="cuentaFade" x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={t.page} stopOpacity={0} />
+          <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
+        </LinearGradient>
+      </Defs>
+      <Rect width="100%" height="100%" fill="url(#cuentaFade)" />
+    </Svg>
   );
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, alignSelf: 'flex-start', minHeight: 44 },
-  titleInput: { fontFamily: font.medium, fontSize: 22, marginTop: 4, height: 44, borderBottomWidth: 1 },
-  totalField: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 56, borderRadius: 16, borderWidth: 1.5, paddingLeft: 16, paddingRight: 14, marginTop: 16 },
-  totalInput: { fontFamily: font.medium, fontSize: 17, minWidth: 60, textAlign: 'right', paddingVertical: 0 },
-  pill: { alignSelf: 'flex-start', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, marginTop: 12 },
-  section: { marginTop: 28, marginBottom: 10 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
+  titleInput: { fontFamily: font.medium, fontSize: 22, height: 27, padding: 0, borderBottomWidth: 1 },
+  each: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingVertical: 8 },
+  // 1.5 pt focus edge inside the 16 pt padding, so the content sits where Figma has it.
+  totalField: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14.5 },
+  totalInput: { fontSize: 17, fontWeight: '600', minWidth: 60, textAlign: 'right', paddingVertical: 0 },
+  pill: { alignSelf: 'flex-start', height: 26, borderRadius: 13, paddingHorizontal: 12, justifyContent: 'center', marginTop: 12 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 20, gap: 12 },
 });

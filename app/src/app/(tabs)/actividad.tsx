@@ -1,27 +1,34 @@
 import { Aurora } from '../../components/Aurora';
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
+import { useScreen } from '../../components/Screen';
 import { Avatar } from '../../components/Avatar';
 import { Card, Hairline, T, Tap } from '../../components/ui';
-import { eurText, invite, people, settleUp, balancesFor, transferKey, useTrip, type PersonId } from '../../data/trip';
+import { eurText, invite, pastGroups, people, settleUp, balancesFor, transferKey, useTrip, type PersonId } from '../../data/trip';
 import { motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
-type Item = { key: string; who: PersonId; title: string; meta: string; amount?: string; sub?: string; to?: string; badge?: string };
+type Item = { key: string; who?: PersonId; emoji?: string; title: string; meta: string; amount?: string; sub?: string; to?: string; badge?: string; tag?: string };
 
 const sample = new Set(['hotel', 'taxi', 'cena', 'almuerzo']);
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
+const roma = pastGroups.find((g) => g.id === 'roma')!;
 
 // 2.2 Actividad: what happened, newest first. "Hoy" follows what you do in the
-// app (confirming the lunch, new expenses, payments, new groups); "Ayer" is the
-// trip's sample history.
+// app (adding the lunch, new expenses, payments, new groups); "Ayer" is the
+// trip's sample history; the last block is an older group that reached zero.
 export default function Activity() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { draft, expenses, paid, pisoPaid, groups } = useTrip();
+  const { draft, expenses, paid, pisoPaid, groups, pastEmoji } = useTrip();
+  // Open iPhone Duo (Figma «Duo abierto · 2.2»): «Hoy» and «Ayer» side by side, 353 each.
+  const { form } = useScreen();
+  const split = form === 'split';
+  // On the Duo the light reaches into the control column instead of stopping at its edge.
+  const wide = form !== 'compact';
 
   const today: Item[] = [];
   // The invitation (5.2) stays on top until you answer it; once you join, it says so.
@@ -60,10 +67,11 @@ export default function Activity() {
   }
   for (const g of groups.filter((g) => g !== joined)) today.push({ key: g.id, who: 'tu', title: `Creaste ${g.name}`, meta: `${g.members.length} personas · ahora`, to: `/trip/${g.id}` });
   const lunchSaved = expenses.some((e) => e.id === 'almuerzo');
-  if (draft) today.push({ key: 'almuerzo', who: 'ana', title: 'Ana propuso el almuerzo', meta: 'Lisboa 2026 · 14:05 · por revisar', amount: eurText(38), to: '/trip/lisboa' });
-  else if (lunchSaved) today.push({ key: 'almuerzo', who: 'tu', title: 'Confirmaste el almuerzo', meta: 'Lisboa 2026 · lo propuso Ana', amount: eurText(38), to: '/trip/lisboa' });
+  // The lunch waits for review with a «Por revisar» tag under its amount (Figma); once added it reads like the dinner.
+  if (draft) today.push({ key: 'almuerzo', who: 'ana', title: 'Ana propuso el almuerzo', meta: 'Lisboa 2026 · 14:05', amount: eurText(38), tag: 'Por revisar', to: '/trip/lisboa' });
+  else if (lunchSaved) today.push({ key: 'almuerzo', who: 'tu', title: 'Sumaste el almuerzo', meta: 'Lisboa 2026 · lo propuso Ana', amount: eurText(38), to: '/trip/lisboa' });
   else today.push({ key: 'almuerzo', who: 'tu', title: 'Descartaste el almuerzo', meta: 'Lisboa 2026 · no cuenta', to: '/trip/lisboa' });
-  today.push({ key: 'cena', who: 'tu', title: 'Confirmaste la cena', meta: 'Lisboa 2026 · 00:12 · con propina', amount: eurText(138), to: '/trip/lisboa' });
+  today.push({ key: 'cena', who: 'tu', title: 'Sumaste la cena', meta: 'Lisboa 2026 · 00:12 · con propina', amount: eurText(138), to: '/trip/lisboa' });
 
   const yesterday: Item[] = [
     { key: 'hotel', who: 'luis', title: 'Luis añadió el hotel', meta: 'Hotel Alfama · 18:30', amount: eurText(269.08), sub: '300,00 US$', to: '/trip/lisboa' },
@@ -71,73 +79,109 @@ export default function Activity() {
     { key: 'marta', who: 'marta', title: 'Marta se unió al viaje', meta: 'Por invitación de Ana · 11:02', to: '/trip/lisboa' },
   ];
 
+  const older: Item[] = [{ key: 'roma', emoji: pastEmoji.roma, title: 'Roma quedó a cero', meta: '3 pagos marcados · 14 mar', amount: eurText(roma.total), to: '/emoji?id=roma' }];
+
+  const sections = [
+    { label: 'Hoy', items: today },
+    { label: 'Ayer', items: yesterday },
+    { label: 'Roma · marzo', items: older },
+  ];
+
+  const section = (g: (typeof sections)[number]) => (
+    <View key={g.label} style={styles.section}>
+      <T v="labelStrong" color={t.inkMuted}>
+        {g.label}
+      </T>
+      <Card style={{ paddingVertical: 4 }}>
+        {g.items.map((it, i) => (
+          <Animated.View key={it.key} entering={FadeInDown.duration(motion.standard)}>
+            <Tap
+              onPress={it.to ? () => router.push(it.to as never) : undefined}
+              accessibilityRole="button"
+              accessibilityLabel={`${it.title}. ${it.meta}${it.amount ? `. ${it.amount}` : ''}${it.tag ? `. ${it.tag}` : ''}`}
+              style={styles.row}
+            >
+              {it.who ? (
+                <Avatar id={it.who} size={40} bg={t.faceOnCard} />
+              ) : (
+                // Figma «Emoji»: the group's emoji on a white 8 % tile.
+                <View style={styles.tile}>
+                  <Text style={styles.emoji}>{it.emoji}</Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                {/* The title wraps (Figma lets it take two lines); the detail line ends in «…». */}
+                <T v="labelStrong" color={t.ink}>
+                  {it.title}
+                </T>
+                <T v="caption" color={t.inkMuted} numberOfLines={1}>
+                  {it.meta}
+                </T>
+              </View>
+              {it.badge ? <Pill label={it.badge} /> : null}
+              {it.amount ? (
+                <View style={{ alignItems: 'flex-end', gap: it.tag ? 4 : 0 }}>
+                  <T v="titleXS" color={t.ink}>
+                    {it.amount}
+                  </T>
+                  {it.sub ? (
+                    <T v="caption" color={t.inkMuted}>
+                      {it.sub}
+                    </T>
+                  ) : null}
+                  {it.tag ? <Pill label={it.tag} /> : null}
+                </View>
+              ) : null}
+            </Tap>
+            {i < g.items.length - 1 ? <Hairline /> : null}
+          </Animated.View>
+        ))}
+      </Card>
+    </View>
+  );
+
   return (
-    <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 140 }}>
-      <Aurora height={380} strength={0.75} />
+    <ScrollView
+      style={[{ backgroundColor: t.page }, wide && styles.unclipped]}
+      contentContainerStyle={{ paddingTop: insets.top + 12, paddingLeft: split ? 50 : 20, paddingRight: split ? 40 : 20, paddingBottom: 140 }}
+    >
+      <Aurora preset="tab" />
       <FocusStatusBar style="light" />
-      <View style={styles.header}>
-        <T v="titleL" color={t.ink} accessibilityRole="header">
-          Actividad
-        </T>
-      </View>
-      {[
-        { label: 'Hoy', items: today },
-        { label: 'Ayer', items: yesterday },
-      ].map((g) => (
-        <View key={g.label} style={{ marginBottom: 20 }}>
-          <T v="labelStrong" color={t.inkMuted} style={{ marginBottom: 8 }}>
-            {g.label}
-          </T>
-          <Card bg={t.surface} style={{ paddingVertical: 4 }}>
-            {g.items.map((it, i) => (
-              <Animated.View key={it.key} entering={FadeInDown.duration(motion.standard)}>
-                <Tap
-                  onPress={it.to ? () => router.push(it.to as never) : undefined}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${it.title}. ${it.meta}${it.amount ? `. ${it.amount}` : ''}`}
-                  style={styles.row}
-                >
-                  <Avatar id={it.who} size={40} />
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <T v="bodyStrong" color={t.ink} numberOfLines={1}>
-                      {it.title}
-                    </T>
-                    <T v="caption" color={t.inkMuted} numberOfLines={1}>
-                      {it.meta}
-                    </T>
-                  </View>
-                  {it.badge ? (
-                    <View style={[styles.badge, { backgroundColor: t.lime }]}>
-                      <T v="caption" color={t.onLime} style={{ fontWeight: '600' }}>
-                        {it.badge}
-                      </T>
-                    </View>
-                  ) : null}
-                  {it.amount ? (
-                    <View style={{ alignItems: 'flex-end', marginLeft: 8 }}>
-                      <T v="bodyStrong" color={t.ink}>
-                        {it.amount}
-                      </T>
-                      {it.sub ? (
-                        <T v="caption" color={t.inkMuted}>
-                          {it.sub}
-                        </T>
-                      ) : null}
-                    </View>
-                  ) : null}
-                </Tap>
-                {i < g.items.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
-              </Animated.View>
-            ))}
-          </Card>
+      <T v="titleL" color={t.ink} accessibilityRole="header" style={styles.title}>
+        Actividad
+      </T>
+      {split ? (
+        // Two columns on the open Duo: today on the left, the rest on the right.
+        <View style={styles.spread}>
+          <View style={{ flex: 1 }}>{section(sections[0])}</View>
+          <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map(section)}</View>
         </View>
-      ))}
+      ) : (
+        <View style={{ gap: 20 }}>{sections.map(section)}</View>
+      )}
     </ScrollView>
   );
 }
 
+/** Figma «Ver» / «Por revisar»: a 26 pt lime tag with dark 13 pt text. */
+function Pill({ label }: { label: string }) {
+  const { t } = useTheme();
+  return (
+    <View style={[styles.pill, { backgroundColor: t.lime }]}>
+      <T v="caption" color={t.inkFixed} style={{ fontWeight: '600' }}>
+        {label}
+      </T>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  header: { minHeight: 44, justifyContent: 'center', marginBottom: 20 },
-  row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12 },
-  badge: { marginLeft: 8, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
+  title: { marginBottom: 20 },
+  section: { gap: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
+  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  emoji: { fontSize: 23, lineHeight: 28 },
+  unclipped: { overflow: 'visible' },
+  spread: { flexDirection: 'row', alignItems: 'flex-start', gap: 71 },
+  pill: { height: 26, borderRadius: 13, paddingHorizontal: 12, justifyContent: 'center' },
 });

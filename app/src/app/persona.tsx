@@ -1,23 +1,18 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Share, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
-import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
-import { Button, T, Tap } from '../components/ui';
+import { SheetBody, SheetList } from '../components/Sheet';
+import { Button, T } from '../components/ui';
 import { afterSheet } from '../data/session';
-import { eurText, people, usePeopleBalances, type PersonId } from '../data/trip';
-import { glassSheets } from '../components/Glass';
+import { eurText, openEmoji, people, usePeopleBalances, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
-
-const LIME_DIM = 'rgba(203, 242, 107, 0.6)';
 
 // 2.9 Tú y Ana (sheet): what you and one person owe each other across your open
 // groups, netted into one number. Each group row goes to where you'd settle it.
 export default function Person() {
   const { t } = useTheme();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: PersonId }>();
   const all = usePeopleBalances();
   const p = all.find((x) => x.id === id) ?? all[0];
@@ -38,8 +33,10 @@ export default function Person() {
         .join(', ')}). ¡Sin prisa!`,
     });
 
+  // Figma 2.9: face 56 and title, the net in Importe L (lime when owed to you), the shared groups as a
+  // list card with their emoji, then the button and «Recordárselo» as a text button.
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
+    <SheetBody>
       <View style={styles.head}>
         <Avatar id={p.id} size={56} />
         <View>
@@ -52,54 +49,33 @@ export default function Person() {
         </View>
       </View>
 
-      <View style={{ marginTop: 18 }} accessible accessibilityLabel={p.net === 0 ? label : `${label} ${eurText(Math.abs(p.net))}`}>
-        <T v="label" color={t.inkMuted} style={{ marginBottom: 6 }}>
+      <View accessible accessibilityLabel={p.net === 0 ? label : `${label} ${eurText(Math.abs(p.net))}`}>
+        <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
           {label}
         </T>
-        {/* Owed to you: the whole number in lime and the cents in the same lime, dimmer. */}
-        <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} centsColor={p.net > 0 ? LIME_DIM : t.inkMuted} />
+        <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} />
       </View>
 
-      <View style={[styles.box, { backgroundColor: t.fill }]}>
-        {p.parts.map((x, i) => {
+      <SheetList
+        rows={p.parts.map((x) => {
           const owe = x.amount < 0;
           const text = x.amount === 0 ? 'A cero' : owe ? `Le debes ${eurText(-x.amount)}` : `Te debe ${eurText(x.amount)}`;
-          return (
-            <Tap
-              key={x.key}
-              onPress={() => go(x.to)}
-              accessibilityRole="button"
-              accessibilityLabel={`${x.group}. ${text}`}
-              style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth * 2, borderTopColor: t.line }]}
-            >
-              <View style={{ flex: 1 }}>
-                <T v="bodyStrong" color={t.ink}>
-                  {x.group}
-                </T>
-                <T v="caption" color={x.amount > 0 ? t.lime : t.inkMuted}>
-                  {text}
-                </T>
-              </View>
-              <Icon name="chevron-right" size={18} color={t.inkMuted} />
-            </Tap>
-          );
+          return { key: x.key, title: x.group, sub: text, subColor: x.amount > 0 ? t.lime : undefined, emoji: openEmoji[x.key] ?? '🧾', onPress: () => go(x.to) };
         })}
-      </View>
+      />
 
       {youOwe ? (
-        <Button label={`Pagar ${eurText(-youOwe.amount)} · ${youOwe.group.split(' ')[0]}`} style={{ marginTop: 16 }} onPress={() => go(youOwe.to)} />
+        <Button label={`Pagar ${eurText(-youOwe.amount)} · ${youOwe.group.split(' ')[0]}`} onPress={() => go(youOwe.to)} />
       ) : p.net > 0 ? (
-        <Button label="Recordárselo" icon="share" style={{ marginTop: 16 }} onPress={remind} />
+        <Button label="Recordárselo" icon="share" onPress={remind} />
       ) : (
-        <Button label={`Dividir algo con ${name}`} kind="secondary" style={{ marginTop: 16 }} onPress={() => go('/dividir')} />
+        <Button label={`Dividir algo con ${name}`} kind="secondary" onPress={() => go('/dividir')} />
       )}
-      {youOwe && p.net > 0 ? <Button label="Recordárselo" kind="text" height={48} style={{ marginTop: 6 }} onPress={remind} /> : null}
-    </View>
+      {youOwe && p.net > 0 ? <Button label="Recordárselo" kind="text" height={44} onPress={remind} /> : null}
+    </SheetBody>
   );
 }
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  box: { borderRadius: 22, marginTop: 16, overflow: 'hidden' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 12, minHeight: 60 },
 });

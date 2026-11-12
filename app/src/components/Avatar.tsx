@@ -13,6 +13,8 @@ export type AvatarOn = 'dark' | 'lime';
  */
 export function Avatar({ id, size = 32, decorative = true, bg, on = 'dark' }: { id: PersonId; size?: number; decorative?: boolean; bg?: string; on?: AvatarOn }) {
   const { t } = useTheme();
+  // v3: on a lime card the face sits on pale lime with a lighter 2 pt ring (Figma «Avatar»
+  // #D9F29A, stroke #E9F9B8); on the graphite UI it is a solid disc with no ring.
   const disc = on === 'lime' ? styles.onLime : { backgroundColor: bg ?? t.panelRaised };
   return (
     <View
@@ -27,20 +29,25 @@ export function Avatar({ id, size = 32, decorative = true, bg, on = 'dark' }: { 
 }
 
 /**
- * A group's faces side by side (v3: no overlap, no ring), 8 pt apart. `max`
+ * A group's faces: on a lime card they overlap with a ring; on graphite, 8 pt apart. `max`
  * keeps the row short on a card; the rest fold into a "+n" disc.
  */
-export function AvatarStack({ ids, size = 30, gap = 8, max, on }: { ids: PersonId[]; size?: number; gap?: number; max?: number; on?: AvatarOn; overlap?: number; outline?: string }) {
+export function AvatarStack({ ids, size = 30, gap: gapProp, max, on }: { ids: PersonId[]; size?: number; gap?: number; max?: number; on?: AvatarOn; overlap?: number; outline?: string }) {
   const { t } = useTheme();
+  // On lime cards the faces overlap by 9 pt, each with its ring (Figma «Personas», spacing −9).
+  const gap = gapProp ?? (on === 'lime' ? -9 : 8);
   const shown = max && ids.length > max ? ids.slice(0, max - 1) : ids;
   const rest = ids.length - shown.length;
   return (
-    <View style={{ flexDirection: 'row', gap }} importantForAccessibility="no-hide-descendants">
-      {shown.map((id) => (
-        <Avatar key={id} id={id} size={size} on={on} />
+    // Flexbox gaps can't be negative, so overlapping faces pull left with a margin instead.
+    <View style={{ flexDirection: 'row', gap: Math.max(0, gap) }} importantForAccessibility="no-hide-descendants">
+      {shown.map((id, i) => (
+        <View key={id} style={gap < 0 && i > 0 ? { marginLeft: gap } : undefined}>
+          <Avatar id={id} size={size} on={on} />
+        </View>
       ))}
       {rest > 0 ? (
-        <View style={[styles.ring, on === 'lime' ? styles.onLime : { backgroundColor: t.panelRaised }, { width: size, height: size, borderRadius: size / 2 }]}>
+        <View style={[styles.ring, on === 'lime' ? styles.onLime : { backgroundColor: t.panelRaised }, { width: size, height: size, borderRadius: size / 2 }, gap < 0 && { marginLeft: gap }]}>
           <Text style={{ fontSize: 13, fontWeight: '600', color: on === 'lime' ? t.inkFixed : t.ink }} maxFontSizeMultiplier={1}>
             +{rest}
           </Text>
@@ -56,5 +63,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  onLime: { backgroundColor: 'rgba(255,255,255,0.3)' },
+  onLime: { backgroundColor: '#D9F29A', borderWidth: 2, borderColor: '#E9F9B8' },
 });
