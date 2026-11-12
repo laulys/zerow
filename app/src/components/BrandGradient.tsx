@@ -46,7 +46,17 @@ export function BrandGradient({ style, children, seed = 3, lively = false }: { s
   const lowPower = useLowPowerMode();
   const reduceMotion = useReducedMotion();
   const still = lowPower || reduceMotion;
-  const uniforms = useDerivedValue(() => ({ res: [size.w, size.h], t: still ? seed : seed + (clock.value / 1000) * 0.6, c0, c1, c2, c3, zoom: lively ? 2.2 : 1.6, warp: lively ? 3.0 : 1.6, off: lively ? [seed * 1.7, seed * 0.9] : [0, 0] }));
+  const uniforms = useDerivedValue(() => ({
+    res: [size.w, size.h],
+    t: still ? seed : seed + (clock.value / 1000) * 0.6,
+    c0,
+    c1,
+    c2,
+    c3,
+    zoom: lively ? 2.2 : 1.6,
+    warp: lively ? 3.0 : 1.6,
+    off: lively ? [seed * 1.7, seed * 0.9] : [0, 0],
+  }));
   const onLayout = (e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height });
   return (
     <View style={[styles.wrap, style]} onLayout={onLayout}>

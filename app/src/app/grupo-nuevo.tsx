@@ -1,3 +1,4 @@
+import { Aurora } from '../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -49,8 +50,9 @@ export default function NewGroup() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Aurora height={380} strength={0.75} />
       <ScrollView contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-        <IconButton name="x" label="Cerrar" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
           Nuevo grupo
         </T>
@@ -70,7 +72,7 @@ export default function NewGroup() {
             onChangeText={setName}
             placeholder={k.placeholder}
             placeholderTextColor={t.inkMuted}
-            style={[inputStyle(t), nameMissing && { borderColor: t.danger }]}
+            style={[inputStyle(t), nameMissing && { borderColor: t.danger, borderWidth: 1.5 }]}
             accessibilityLabel="Nombre"
             returnKeyType="next"
           />

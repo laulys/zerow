@@ -1,3 +1,4 @@
+import { Aurora } from '../../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -9,7 +10,7 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { Icon } from '../../components/Icon';
 import { Money } from '../../components/Money';
 import { Button, T } from '../../components/ui';
-import { font, light } from '../../theme/tokens';
+import { light } from '../../theme/tokens';
 import { invite, people, useTrip } from '../../data/trip';
 import { useTheme } from '../../theme/useTheme';
 
@@ -49,6 +50,7 @@ export default function Invited() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
+      <Aurora height={380} strength={0.75} />
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 24 }}>
         <Animated.View entering={at(0)} style={styles.from}>
@@ -59,7 +61,10 @@ export default function Invited() {
         </Animated.View>
 
         <Animated.View entering={reduce ? undefined : ticketIn} style={{ marginTop: 20 }}>
-          <View accessible accessibilityLabel={`${invite.name}, ${invite.dates}, en euros. ${invite.inside.map((p) => people[p].name).join(', ')} ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.`}>
+          <View
+            accessible
+            accessibilityLabel={`${invite.name}, ${invite.dates}, en euros. ${invite.inside.map((p) => people[p].name).join(', ')} ya están dentro. Tú entras con 0,00 euros: lo que pagaron antes no te toca.`}
+          >
             <BrandGradient style={styles.ticket} seed={8}>
               <View style={styles.top}>
                 <T v="display" color={light.inkFixed} style={styles.trip}>
@@ -70,7 +75,7 @@ export default function Invited() {
                 </T>
                 <View style={styles.people}>
                   <AvatarStack ids={invite.inside} size={44} outline="#D3F27F" on="lime" />
-                  <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium }}>
+                  <T v="label" color={light.inkFixed} style={{ fontWeight: '600' }}>
                     {invite.inside.length} personas ya dentro
                   </T>
                 </View>
@@ -97,7 +102,7 @@ export default function Invited() {
                       <View style={[styles.ok, { backgroundColor: light.inkFixed }]}>
                         <Icon name="check" size={12} color={t.lime} />
                       </View>
-                      <T v="label" color={light.inkFixed} style={{ fontFamily: font.medium, flex: 1 }}>
+                      <T v="label" color={light.inkFixed} style={{ fontWeight: '600', flex: 1 }}>
                         {f}
                       </T>
                     </View>

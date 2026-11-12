@@ -1,3 +1,4 @@
+import { Aurora } from '../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -47,14 +48,15 @@ export default function SettleUp() {
   }, [settled]);
 
   const subtitle = draft
-    ? 'Primero, revisa el borrador pendiente'
+    ? 'Primero, revisa el gasto pendiente'
     : settled
-      ? 'Todos estáis a mano. Buen viaje.'
-      : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a mano`;
+      ? 'Todos estáis a cero. Buen viaje.'
+      : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
 
   return (
     <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
-      <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+      <Aurora height={380} strength={0.75} />
+      <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
       <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
         Saldar cuentas
       </T>
@@ -66,9 +68,9 @@ export default function SettleUp() {
         <>
           <Card bg={t.lime} style={{ padding: 18 }}>
             <T v="body" color={t.onLime}>
-              El {draft.title.toLowerCase()} ({eurText(draft.amountEur)}) aún es un borrador. Confírmalo o descártalo antes de marcar pagos: si no, las cuentas cambiarían después.
+              El {draft.title.toLowerCase()} ({eurText(draft.amountEur)}) está por revisar. Súmalo o descártalo antes de marcar pagos: si no, las cuentas cambiarían después.
             </T>
-            <Button label="Revisar el borrador" kind="onGradient" height={48} style={{ marginTop: 14 }} onPress={() => router.navigate('/trip/lisboa')} />
+            <Button label="Revisar el gasto" kind="onGradient" height={48} style={{ marginTop: 14 }} onPress={() => router.navigate('/trip/lisboa')} />
           </Card>
           <T v="labelStrong" color={t.inkMuted} style={{ marginTop: 24, marginBottom: 8 }}>
             Pagos previstos · cambian al confirmarlo
@@ -94,12 +96,12 @@ export default function SettleUp() {
               <View style={[styles.badge, { backgroundColor: light.inkFixed }]}>
                 <Icon name="check" size={14} color={t.lime} />
                 <T v="labelStrong" color={t.lime}>
-                  A mano
+                  A cero
                 </T>
               </View>
             </View>
             <T v="titleL" color={light.inkFixed} style={{ fontSize: 56, lineHeight: 60, letterSpacing: -1.6, marginTop: 28 }}>
-              A mano
+              A cero
             </T>
             <T v="label" color={light.inkMutedFixed}>
               {eurText(total)} en {expenses.length} gastos · saldado con {transfers.length} pagos
@@ -113,7 +115,13 @@ export default function SettleUp() {
 
       {!draft &&
         pending.map((x) => (
-          <Animated.View key={transferKey(x)} entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(160)} layout={LinearTransition.duration(motion.standard)} style={{ marginBottom: 12 }}>
+          <Animated.View
+            key={transferKey(x)}
+            entering={FadeInDown.duration(motion.standard)}
+            exiting={FadeOut.duration(160)}
+            layout={LinearTransition.duration(motion.standard)}
+            style={{ marginBottom: 12 }}
+          >
             <Card bg={t.surface}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Avatar id={x.from} size={28} />
@@ -128,7 +136,12 @@ export default function SettleUp() {
               </View>
               {x.to === 'tu' ? (
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <Button label="Recordárselo" kind="secondary" height={48} onPress={() => Share.share({ message: `Hola ${people[x.from].name}: de Lisboa 2026 me quedan ${eurText(x.amount)} por cobrarte. Lo tienes en Zerow, ¡sin prisa!` })} />
+                  <Button
+                    label="Recordárselo"
+                    kind="secondary"
+                    height={48}
+                    onPress={() => Share.share({ message: `Hola ${people[x.from].name}: de Lisboa 2026 me quedan ${eurText(x.amount)} por cobrarte. Lo tienes en Zerow, ¡sin prisa!` })}
+                  />
                   <Button label="Ya me ha pagado" height={48} style={{ flex: 1 }} onPress={() => pay(x)} />
                 </View>
               ) : (
@@ -167,7 +180,12 @@ export default function SettleUp() {
       ) : null}
 
       {settled ? (
-        <Button label="Compartir resumen" icon="arrow-right" style={{ marginTop: 20 }} onPress={() => Share.share({ message: `Lisboa 2026 quedó a mano: ${eurText(total)} en ${expenses.length} gastos, saldado con ${transfers.length} pagos. Hecho con Zerow.` })} />
+        <Button
+          label="Compartir resumen"
+          icon="share"
+          style={{ marginTop: 20 }}
+          onPress={() => Share.share({ message: `Lisboa 2026 quedó a cero: ${eurText(total)} en ${expenses.length} gastos, saldado con ${transfers.length} pagos. Hecho con Zerow.` })}
+        />
       ) : (
         <Tap onPress={() => setShowBalances((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: showBalances }} style={[styles.balancesToggle, { backgroundColor: t.surface }]}>
           <T v="labelStrong" color={t.ink} style={{ flex: 1 }}>

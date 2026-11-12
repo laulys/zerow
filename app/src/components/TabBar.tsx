@@ -37,7 +37,7 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
         </Svg>
       </View>
       <View style={[styles.row, { bottom }]} pointerEvents="box-none">
-        <Glass fallback={t.panel} style={styles.pill} accessibilityRole="tablist">
+        <Glass fallback={t.panelRaised} style={styles.pill} accessibilityRole="tablist">
           {tabs.map((tab, i) => {
             const on = current === tab.route;
             const color = on ? t.inkFixed : t.onPanelMuted;
@@ -88,7 +88,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   tab: { flex: 1, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  tabLabel: { fontSize: 11, lineHeight: 13, fontFamily: 'SpaceGrotesk_500Medium' },
-  capture: { width: 64, height: 64, borderRadius: 32, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+  tabLabel: { fontSize: 11, lineHeight: 13, fontWeight: '600' },
+  // The capture button glows softly in lime (18 %), centred under it.
+  capture: { width: 64, height: 64, borderRadius: 32, shadowColor: '#CBF26B', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 6 } },
   captureInner: { flex: 1, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
 });

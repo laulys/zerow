@@ -69,7 +69,7 @@ export default function Profile() {
             </T>
             <View style={styles.pill}>
               <View style={[styles.dot, { backgroundColor: light.inkFixed }]} />
-              <T v="label" color={light.inkFixed} style={{ fontFamily: 'SpaceGrotesk_500Medium' }}>
+              <T v="label" color={light.inkFixed} style={{ fontWeight: '600' }}>
                 {total} grupos · {open} abiertos
               </T>
             </View>
@@ -78,7 +78,12 @@ export default function Profile() {
 
         <View style={{ paddingHorizontal: 20 }}>
           <Animated.View entering={at(280)} style={{ marginTop: 20 }}>
-            <Tap onPress={() => router.push('/saldar')} accessibilityRole="button" accessibilityLabel={`${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))} en Lisboa 2026. ${pending ? `Faltan ${pending} pagos` : 'A mano'}. Ir a saldar`} style={[styles.highlight, { backgroundColor: t.panel }]}>
+            <Tap
+              onPress={() => router.push('/saldar')}
+              accessibilityRole="button"
+              accessibilityLabel={`${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))} en Lisboa 2026. ${pending ? `Faltan ${pending} pagos` : 'A cero'}. Ir a saldar`}
+              style={[styles.highlight, { backgroundColor: t.card }]}
+            >
               <View style={[styles.highlightIcon, { backgroundColor: t.lime }]}>
                 <Icon name="arrow-left-right" size={20} color={t.inkFixed} />
               </View>
@@ -87,7 +92,7 @@ export default function Profile() {
                   {mine >= 0 ? 'Te deben' : 'Debes'} {eurText(Math.abs(mine))}
                 </T>
                 <T v="caption" color={t.onPanelMuted}>
-                  En Lisboa 2026 · {pending ? `faltan ${pending} pago${pending === 1 ? '' : 's'}` : 'a mano'}
+                  En Lisboa 2026 · {pending ? `faltan ${pending} pago${pending === 1 ? '' : 's'}` : 'a cero'}
                 </T>
               </View>
               <Icon name="chevron-right" size={18} color={t.onPanelMuted} />
@@ -97,7 +102,11 @@ export default function Profile() {
           <Animated.View entering={at(360)} style={{ marginTop: 12 }}>
             <Row icon="user" label="Foto de perfil" value="Memoji" />
             <Row icon="receipt" label="Moneda por defecto" value={currency === 'EUR' ? 'Euros (€)' : 'Dólares (US$)'} onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))} />
-            <Row icon="bell" label="Avisos de gastos y pagos" right={<Switch value={notify} onValueChange={setNotify} trackColor={{ true: t.lime, false: t.line }} accessibilityLabel="Avisos de gastos y pagos" />} />
+            <Row
+              icon="bell"
+              label="Avisos de gastos y pagos"
+              right={<Switch value={notify} onValueChange={setNotify} trackColor={{ true: t.lime, false: t.line }} accessibilityLabel="Avisos de gastos y pagos" />}
+            />
             <Row icon="users" label="Cómo funciona Zerow" onPress={() => router.push('/')} />
             <Row icon="log-out" label="Cerrar sesión" danger onPress={() => router.replace('/')} last />
           </Animated.View>
@@ -150,9 +159,9 @@ function Ring() {
 const styles = StyleSheet.create({
   ring: { width: 124, height: 124, borderRadius: 62, borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(18,18,18,0.5)' },
   avatar: { position: 'absolute', top: 10, left: 10 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(18,18,18,0.08)', borderWidth: 1, borderColor: 'rgba(18,18,18,0.22)' },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(18,18,18,0.1)' },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  highlight: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 26, padding: 16, minHeight: 76 },
+  highlight: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 28, padding: 16, minHeight: 76 },
   highlightIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 58 },
 });

@@ -22,7 +22,7 @@ export default function Person() {
   const all = usePeopleBalances();
   const p = all.find((x) => x.id === id) ?? all[0];
   const name = people[p.id].name;
-  const label = p.net > 0 ? `${name} te debe` : p.net < 0 ? `Le debes a ${name}` : 'Estáis a mano';
+  const label = p.net > 0 ? `${name} te debe` : p.net < 0 ? `Le debes a ${name}` : 'Estáis a cero';
   const youOwe = p.parts.find((x) => x.amount < 0);
 
   const go = (to: string) => {
@@ -63,7 +63,7 @@ export default function Person() {
       <View style={[styles.box, { backgroundColor: t.fill }]}>
         {p.parts.map((x, i) => {
           const owe = x.amount < 0;
-          const text = x.amount === 0 ? 'A mano' : owe ? `Le debes ${eurText(-x.amount)}` : `Te debe ${eurText(x.amount)}`;
+          const text = x.amount === 0 ? 'A cero' : owe ? `Le debes ${eurText(-x.amount)}` : `Te debe ${eurText(x.amount)}`;
           return (
             <Tap
               key={x.key}
@@ -93,9 +93,7 @@ export default function Person() {
       ) : (
         <Button label={`Dividir algo con ${name}`} kind="secondary" style={{ marginTop: 16 }} onPress={() => go('/dividir')} />
       )}
-      {youOwe && p.net > 0 ? (
-        <Button label="Recordárselo" kind="text" height={48} style={{ marginTop: 6 }} onPress={remind} />
-      ) : null}
+      {youOwe && p.net > 0 ? <Button label="Recordárselo" kind="text" height={48} style={{ marginTop: 6 }} onPress={remind} /> : null}
     </View>
   );
 }

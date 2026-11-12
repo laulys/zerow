@@ -27,7 +27,7 @@ export default function ExpenseDetail() {
   if (!e) {
     return (
       <View style={{ flex: 1, paddingTop: insets.top + 8, paddingHorizontal: 20, backgroundColor: t.page }}>
-        <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }}>
           Este gasto ya no está
         </T>
@@ -58,7 +58,7 @@ export default function ExpenseDetail() {
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 140 }}>
-        <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
           {e.title}
         </T>
@@ -96,7 +96,11 @@ export default function ExpenseDetail() {
             const inSplit = e.splitWith.includes(p);
             return (
               <View key={p}>
-                <View style={styles.row} accessible accessibilityLabel={`${name(p)}${p === e.payer ? `, pagó ${eurText(e.amountEur, currency)}` : ''}. Su parte: ${inSplit ? eurText(share, currency) : 'nada'}`}>
+                <View
+                  style={styles.row}
+                  accessible
+                  accessibilityLabel={`${name(p)}${p === e.payer ? `, pagó ${eurText(e.amountEur, currency)}` : ''}. Su parte: ${inSplit ? eurText(share, currency) : 'nada'}`}
+                >
                   <Avatar id={p} size={40} />
                   <View style={{ flex: 1, marginLeft: 12 }}>
                     <T v="bodyStrong" color={t.ink}>

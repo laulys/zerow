@@ -26,6 +26,13 @@ export type Tokens = {
   /** Rows, fields and tiles that sit on a glass sheet: translucent so the glass shows. */
   fill: string;
   fillStrong: string;
+  /** v3 Aurora. Cards: translucent, no border. */
+  card: string;
+  /** v3 Aurora. Controls and the card behind in the stack: soft glass, no outline. */
+  glass: string;
+  /** v3 Aurora. Dark buttons that sit on a lime card. */
+  onLimeButton: string;
+  mint: string;
 };
 
 export const light: Tokens = {
@@ -49,6 +56,10 @@ export const light: Tokens = {
   danger: '#C8372D',
   fill: 'rgba(18,18,18,0.05)',
   fillStrong: 'rgba(18,18,18,0.09)',
+  card: '#FFFFFF',
+  glass: 'rgba(18,18,18,0.06)',
+  onLimeButton: '#121212',
+  mint: '#7FD8A8',
 };
 
 export const dark: Tokens = {
@@ -72,6 +83,10 @@ export const dark: Tokens = {
   danger: '#F0675E',
   fill: 'rgba(255,255,255,0.07)',
   fillStrong: 'rgba(255,255,255,0.12)',
+  card: '#1A2017',
+  glass: 'rgba(255,255,255,0.12)',
+  onLimeButton: '#121212',
+  mint: '#7FD8A8',
 };
 
 /**
@@ -97,13 +112,56 @@ export const graphite: Tokens = {
   selected: '#F2F2EE',
 };
 
+/**
+ * Rediseño v3 «Aurora» ("v3 / Color" in Figma): the graphite page of the v2 with
+ * the brand gradient as ambient light at the top. Cards are translucent (white
+ * 7 %) with no border; controls are soft glass (white 12 %) with no outline;
+ * only the group in progress, the expense to review and the closings sit on the
+ * gradient itself.
+ */
+export const aurora: Tokens = {
+  ...graphite,
+  page: '#18181B',
+  surface: '#25252A',
+  line: '#3A3A40',
+  ink: '#F4F4F0',
+  inkMuted: '#A6A6A1',
+  panel: '#25252A',
+  panelRaised: '#2E2E34',
+  onPanel: '#F4F4F0',
+  onPanelMuted: '#A6A6A1',
+  lime: '#CBF26B',
+  onLime: '#111112',
+  action: '#CBF26B',
+  onAction: '#111112',
+  inkFixed: '#111112',
+  inkMutedFixed: '#34401A',
+  selected: '#F4F4F0',
+  onSelected: '#111112',
+  danger: '#F0675E',
+  fill: 'rgba(255,255,255,0.07)',
+  fillStrong: 'rgba(255,255,255,0.12)',
+  card: 'rgba(255,255,255,0.07)',
+  glass: 'rgba(255,255,255,0.12)',
+  onLimeButton: '#25252A',
+  mint: '#7FD8A8',
+};
+
+/** Sheets, alerts and the share sheet: #26262A at 62 % over a 32 % black veil. */
+export const sheetFill = 'rgba(38,38,42,0.62)';
+
 /** The brand gradient (lime + mint), used only for brand moments. */
 export const gradientStops = ['#7FD8A8', '#B6EE7A', '#CBF26B', '#EFFBD2'] as const;
 
+/** Space Grotesk is for amounts, headlines and titles; everything else is SF Pro (the system font). */
 export const font = {
   regular: 'SpaceGrotesk_400Regular',
   medium: 'SpaceGrotesk_500Medium',
 } as const;
+
+/** 4-pt grid. */
+export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 20, xxl: 24 } as const;
+export const radius = { s: 12, m: 16, l: 20, card: 28, xl: 32, xxl: 36 } as const;
 
 /** Motion tokens from the Figma "Motion · especificación" card. */
 export const motion = {
