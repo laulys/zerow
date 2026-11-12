@@ -1,19 +1,22 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { Avatar } from '../../components/Avatar';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { BrandGradient } from '../../components/BrandGradient';
-import { Icon, type IconName } from '../../components/Icon';
+import { Icon } from '../../components/Icon';
+import { useScreen } from '../../components/Screen';
 import { StretchyScroll } from '../../components/StretchyScroll';
-import { T, Tap } from '../../components/ui';
+import { Card, Hairline, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, settleUp, transferKey, useTrip } from '../../data/trip';
 import { light } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
-const HEADER = 392;
+// Figma «Tarjeta de perfil» is 398 tall on a 54 pt status bar; the rest follows the device's own inset.
+const HEADER_BELOW_INSET = 344;
 
 // The Memoji settles in: it fades up from 94 % with a strong ease-out and no
 // overshoot (the old spring started from nothing and bounced past full size).
@@ -37,6 +40,8 @@ export default function Profile() {
   const [notify, setNotify] = useState(true);
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
   const reduce = useReducedMotion();
+  const split = useScreen().form === 'split';
+  const header = insets.top + HEADER_BELOW_INSET;
 
   const mine = balancesFor(expenses).tu;
   const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
@@ -44,108 +49,197 @@ export default function Profile() {
   const total = open + 4;
   const at = (ms: number) => FadeInDown.delay(ms).duration(300);
 
-  const header = <BrandGradient style={{ flex: 1, borderBottomLeftRadius: 36, borderBottomRightRadius: 36 }} seed={6} />;
+  const gradient = <BrandGradient style={{ flex: 1, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }} seed={6} />;
+
+  const you = (
+    <>
+      {/* Figma «Cabecera»: the title and a dark see-through «Editar» button, 44 tall. */}
+      <View style={styles.head}>
+        <T v="titleL" color={light.inkFixed} accessibilityRole="header">
+          Perfil
+        </T>
+        <Tap accessibilityRole="button" accessibilityLabel="Editar perfil" style={styles.edit}>
+          <Icon name="pen" size={20} color={light.inkFixed} weight={1.75} />
+        </Tap>
+      </View>
+      <Animated.View entering={reduce ? undefined : settleIn} style={{ marginTop: 26 }}>
+        <Avatar id="tu" size={108} decorative={false} bg="rgba(255,255,255,0.35)" />
+        <Ring />
+      </Animated.View>
+      <Animated.View entering={at(180)} style={{ alignItems: 'center' }}>
+        <T v="titleM" color={light.inkFixed} style={{ marginTop: 22 }}>
+          Laura
+        </T>
+        <T v="label" color={light.inkMutedFixed} style={{ marginTop: 8 }}>
+          laura@ejemplo.com
+        </T>
+        <View style={styles.pill}>
+          <View style={[styles.dot, { backgroundColor: light.inkFixed }]} />
+          <T v="caption" color={light.inkFixed} style={{ fontWeight: '600' }}>
+            {total} grupos · {open} abiertos
+          </T>
+        </View>
+      </Animated.View>
+    </>
+  );
+  const settings = (
+    <View style={{ gap: 16 }}>
+      <Animated.View entering={at(280)}>
+        <Tap
+          onPress={() => router.push('/saldar')}
+          accessibilityRole="button"
+          accessibilityLabel={`${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))} en Lisboa 2026. ${pending ? `Faltan ${pending} pagos` : 'A cero'}. Ir a saldar`}
+        >
+          <Card style={{ paddingVertical: 4 }}>
+            <View style={styles.highlight}>
+              <View style={[styles.highlightIcon, { backgroundColor: t.lime }]}>
+                <Icon name="arrow-left-right" size={20} color={t.inkFixed} weight={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <T v="bodyStrong" color={t.ink}>
+                  {mine >= 0 ? 'Te deben' : 'Debes'} {eurText(Math.abs(mine))}
+                </T>
+                <T v="caption" color={t.inkMuted}>
+                  En Lisboa 2026 · {pending ? `faltan ${pending} pago${pending === 1 ? '' : 's'}` : 'a cero'}
+                </T>
+              </View>
+              <Icon name="chevron-right" size={16} color={t.inkMuted} />
+            </View>
+          </Card>
+        </Tap>
+      </Animated.View>
+
+      <Animated.View entering={at(360)}>
+        <Card style={{ paddingVertical: 4 }}>
+          <Row icon={<Icon name="user" size={20} color={t.ink} />} label="Foto de perfil" value="Memoji" chevron />
+          <Hairline />
+          <Row
+            icon={<Glyph name="coins" color={t.ink} />}
+            label="Moneda por defecto"
+            value={currency === 'EUR' ? 'Euros (€)' : 'Dólares (US$)'}
+            onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))}
+            chevron
+          />
+          <Hairline />
+          <Row
+            icon={<Icon name="bell" size={20} color={t.ink} />}
+            label="Avisos de gastos y pagos"
+            right={
+              // iOS draws its switch from the top of the box RN gives it; a 58 pt box keeps it centred in the row.
+              <View style={styles.switch}>
+                <Switch value={notify} onValueChange={setNotify} trackColor={{ true: t.lime, false: t.line }} accessibilityLabel="Avisos de gastos y pagos" />
+              </View>
+            }
+          />
+          <Hairline />
+          <Row icon={<Glyph name="circle-help" color={t.ink} />} label="Cómo funciona Zerow" onPress={() => router.push('/')} chevron />
+        </Card>
+      </Animated.View>
+
+      <Animated.View entering={at(420)}>
+        <Card style={{ paddingVertical: 4 }}>
+          <Row icon={<Icon name="log-out" size={20} color={t.danger} />} label="Cerrar sesión" danger onPress={() => router.replace('/')} height={56} />
+        </Card>
+      </Animated.View>
+    </View>
+  );
+
+  // iPhone Duo open (Figma «Duo abierto · 2.3»): you on the gradient card on the
+  // left, what's worth acting on and the settings on the right.
+  if (split) {
+    return (
+      <View style={{ flex: 1, backgroundColor: t.page, flexDirection: 'row' }}>
+        <FocusStatusBar style="dark" />
+        <BrandGradient style={{ width: 433, borderTopRightRadius: 36, borderBottomRightRadius: 36 }} seed={6}>
+          <View style={{ paddingTop: insets.top + 8, paddingLeft: 50, paddingRight: 30, alignItems: 'center' }}>{you}</View>
+        </BrandGradient>
+        <ScrollView contentContainerStyle={{ paddingTop: insets.top + 44, paddingLeft: 41, paddingRight: 40, paddingBottom: 40 }}>{settings}</ScrollView>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <FocusStatusBar style="dark" />
-      <StretchyScroll background={header} backgroundHeight={HEADER} contentContainerStyle={{ paddingBottom: 140 }}>
-        <View style={{ height: HEADER, paddingTop: insets.top + 8, paddingHorizontal: 20, alignItems: 'center' }}>
-          <T v="titleL" color={light.inkFixed} style={{ alignSelf: 'flex-start' }} accessibilityRole="header">
-            Perfil
-          </T>
-          <Animated.View entering={reduce ? undefined : settleIn} style={{ marginTop: 14 }}>
-            <Ring />
-            <View style={styles.avatar}>
-              <Avatar id="tu" size={104} decorative={false} on="lime" />
-            </View>
-          </Animated.View>
-          <Animated.View entering={at(180)} style={{ alignItems: 'center' }}>
-            <T v="titleM" color={light.inkFixed} style={{ marginTop: 14 }}>
-              Laura
-            </T>
-            <T v="label" color={light.inkMutedFixed} style={{ marginTop: 2 }}>
-              laura@ejemplo.com
-            </T>
-            <View style={styles.pill}>
-              <View style={[styles.dot, { backgroundColor: light.inkFixed }]} />
-              <T v="label" color={light.inkFixed} style={{ fontWeight: '600' }}>
-                {total} grupos · {open} abiertos
-              </T>
-            </View>
-          </Animated.View>
-        </View>
-
-        <View style={{ paddingHorizontal: 20 }}>
-          <Animated.View entering={at(280)} style={{ marginTop: 20 }}>
-            <Tap
-              onPress={() => router.push('/saldar')}
-              accessibilityRole="button"
-              accessibilityLabel={`${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))} en Lisboa 2026. ${pending ? `Faltan ${pending} pagos` : 'A cero'}. Ir a saldar`}
-              style={[styles.highlight, { backgroundColor: t.card }]}
-            >
-              <View style={[styles.highlightIcon, { backgroundColor: t.lime }]}>
-                <Icon name="arrow-left-right" size={20} color={t.inkFixed} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <T v="bodyStrong" color={t.onPanel}>
-                  {mine >= 0 ? 'Te deben' : 'Debes'} {eurText(Math.abs(mine))}
-                </T>
-                <T v="caption" color={t.onPanelMuted}>
-                  En Lisboa 2026 · {pending ? `faltan ${pending} pago${pending === 1 ? '' : 's'}` : 'a cero'}
-                </T>
-              </View>
-              <Icon name="chevron-right" size={18} color={t.onPanelMuted} />
-            </Tap>
-          </Animated.View>
-
-          <Animated.View entering={at(360)} style={{ marginTop: 12 }}>
-            <Row icon="user" label="Foto de perfil" value="Memoji" />
-            <Row icon="receipt" label="Moneda por defecto" value={currency === 'EUR' ? 'Euros (€)' : 'Dólares (US$)'} onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))} />
-            <Row
-              icon="bell"
-              label="Avisos de gastos y pagos"
-              right={<Switch value={notify} onValueChange={setNotify} trackColor={{ true: t.lime, false: t.line }} accessibilityLabel="Avisos de gastos y pagos" />}
-            />
-            <Row icon="users" label="Cómo funciona Zerow" onPress={() => router.push('/')} />
-            <Row icon="log-out" label="Cerrar sesión" danger onPress={() => router.replace('/')} last />
-          </Animated.View>
-        </View>
+      <StretchyScroll background={gradient} backgroundHeight={header} contentContainerStyle={{ paddingBottom: 140 }}>
+        <View style={{ height: header, paddingTop: insets.top, paddingHorizontal: 20, alignItems: 'center' }}>{you}</View>
+        <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>{settings}</View>
       </StretchyScroll>
     </View>
   );
 }
 
-function Row({ icon, label, value, right, onPress, danger, last }: { icon: IconName; label: string; value?: string; right?: React.ReactNode; onPress?: () => void; danger?: boolean; last?: boolean }) {
+/**
+ * A settings row (Figma «Fila»): the icon on a white 8 % tile, the label, the
+ * current value in 15 pt and a chevron when it leads somewhere.
+ */
+function Row({
+  icon,
+  label,
+  value,
+  right,
+  onPress,
+  danger,
+  chevron,
+  height = 58,
+}: {
+  icon: ReactNode;
+  label: string;
+  value?: string;
+  right?: ReactNode;
+  onPress?: () => void;
+  danger?: boolean;
+  chevron?: boolean;
+  height?: number;
+}) {
   const { t } = useTheme();
-  const color = danger ? t.danger : t.ink;
   const body = (
-    <View style={[styles.row, !last && { borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.line }]}>
-      <Icon name={icon} size={20} color={color} />
-      <T v="body" color={color} style={{ flex: 1, marginLeft: 14 }}>
+    <View style={[styles.row, { minHeight: height }]}>
+      <View style={styles.tile}>{icon}</View>
+      <T v="body" color={danger ? t.danger : t.ink} style={{ flex: 1 }}>
         {label}
       </T>
       {value ? (
-        <T v="body" color={t.inkMuted}>
+        <T v="label" color={t.inkMuted}>
           {value}
         </T>
       ) : null}
-      {right ? <View style={{ height: 58, justifyContent: 'center' }}>{right}</View> : null}
-      {onPress && !danger ? <Icon name="chevron-right" size={18} color={t.inkMuted} /> : null}
+      {right}
+      {chevron ? <Icon name="chevron-right" size={16} color={t.inkMuted} /> : null}
     </View>
   );
   return onPress ? (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={value ? `${label}: ${value}` : label}>
       {body}
     </Tap>
   ) : (
-    <View accessible accessibilityLabel={value ? `${label}: ${value}` : undefined}>
+    <View accessible={!right} accessibilityLabel={value ? `${label}: ${value}` : undefined}>
       {body}
     </View>
   );
 }
 
-/** Dashed ring around the avatar that turns slowly. Still with Reduce Motion. */
+// Lucide icons the shared set doesn't have yet (same 24 grid as `Icon`, same absolute 1.75 pt stroke).
+const glyphs: Record<string, { paths: string[]; circles?: [number, number, number][] }> = {
+  coins: { paths: ['M18.09 10.37A6 6 0 1 1 10.34 18', 'M7 6h1v4', 'm16.71 13.88.7.71-2.82 2.82'], circles: [[8, 8, 6]] },
+  'circle-help': { paths: ['M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3', 'M12 17h.01'], circles: [[12, 12, 10]] },
+};
+
+function Glyph({ name, color }: { name: keyof typeof glyphs; color: string }) {
+  const g = glyphs[name];
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={(1.75 * 24) / 20} strokeLinecap="round" strokeLinejoin="round">
+      {g.paths.map((d) => (
+        <Path key={d} d={d} />
+      ))}
+      {(g.circles ?? []).map(([cx, cy, r]) => (
+        <Circle key={`${cx}${cy}`} cx={cx} cy={cy} r={r} />
+      ))}
+    </Svg>
+  );
+}
+
+/** Figma «Aro»: a dashed ring (4 on, 6 off) 10 pt around the avatar that turns slowly. Still with Reduce Motion. */
 function Ring() {
   const reduce = useReducedMotion();
   const turn = useSharedValue(0);
@@ -153,15 +247,24 @@ function Ring() {
     if (!reduce) turn.value = withRepeat(withTiming(360, { duration: 18000, easing: Easing.linear }), -1, false);
   }, [reduce, turn]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${-turn.value}deg` }] }));
-  return <Animated.View style={[styles.ring, style]} />;
+  return (
+    <Animated.View pointerEvents="none" style={[styles.ring, style]}>
+      <Svg width={128} height={128}>
+        <Circle cx={64} cy={64} r={63.25} fill="none" stroke="rgba(17,17,18,0.5)" strokeWidth={1.5} strokeDasharray="4 6" />
+      </Svg>
+    </Animated.View>
+  );
 }
 
 const styles = StyleSheet.create({
-  ring: { width: 124, height: 124, borderRadius: 62, borderWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(18,18,18,0.5)' },
-  avatar: { position: 'absolute', top: 10, left: 10 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, backgroundColor: 'rgba(18,18,18,0.1)' },
+  head: { alignSelf: 'stretch', height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  edit: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(17,17,18,0.12)', alignItems: 'center', justifyContent: 'center' },
+  ring: { position: 'absolute', top: -10, left: -10 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, height: 36, paddingLeft: 12, paddingRight: 16, borderRadius: 18, backgroundColor: 'rgba(17,17,18,0.08)' },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  highlight: { flexDirection: 'row', alignItems: 'center', gap: 14, borderRadius: 28, padding: 16, minHeight: 76 },
+  highlight: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68 },
   highlightIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 58 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  switch: { height: 58, justifyContent: 'center' },
+  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
 });

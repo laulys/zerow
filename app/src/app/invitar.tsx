@@ -1,21 +1,19 @@
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AvatarStack } from '../components/Avatar';
 import { useTrip, type PersonId } from '../data/trip';
 import { Icon } from '../components/Icon';
-import { Button, Chip, IconButton, T, Tap } from '../components/ui';
-import { glassSheets } from '../components/Glass';
+import { SheetBody } from '../components/Sheet';
+import { Button, Chip, T, Tap } from '../components/ui';
 import { useTheme } from '../theme/useTheme';
 
 // 5.1 Invitar: a link, not a form. The promise that matters to the new person
 // ("you start at zero") is said before the link.
 export default function Invite() {
   const { t } = useTheme();
-  const insets = useSafeAreaInsets();
   const { nombre, elegir } = useLocalSearchParams<{ nombre?: string; elegir?: string }>();
   const { groups } = useTrip();
   // From Inicio ("+ Invitar") you choose the group first; from inside a group it's that one.
@@ -43,14 +41,13 @@ export default function Invite() {
     setCopied(true);
   };
 
+  // Figma 5.1 / 2.10: title, (group chips when choosing), the rule in Nota, the link field with «Copiar»,
+  // who's already in, and the share button. No close button: the sheet closes by swiping down.
   return (
-    <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
-      <View style={styles.rowBetween}>
-        <T v="titleM" color={t.ink} accessibilityRole="header" style={{ flex: 1 }}>
-          Invita a {group}
-        </T>
-        <IconButton name="x" label="Cerrar" bg={t.fill} color={t.ink} onPress={() => router.back()} />
-      </View>
+    <SheetBody>
+      <T v="titleM" color={t.ink} accessibilityRole="header">
+        Invita a {group}
+      </T>
       {elegir ? (
         <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Grupo">
           {choices.map((c, i) => (
@@ -67,16 +64,16 @@ export default function Invite() {
           ))}
         </View>
       ) : null}
-      <T v="body" color={t.inkMuted} style={{ marginTop: 12 }}>
+      <T v="label" color={t.inkMuted}>
         Quien entra empieza en cero. Solo le cuentan los gastos en los que le incluyáis.
       </T>
 
-      <View style={[styles.link, { backgroundColor: t.fill }]}>
-        <Icon name="link" size={18} color={t.inkMuted} />
-        <T v="bodyStrong" color={t.ink} style={{ flex: 1 }} numberOfLines={1}>
+      <View style={[styles.link, { backgroundColor: t.card }]}>
+        <Icon name="link" size={20} color={t.inkMuted} />
+        <T v="label" color={t.ink} style={{ flex: 1, fontWeight: '500' }} numberOfLines={1}>
           {link}
         </T>
-        <Tap onPress={copy} accessibilityRole="button" accessibilityLabel={copied ? 'Enlace copiado' : 'Copiar enlace'} style={[styles.copy, { backgroundColor: t.fillStrong }]}>
+        <Tap onPress={copy} accessibilityRole="button" accessibilityLabel={copied ? 'Enlace copiado' : 'Copiar enlace'} style={[styles.copy, { backgroundColor: t.glass }]}>
           <Icon name={copied ? 'check' : 'copy'} size={16} color={t.ink} />
           <T v="labelStrong" color={t.ink} accessibilityLiveRegion="polite">
             {copied ? 'Copiado' : 'Copiar'}
@@ -85,16 +82,16 @@ export default function Invite() {
       </View>
 
       {inside ? (
-        <View style={[styles.rowBetween, { marginTop: 16, justifyContent: 'flex-start', gap: 12 }]}>
-          <AvatarStack ids={inside} size={30} outline={t.surface} />
-          <T v="label" color={t.inkMuted}>
+        <View style={[styles.rowBetween, { justifyContent: 'flex-start', gap: 12 }]}>
+          <AvatarStack ids={inside} size={32} />
+          <T v="caption" color={t.inkMuted}>
             {inside.length} persona{inside.length === 1 ? '' : 's'} ya dentro
           </T>
         </View>
       ) : null}
 
-      <Button label="Compartir enlace" icon="share" style={{ marginTop: 20 }} onPress={() => Share.share({ message: `Únete a ${group} en Zerow: https://${link}` })} />
-    </View>
+      <Button label="Compartir enlace" icon="share" onPress={() => Share.share({ message: `Únete a ${group} en Zerow: https://${link}` })} />
+    </SheetBody>
   );
 }
 
@@ -107,8 +104,8 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, '');
 
 const styles = StyleSheet.create({
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 16 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 20, paddingLeft: 16, paddingRight: 6, height: 56, marginTop: 20 },
-  copy: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12, borderRadius: 12 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, paddingLeft: 16, paddingRight: 8, height: 60 },
+  copy: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 16 },
 });

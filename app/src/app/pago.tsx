@@ -1,4 +1,5 @@
 import { Aurora } from '../components/Aurora';
+import { Spread } from '../components/Duo';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -6,30 +7,37 @@ import { useEffect, useMemo } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
 import { Money } from '../components/Money';
-import { Button, T } from '../components/ui';
-import { eurText, people, type PersonId } from '../data/trip';
+import { Button, T, Tap } from '../components/ui';
+import { eurText, people, pisoGroup, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
 const APath = Animated.createAnimatedComponent(Path);
-const CHECK_LEN = 63;
-const RECEIPT_H = 344;
+// Figma's check: 27 × 18 in a 40 pt box, 2.5 stroke. Drawn left to right.
+const CHECK = 'M7 20 L15.33 28.33 L33.67 10';
+const CHECK_LEN = 38;
+// The paper: 8 on top, five 46 pt rows with their lines, 10 of air, the 18 pt note and 20 below.
+const RECEIPT_H = 291;
+// Figma «Papel»: white 9 % with half circles (10 pt) cut out of the bottom edge.
+const PAPER = 'rgba(255,255,255,0.09)';
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 
-// Pago enviado (option A), only when you pay: a quiet, Apple Pay-like confirmation. The lime disc
+// 4.7 Pago enviado, only when you pay: a quiet, Apple Pay-like confirmation. The lime disc
 // springs in and the check draws itself, a ring pulses out, then the receipt
 // slides down out of a slot as if it were being printed. Saved for a single
-// payment; the big celebration stays with "A mano".
+// payment; the big celebration stays with «A cero».
 export default function PaymentSent() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
-  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string; metodo?: string }>();
+  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string }>();
   const to = (p.para ?? 'ana') as PersonId;
   const amount = Number(p.importe ?? 0);
   const group = p.grupo ?? 'Lisboa 2026';
+  // The flat's payments are your share of the month.
+  const concept = p.concepto ?? (group === pisoGroup.name ? `Tu parte de ${pisoGroup.dates}` : `Saldar ${group}`);
 
   const when = useMemo(() => {
     const d = new Date();
@@ -64,8 +72,7 @@ export default function PaymentSent() {
   const rows: [string, string, PersonId?][] = [
     ['Para', name(to), to],
     ['Grupo', group],
-    ['Concepto', p.concepto ?? `Saldar ${group}`],
-    ...(p.metodo ? ([['Método', p.metodo]] as [string, string][]) : []),
+    ['Concepto', concept],
     ['Fecha', when],
     ['Referencia', ref],
   ];
@@ -75,74 +82,118 @@ export default function PaymentSent() {
       message: `Pagué ${eurText(amount)} a ${name(to)} · ${group} · ${when} · Ref. ${ref}. Hecho con Zerow.`,
     });
 
-  return (
-    <View style={{ flex: 1, backgroundColor: t.page }}>
-      <Aurora height={380} strength={0.75} />
-      <StatusBar style="light" />
-      <View style={{ flex: 1, paddingTop: insets.top + 36, paddingHorizontal: 20 }}>
-        <View style={styles.badgeWrap} accessible accessibilityLabel={`Pagado: ${eurText(amount)}`}>
-          <Animated.View style={[styles.ring, { borderColor: t.lime }, ringStyle]} />
-          <Animated.View style={[styles.disc, { backgroundColor: t.lime }, discStyle]}>
-            <Svg width={44} height={34} viewBox="-2 -2 46 36">
-              <APath d="M0 18 L14 32 L42 0" stroke={t.onLime} strokeWidth={6} strokeLinecap="round" strokeLinejoin="round" fill="none" strokeDasharray={CHECK_LEN} animatedProps={checkProps} />
-            </Svg>
-          </Animated.View>
-        </View>
-
-        <Animated.View entering={at(500)} style={{ alignItems: 'center', marginTop: 18 }}>
-          <T v="bodyStrong" color={t.inkMuted} style={{ marginBottom: 4 }}>
-            Pagado
-          </T>
-          <Money value={amount} size={56} color={t.ink} centsColor={t.inkMuted} />
-          <T v="label" color={t.inkMuted} style={{ marginTop: 6, textAlign: 'center' }}>
-            Ya no debes nada en {group}
-          </T>
+  const paid = (
+    <>
+      <View style={styles.badgeWrap} accessible accessibilityLabel={`Pagado: ${eurText(amount)}`}>
+        <Animated.View style={[styles.ring, { borderColor: t.lime }, ringStyle]} />
+        <Animated.View style={[styles.disc, { backgroundColor: t.lime, shadowColor: t.lime }, discStyle]}>
+          <Svg width={40} height={40} viewBox="0 0 40 40">
+            <APath d={CHECK} stroke={t.inkFixed} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" fill="none" strokeDasharray={CHECK_LEN} animatedProps={checkProps} />
+          </Svg>
         </Animated.View>
+      </View>
 
-        {/* The slot the receipt comes out of: a dark groove with the paper sliding down from it. */}
-        <View style={styles.slotLine} />
-        <View style={styles.slot}>
-          <Animated.View style={paperStyle}>
-            <View style={[styles.receipt, { backgroundColor: t.panelRaised }]}>
-              {rows.map(([k, v, who], i) => (
-                <View key={k} style={[styles.row, i < rows.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.line }]}>
+      <Animated.View entering={at(500)} style={{ alignItems: 'center', marginTop: 24 }}>
+        <T v="body" color={t.inkSoft}>
+          Pagado
+        </T>
+        <View style={{ marginTop: 8 }}>
+          <Money value={amount} size={56} color={t.ink} />
+        </View>
+        <T v="label" color={t.inkSoft} style={{ marginTop: 8, textAlign: 'center' }}>
+          Ya no debes nada en {group}
+        </T>
+      </Animated.View>
+    </>
+  );
+  const receipt = (
+    <>
+      {/* The slot the receipt comes out of: a dark groove with the paper sliding down from it. */}
+      <View style={styles.slotLine} />
+      <View style={styles.slot}>
+        <Animated.View style={paperStyle}>
+          <View style={styles.receipt}>
+            {rows.map(([k, v, who]) => (
+              <View key={k}>
+                <View style={styles.row}>
                   <T v="label" color={t.inkMuted}>
                     {k}
                   </T>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-                    {who ? <Avatar id={who} size={22} /> : null}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+                    {who ? <Avatar id={who} size={24} bg={t.faceOnCard} /> : null}
                     <T v="labelStrong" color={t.ink} numberOfLines={1}>
                       {v}
                     </T>
                   </View>
                 </View>
-              ))}
-              <T v="caption" color={t.inkMuted} style={{ marginTop: 12 }}>
-                Marcado como pagado por ti · {name(to)} lo confirmará
-              </T>
-            </View>
-            <Svg width="100%" height={14} viewBox="0 0 320 14" preserveAspectRatio="none">
-              {/* A scalloped tear-off edge: half circles cut out of the bottom of the paper. */}
-              <Path d={`M0 0 H320 V10 ${Array.from({ length: 16 }, () => 'h-2 a8 8 0 0 0 -16 0 h-2').join(' ')} Z`} fill={t.panelRaised} />
-            </Svg>
-          </Animated.View>
-        </View>
+                <View style={{ height: 1, backgroundColor: t.hairline }} />
+              </View>
+            ))}
+            <T v="caption" color={t.inkMuted} style={{ marginTop: 10 }}>
+              Marcado como pagado por ti · {name(to)} lo confirmará
+            </T>
+          </View>
+          <Svg width="100%" height={20} viewBox="0 0 353 20" preserveAspectRatio="none">
+            {/* The tear-off edge: 19 half circles cut out of the bottom of the paper. */}
+            <Path d={`M0 0 H353 V20 ${Array.from({ length: 19 }, (_, i) => `H${(349 - i * 18.6).toFixed(1)} a5 5 0 0 0 -10 0`).join(' ')} H0 Z`} fill={PAPER} />
+          </Svg>
+        </Animated.View>
       </View>
+    </>
+  );
+  const actions = (
+    <Animated.View entering={at(1700)}>
+      <Button label="Compartir comprobante" icon="share" onPress={share} />
+      <Tap onPress={() => router.back()} accessibilityRole="button" style={styles.listo}>
+        <T v="bodyStrong" color={t.ink}>
+          Listo
+        </T>
+      </Tap>
+    </Animated.View>
+  );
 
-      <Animated.View entering={at(1700)} style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
-        <Button label="Compartir comprobante" icon="share" onPress={share} />
-        <Button label="Listo" kind="text" height={48} style={{ marginTop: 4 }} onPress={() => router.back()} />
-      </Animated.View>
-    </View>
+  // Open iPhone Duo (Figma «Duo abierto · 4.7»): paid on the left; the receipt and the buttons on the right.
+  return (
+    <Spread
+      phone={
+        <View style={{ flex: 1, backgroundColor: t.page }}>
+          <Aurora preset="receipt" />
+          <StatusBar style="light" />
+          <View style={{ flex: 1, paddingTop: insets.top + 34, paddingHorizontal: 20 }}>
+            {paid}
+            <View style={{ marginTop: 24 }}>{receipt}</View>
+          </View>
+          <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom }}>
+            {/* Figma «Fundido»: the page fades in under the buttons. */}
+            <Svg pointerEvents="none" style={styles.fade} width="100%" height="100%">
+              <Defs>
+                <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={t.page} stopOpacity={0} />
+                  <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
+                </LinearGradient>
+              </Defs>
+              <Rect width="100%" height="100%" fill="url(#fade)" />
+            </Svg>
+            {actions}
+          </View>
+        </View>
+      }
+      left={<View style={{ marginTop: 110 }}>{paid}</View>}
+      right={<View style={{ marginTop: 16 }}>{receipt}</View>}
+      footer={actions}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  badgeWrap: { alignSelf: 'center', width: 96, height: 96, alignItems: 'center', justifyContent: 'center' },
-  ring: { position: 'absolute', width: 96, height: 96, borderRadius: 48, borderWidth: 2 },
-  disc: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
-  slotLine: { height: 10, borderRadius: 5, marginTop: 24, backgroundColor: '#0E0E10', zIndex: 1 },
-  slot: { height: RECEIPT_H + 24, overflow: 'hidden', marginTop: -5, marginHorizontal: 8 },
-  receipt: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 44 },
+  badgeWrap: { alignSelf: 'center', width: 88, height: 88, alignItems: 'center', justifyContent: 'center' },
+  ring: { position: 'absolute', width: 88, height: 88, borderRadius: 44, borderWidth: 2 },
+  disc: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
+  slotLine: { height: 10, borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', zIndex: 1 },
+  slot: { height: RECEIPT_H, overflow: 'hidden', marginTop: -5 },
+  receipt: { backgroundColor: PAPER, paddingHorizontal: 16, paddingTop: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, height: 46 },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
+  // «Listo»: a 44 pt text button with 17 pt type.
+  listo: { height: 44, marginTop: 12, alignItems: 'center', justifyContent: 'center' },
 });

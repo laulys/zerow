@@ -17,7 +17,8 @@ const paths: Record<string, string[]> = {
   house: ['M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8', 'M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'],
   pen: ['M12 20h9', 'M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z'],
   undo: ['M9 14 4 9l5-5', 'M4 9h10.5a5.5 5.5 0 0 1 0 11H11'],
-  'arrow-left-right': ['M8 3 4 7l4 4', 'M4 7h16', 'm16 21 4-4-4-4', 'M20 17H4'],
+  // Drawn as Figma's «arrow-right-left»: the top arrow points right, the bottom one left.
+  'arrow-left-right': ['m16 3 4 4-4 4', 'M20 7H4', 'm8 21-4-4 4-4', 'M4 17h16'],
   receipt: ['M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z', 'M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8', 'M12 17.5v-11'],
   plane: [
     'M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z',
@@ -53,9 +54,18 @@ const rects: Record<string, [number, number, number, number, number][]> = {
 
 export type IconName = keyof typeof paths;
 
-export function Icon({ name, size = 20, color }: { name: IconName; size?: number; color: string }) {
+// Figma draws these at 2 pt; every other icon at 1.75 pt.
+const heavy = new Set<IconName>(['mic', 'check', 'arrow-right', 'undo', 'pen']);
+
+/**
+ * Line icon. Figma's stroke weights are absolute (1.75 pt, 2 pt for the ones in
+ * `heavy`) whatever the icon's size, so the stroke is scaled back from the 24
+ * box: a 20 pt icon still draws a 1.75 pt line, not 1.46.
+ */
+export function Icon({ name, size = 20, color, weight }: { name: IconName; size?: number; color: string; weight?: number }) {
+  const w = weight ?? (heavy.has(name) ? 2 : 1.75);
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={(w * 24) / size} strokeLinecap="round" strokeLinejoin="round">
       {paths[name].map((d) => (
         <Path key={d} d={d} />
       ))}

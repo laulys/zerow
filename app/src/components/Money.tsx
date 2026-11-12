@@ -8,7 +8,7 @@ import { NumericText } from './NumericText';
 /** Text at 28 pt and up is display type: cap its growth at 1.15x so the layout holds at the largest sizes. */
 export const displayCap = (size: number) => (size >= 28 ? 1.15 : undefined);
 
-export function Money({ value, size = 64, color, centsColor, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor: string; currency?: Currency }) {
+export function Money({ value, size = 64, color, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor?: string; currency?: Currency }) {
   const { whole, cents } = formatEur(value, currency);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
@@ -16,7 +16,7 @@ export function Money({ value, size = 64, color, centsColor, currency = 'EUR' }:
       <Text style={[numStyle(size), { color }]} maxFontSizeMultiplier={displayCap(size)}>
         {whole}
       </Text>
-      <Text style={[numStyle(size * CENTS), { color: centsColor }]} maxFontSizeMultiplier={displayCap(size)}>
+      <Text style={[numStyle(size * CENTS), centsStyle(color)]} maxFontSizeMultiplier={displayCap(size)}>
         {cents}
       </Text>
     </View>
@@ -25,13 +25,20 @@ export function Money({ value, size = 64, color, centsColor, currency = 'EUR' }:
 
 /** Cents are 45 % of the figure (v3 "Importe" styles). */
 const CENTS = 0.45;
+/**
+ * v3: the cents are the figure's own colour at 62 %, 1 pt after it. `centsColor`
+ * is kept in the props for callers but no longer used.
+ */
+const centsStyle = (color: string): TextStyle => ({ color, opacity: 0.62, marginLeft: 1 });
 
 // Amounts are Space Grotesk Regular; tracking tightens with size (−3 % at 56 and up, −2 % at 36 and under).
 const numStyle = (size: number): TextStyle => ({
   fontFamily: font.regular,
   fontSize: size,
-  lineHeight: size * 1.05,
-  letterSpacing: -size * (size >= 56 ? 0.03 : size >= 44 ? 0.025 : 0.02),
+  lineHeight: size,
+  // With the line height equal to the size, iOS draws Space Grotesk about 9 % higher than Figma does.
+  transform: [{ translateY: Math.round(size * 0.085) }],
+  letterSpacing: -size * (size >= 56 ? 0.03 : size >= 44 ? 0.025 : 0.02), // v3/Importe XL–XS
   fontVariant: ['tabular-nums'],
 });
 
@@ -81,13 +88,12 @@ export function RollingMoney({
   value,
   size = 64,
   color,
-  centsColor,
   currency = 'EUR',
 }: {
   value: number;
   size?: number;
   color: string;
-  centsColor: string;
+  centsColor?: string;
   duration?: number;
   from?: number;
   currency?: Currency;
@@ -101,7 +107,7 @@ export function RollingMoney({
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
       <NumericText text={whole} countsDown={down} style={[numStyle(size), { color }]} label={eurText(value, currency)} />
-      <NumericText text={cents} countsDown={down} style={[numStyle(size * CENTS), { color: centsColor }]} label="" />
+      <NumericText text={cents} countsDown={down} style={[numStyle(size * CENTS), centsStyle(color)]} label="" />
     </View>
   );
 }

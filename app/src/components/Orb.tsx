@@ -62,7 +62,8 @@ export function Orb({ size = 64, state = 'breathing', onGradient = false, label 
           const depth = (z2 + 1) / 2;
           const isFront = depth > 0.55;
           paint.setColor(isFront ? cFront : cBack);
-          paint.setAlphaf(onGradient ? Math.min(1, 0.3 + depth * 0.7) : isFront ? 0.35 + 0.65 * depth : 0.12 + 0.5 * depth);
+          // Figma: the back dots are near-white (#F2F2EE) and clearly visible, not faded to grey.
+          paint.setAlphaf(onGradient ? Math.min(1, 0.3 + depth * 0.7) : isFront ? 0.35 + 0.65 * depth : 0.45 + 0.55 * depth);
           canvas.drawCircle(size / 2 + x * R, size / 2 + y * R, (dot * (0.5 + 0.7 * depth)) / 2, paint);
         }
       },

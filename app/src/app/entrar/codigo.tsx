@@ -1,9 +1,11 @@
 import { Aurora } from '../../components/Aurora';
+import { useColumnPadding } from '../../components/Screen';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Svg, { Path } from 'react-native-svg';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, IconButton, T, Tap } from '../../components/ui';
@@ -15,9 +17,11 @@ const LENGTH = 6;
 const RESEND_AFTER = 30;
 const MAX_TRIES = 3;
 
-// 1.9 Código (and 6.8 código incorrecto): six boxes over one hidden field, so
+// 1.8 Código (and 6.8 código incorrecto): six boxes over one hidden field, so
 // paste and the iOS one-time-code suggestion both fill every box at once.
 export default function Code() {
+  // Open iPhone Duo (Figma «Duo abierto · 1.8»): one 400-wide column in the middle.
+  const side = useColumnPadding();
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { email } = useLocalSearchParams<{ email: string }>();
@@ -66,19 +70,30 @@ export default function Code() {
     input.current?.focus();
   };
 
+  // «Entrar» is the glass button at half strength until there are six new digits (Figma 1.8 and 6.8).
+  const ready = code.length === LENGTH && !checking && !wrong && triesLeft > 0;
+  const resendLink = (
+    <Tap onPress={resend} accessibilityRole="button" style={styles.link}>
+      <T v="labelStrong" color={t.ink}>
+        Enviar un código nuevo
+      </T>
+    </Tap>
+  );
+
+  // Figma «Código»: 8 between the lines, plus «Aire» spacers (10 above the boxes, 6 under them).
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Aurora height={380} strength={0.75} />
+      <Aurora preset="onboarding" />
       <StatusBar style="light" />
-      <View style={{ flex: 1, paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
-        <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+      <View style={{ flex: 1, paddingTop: insets.top, paddingHorizontal: side }}>
+        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
           Revisa tu correo
         </T>
-        <T v="body" color={t.inkMuted} style={{ marginTop: 6 }}>
+        <T v="label" color={t.inkMuted} style={{ marginTop: 8 }}>
           Código enviado a {email}
         </T>
-        <Tap onPress={() => router.back()} accessibilityRole="button" style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}>
+        <Tap onPress={() => router.back()} accessibilityRole="button" style={[styles.link, { marginTop: 8 }]}>
           <T v="labelStrong" color={t.ink}>
             Cambiar
           </T>
@@ -88,11 +103,17 @@ export default function Code() {
           <Animated.View style={[styles.boxes, shakeStyle]}>
             {Array.from({ length: LENGTH }).map((_, i) => {
               const active = i === code.length && !checking;
+              // Typing: white 8 % with a lime edge and the caret; wrong: every box gets the red edge.
+              const edge = wrong ? t.danger : active ? t.lime : 'transparent';
               return (
-                <View key={i} style={[styles.box, { backgroundColor: t.fill, borderColor: wrong ? t.danger : active ? t.ink : 'transparent' }]}>
-                  <T v="titleL" color={t.ink} style={{ fontFamily: font.regular }}>
-                    {code[i] ?? ''}
-                  </T>
+                <View key={i} style={[styles.box, { backgroundColor: wrong || active ? 'rgba(255,255,255,0.08)' : t.fill, borderColor: edge }]}>
+                  {active ? (
+                    <Caret color={t.lime} />
+                  ) : (
+                    <Text style={[styles.digit, { color: t.ink }]} maxFontSizeMultiplier={1.15}>
+                      {code[i] ?? ''}
+                    </Text>
+                  )}
                 </View>
               );
             })}
@@ -112,31 +133,53 @@ export default function Code() {
         />
 
         {wrong ? (
-          <T v="label" color={t.danger} style={{ marginTop: 12 }} accessibilityLiveRegion="assertive">
-            {triesLeft > 0 ? `Ese código no es correcto. Te quedan ${triesLeft} intento${triesLeft === 1 ? '' : 's'}.` : 'Ese código no es correcto. Pide uno nuevo.'}
-          </T>
-        ) : null}
-        {left > 0 ? (
-          <T v="label" color={t.inkMuted} style={{ marginTop: 12 }}>
+          <>
+            <View style={styles.error} accessible accessibilityLiveRegion="assertive">
+              <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={t.danger} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
+                <Path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z" />
+                <Path d="M12 8v4" />
+                <Path d="M12 16h.01" />
+              </Svg>
+              <T v="caption" color={t.danger} style={{ fontWeight: '500', flex: 1 }}>
+                Ese código no es correcto. Revísalo o pide otro.
+              </T>
+            </View>
+            <View style={{ marginTop: 8 }}>{resendLink}</View>
+          </>
+        ) : left > 0 ? (
+          <T v="caption" color={t.inkMuted} style={{ marginTop: 22 }}>
             ¿No llega? Reenviar en 0:{String(left).padStart(2, '0')}
           </T>
         ) : (
-          <Tap onPress={resend} accessibilityRole="button" style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center', marginTop: 4 }}>
-            <T v="labelStrong" color={t.ink}>
-              Reenviar código
-            </T>
-          </Tap>
+          // 10 down, so the link's text (centred in its 44 pt row) lines up with where the countdown was.
+          <View style={{ marginTop: 10 }}>{resendLink}</View>
         )}
       </View>
-      <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
-        <Button label={checking ? 'Comprobando…' : 'Entrar'} disabled={code.length < LENGTH || checking || triesLeft <= 0} onPress={() => submit()} />
+      <View style={{ paddingHorizontal: side, paddingBottom: insets.bottom }}>
+        <Button label={checking ? 'Comprobando…' : 'Entrar'} kind={ready ? 'primary' : 'secondary'} disabled={!ready} style={!ready && { opacity: 0.5 }} onPress={() => submit()} />
       </View>
     </KeyboardAvoidingView>
   );
 }
 
+/** The lime caret in the box being typed (2 × 26), blinking like the system one; steady with Reduce Motion. */
+function Caret({ color }: { color: string }) {
+  const reduce = useReducedMotion();
+  const on = useSharedValue(1);
+  useEffect(() => {
+    if (!reduce) on.value = withRepeat(withSequence(withTiming(1, { duration: 500 }), withTiming(0, { duration: 0 }), withTiming(0, { duration: 500 }), withTiming(1, { duration: 0 })), -1);
+  }, [reduce, on]);
+  const style = useAnimatedStyle(() => ({ opacity: on.value }));
+  return <Animated.View style={[{ width: 2, height: 26, backgroundColor: color }, style]} />;
+}
+
 const styles = StyleSheet.create({
-  boxes: { flexDirection: 'row', gap: 8, marginTop: 24 },
-  box: { flex: 1, height: 64, borderRadius: 14, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  link: { alignSelf: 'flex-start', height: 44, paddingRight: 12, justifyContent: 'center' },
+  boxes: { flexDirection: 'row', gap: 8, marginTop: 26 },
+  box: { flex: 1, height: 60, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  // v3/Importe XS: Space Grotesk Regular 28, −2 %. Its natural line height, centred in the box, puts the figure where
+  // Figma does; a 28 pt line box draws it 3 pt high.
+  digit: { fontFamily: font.regular, fontSize: 28, letterSpacing: -0.56 },
+  error: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 22 },
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
 });

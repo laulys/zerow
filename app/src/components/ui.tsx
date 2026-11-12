@@ -4,6 +4,7 @@ import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSprin
 import Svg, { Path } from 'react-native-svg';
 import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
+import { Frost } from './Frost';
 import { Icon, type IconName } from './Icon';
 
 /**
@@ -12,16 +13,27 @@ import { Icon, type IconName } from './Icon';
  * body 17, note 15, footnote 13 (the smallest size in the app).
  */
 export const type = StyleSheet.create({
-  display: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -0.8 },
-  titleL: { fontFamily: font.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
-  titleM: { fontFamily: font.medium, fontSize: 22, lineHeight: 26, letterSpacing: -0.3 },
-  /** Section headers on a screen (Contactos, Anteriores): a step under the card titles, like iOS grouped headers. */
-  section: { fontFamily: font.medium, fontSize: 20, lineHeight: 24, letterSpacing: -0.2 },
-  body: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
-  bodyStrong: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2, fontWeight: '600' },
-  label: { fontSize: 15, lineHeight: 20, letterSpacing: -0.1 },
-  labelStrong: { fontSize: 15, lineHeight: 20, letterSpacing: -0.1, fontWeight: '600' },
+  /** v3/Titular */
+  // Tight Space Grotesk lines sit ~2 pt higher on iOS than in Figma; nudged down to match.
+  display: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -0.8, transform: [{ translateY: 2 }] },
+  /** v3/Título L */
+  titleL: { fontFamily: font.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.6, transform: [{ translateY: 2 }] },
+  /** v3/Título M */
+  titleM: { fontFamily: font.medium, fontSize: 22, lineHeight: 27, letterSpacing: -0.22 },
+  /** v3/Título S: section headers on a screen (Contactos, Anteriores) and card titles. */
+  section: { fontFamily: font.medium, fontSize: 20, lineHeight: 25, letterSpacing: -0.2 },
+  /** v3/Título XS: names on the glass strip, amounts in lists. */
+  titleXS: { fontFamily: font.medium, fontSize: 17, lineHeight: 22, letterSpacing: -0.085 },
+  /** v3/Cuerpo · Cuerpo fuerte */
+  body: { fontSize: 17, lineHeight: 24 },
+  bodyStrong: { fontSize: 17, lineHeight: 24, fontWeight: '600' },
+  /** v3/Nota · Nota fuerte */
+  label: { fontSize: 15, lineHeight: 21 },
+  labelStrong: { fontSize: 15, lineHeight: 21, fontWeight: '600' },
+  /** v3/Pie */
   caption: { fontSize: 13, lineHeight: 18 },
+  /** v3/Mini: tab labels. */
+  mini: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
 });
 
 /** Emphasis inside SF Pro text (replaces switching to Space Grotesk Medium). */
@@ -64,13 +76,24 @@ export function Tap({ style, children, onPressIn, onPressOut, ...props }: Pressa
   );
 }
 
-type ButtonKind = 'primary' | 'secondary' | 'onGradient' | 'text';
+/**
+ * v3 button kinds (Figma, «Botón …»):
+ * - primary: lime, soft lime glow (17 %, blur 24, 8 down).
+ * - secondary: glass, white 12 % + blur, no outline.
+ * - control: the header and navigation glass, white 10 % with a white 8 % edge.
+ * - onGradient: on a lime card, graphite #25252A with white text.
+ * - onGradientSoft: on a lime card, see-through dark (#111112 at 12 %) with dark text.
+ * - text: no fill.
+ * 56 and 48 pt buttons use 17 pt semibold; 44 pt ones, 15 pt.
+ */
+type ButtonKind = 'primary' | 'secondary' | 'control' | 'onGradient' | 'onGradientSoft' | 'text';
 
 export function Button({
   label,
   onPress,
   kind = 'primary',
   icon,
+  iconColor,
   leading,
   style,
   height = 56,
@@ -82,6 +105,8 @@ export function Button({
   onPress?: () => void;
   kind?: ButtonKind;
   icon?: IconName;
+  /** The icon's own colour when it differs from the label (e.g. the lime arrows in «Saldar»). */
+  iconColor?: string;
   leading?: ReactNode;
   style?: StyleProp<ViewStyle>;
   height?: number;
@@ -91,10 +116,17 @@ export function Button({
   disabled?: boolean;
 }) {
   const { t } = useTheme();
-  // Primary is lime with a soft lime glow; secondary is glass with no outline;
-  // on a lime card the dark button takes the graphite of the cards.
-  const bg = bgProp ?? (kind === 'primary' ? t.action : kind === 'onGradient' ? t.onLimeButton : kind === 'secondary' ? t.glass : 'transparent');
-  const fg = color ?? (kind === 'primary' ? t.onAction : kind === 'onGradient' ? t.ink : t.ink);
+  const fills: Record<ButtonKind, string> = {
+    primary: t.action,
+    secondary: t.glass,
+    control: t.control,
+    onGradient: t.onLimeButton,
+    onGradientSoft: 'rgba(17,17,18,0.12)',
+    text: 'transparent',
+  };
+  const bg = bgProp ?? fills[kind];
+  const fg = color ?? (kind === 'primary' ? t.onAction : kind === 'onGradientSoft' ? t.inkFixed : kind === 'onGradient' ? '#FFFFFF' : t.ink);
+  const frosted = !bgProp && (kind === 'secondary' || kind === 'control');
   return (
     <Tap
       onPress={disabled ? undefined : onPress}
@@ -104,28 +136,50 @@ export function Button({
       accessibilityState={{ disabled: !!disabled }}
       style={[
         disabled && { opacity: 0.4 },
-        { height, borderRadius: height / 2, backgroundColor: bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 20 },
-        kind === 'primary' && !bgProp && !disabled && { shadowColor: t.lime, shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
+        {
+          height,
+          borderRadius: height / 2,
+          backgroundColor: frosted ? undefined : bg,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          paddingHorizontal: height >= 48 ? 24 : 16,
+        },
+        kind === 'control' && { borderWidth: 1, borderColor: t.controlStroke },
+        kind === 'primary' && !bgProp && !disabled && { shadowColor: t.lime, shadowOpacity: 0.17, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
         style,
       ]}
     >
+      {frosted ? <Frost fill={bg} radius={height / 2} intensity={kind === 'control' ? 16 : 20} /> : null}
       {leading}
-      {icon ? <Icon name={icon} size={18} color={fg} /> : null}
-      <T v="labelStrong" color={fg}>
+      {icon ? <Icon name={icon} size={20} color={iconColor ?? fg} /> : null}
+      {/* Figma: text buttons («Ya le pagué de otra forma», «Recordárselo») are 17 pt even at 44 tall. */}
+      <T v={height >= 48 || kind === 'text' ? 'bodyStrong' : 'labelStrong'} color={fg}>
         {label}
       </T>
     </Tap>
   );
 }
 
+/**
+ * Round icon button. With `bg={t.glass}` it is the v3 navigation control: white
+ * 10 % with a white 8 % edge over a blur (Figma «Atrás», «Invitar», «Cerrar»).
+ */
 export function IconButton({ name, label, onPress, bg, color, size = 44 }: { name: IconName; label: string; onPress?: () => void; bg: string; color: string; size?: number }) {
+  const { t } = useTheme();
+  const control = bg === t.glass || bg === t.control;
   return (
     <Tap
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={label}
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}
+      style={[
+        { width: size, height: size, borderRadius: size / 2, backgroundColor: control ? undefined : bg, alignItems: 'center', justifyContent: 'center' },
+        control && { borderWidth: 1, borderColor: t.controlStroke },
+      ]}
     >
+      {control ? <Frost fill={t.control} radius={size / 2} intensity={16} /> : null}
       <Icon name={name} size={20} color={color} />
     </Tap>
   );
@@ -158,12 +212,24 @@ export function Lockup({ color, size = 32 }: { color: string; size?: number }) {
 export function Card({ children, style, bg }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg?: string; sheen?: boolean }) {
   const { t } = useTheme();
   const fill = !bg || bg === t.surface || bg === t.panel ? t.card : bg;
-  return <View style={[{ backgroundColor: fill, borderRadius: 28, padding: 16 }, style]}>{children}</View>;
+  // Translucent cards blur what's behind them (the aurora, content scrolling under).
+  const frosted = fill === t.card;
+  const r = (StyleSheet.flatten(style)?.borderRadius as number | undefined) ?? 28;
+  return (
+    <View style={[{ backgroundColor: frosted ? undefined : fill, borderRadius: 28, padding: 16 }, style]}>
+      {frosted ? <Frost fill={fill} radius={r} /> : null}
+      {children}
+    </View>
+  );
 }
 
-export function Hairline({ color, inset = 0 }: { color: string; inset?: number }) {
-  // Soft: rows are already separated by spacing; the line only hints at the break.
-  return <View style={{ height: StyleSheet.hairlineWidth * 2, backgroundColor: color, marginLeft: inset, opacity: 0.35 }} />;
+/**
+ * v3 «Filete»: a 1 pt white 9 % line across the card's inner width (Figma draws
+ * no inset). `color` and `inset` are kept for older callers and ignored.
+ */
+export function Hairline(_: { color?: string; inset?: number }) {
+  const { t } = useTheme();
+  return <View style={{ height: 1, backgroundColor: t.hairline }} />;
 }
 
 /** Pill used for choices (type, people, settings). Selected is neutral, never lime. */
@@ -193,13 +259,23 @@ export function Chip({
       accessibilityState={{ selected: off === undefined ? !!selected : !off }}
       accessibilityLabel={label}
       style={[
-        { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: leading ? 6 : 14, paddingRight: 14, backgroundColor: selected ? t.selected : t.fill },
-        dashed && { backgroundColor: t.glass },
+        // v3 chips: glass (white 12 % + blur) or, when chosen, the ink colour with dark text.
+        {
+          height: 44,
+          borderRadius: 22,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+          paddingLeft: leading ? 6 : icon ? 12 : 16,
+          paddingRight: 16,
+          backgroundColor: selected ? t.selected : undefined,
+        },
         off && { opacity: 0.4 },
       ]}
     >
+      {selected ? null : <Frost fill={t.glass} radius={22} intensity={20} />}
       {leading}
-      {icon ? <Icon name={icon} size={16} color={fg} /> : null}
+      {icon ? <Icon name={icon} size={20} color={fg} /> : null}
       <T v="labelStrong" color={fg}>
         {label}
       </T>
@@ -220,7 +296,7 @@ export function Segmented<K extends string>({ options, value, onChange }: { opti
             onPress={() => onChange(o.key)}
             accessibilityRole="radio"
             accessibilityState={{ checked: on }}
-            style={{ flex: 1, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}
+            style={{ flex: 1, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}
           >
             <T v="labelStrong" color={on ? t.onLime : t.ink}>
               {o.label}
