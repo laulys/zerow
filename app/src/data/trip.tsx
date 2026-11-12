@@ -70,7 +70,10 @@ export function settleUp(balances: Record<PersonId, number>): Transfer[] {
     const from = pick(debtors);
     const c = Math.min(creditors.get(to)!, debtors.get(from)!);
     out.push({ from, to, amount: c / 100 });
-    for (const [side, name] of [[creditors, to], [debtors, from]] as const) {
+    for (const [side, name] of [
+      [creditors, to],
+      [debtors, from],
+    ] as const) {
       side.set(name, side.get(name)! - c);
       if (side.get(name) === 0) side.delete(name);
     }
@@ -161,7 +164,13 @@ export function TripProvider({ children }: { children: ReactNode }) {
         } else setGroupExpenses((all) => ({ ...all, [groupId]: (all[groupId] ?? []).filter((e) => e.id !== id) }));
       },
       createGroup: (g) => {
-        const slug = g.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'grupo';
+        const slug =
+          g.name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '') || 'grupo';
         const made = { ...g, id: `${slug}-${Date.now().toString(36).slice(-4)}` };
         setGroups((list) => [made, ...list]);
         return made;
@@ -255,9 +264,7 @@ export function usePeopleBalances(): PersonBalance[] {
     const fromTransfers = (list: Transfer[], key: string, group: string, to: string, members: PersonId[], skipPaid: boolean) => {
       for (const m of members) {
         if (m === 'tu') continue;
-        const amount = list
-          .filter((x) => !(skipPaid && paid.has(transferKey(x))))
-          .reduce((a, x) => a + (x.from === m && x.to === 'tu' ? x.amount : x.from === 'tu' && x.to === m ? -x.amount : 0), 0);
+        const amount = list.filter((x) => !(skipPaid && paid.has(transferKey(x)))).reduce((a, x) => a + (x.from === m && x.to === 'tu' ? x.amount : x.from === 'tu' && x.to === m ? -x.amount : 0), 0);
         add(m, { key, group, amount: Math.round(amount * 100) / 100, to });
       }
     };

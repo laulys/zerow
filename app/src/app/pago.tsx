@@ -1,3 +1,4 @@
+import { Aurora } from '../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -76,6 +77,7 @@ export default function PaymentSent() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
+      <Aurora height={380} strength={0.75} />
       <StatusBar style="light" />
       <View style={{ flex: 1, paddingTop: insets.top + 36, paddingHorizontal: 20 }}>
         <View style={styles.badgeWrap} accessible accessibilityLabel={`Pagado: ${eurText(amount)}`}>

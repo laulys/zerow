@@ -6,7 +6,6 @@ import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, w
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, T, Tap } from '../components/ui';
 import { pastGroups, useTrip } from '../data/trip';
-import { font } from '../theme/tokens';
 import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
@@ -46,8 +45,18 @@ export default function GroupEmoji() {
   return (
     <View style={{ paddingHorizontal: 20, paddingTop: 28, paddingBottom: Math.max(insets.bottom - 8, 16), backgroundColor: glassSheets ? 'transparent' : t.surface }}>
       <View style={{ alignItems: 'center' }}>
-        <Animated.View style={[styles.current, { backgroundColor: t.fill, borderColor: chosen ? t.lime : t.line }, popStyle]} accessible accessibilityLabel={chosen ? `Emoji elegido: ${chosen}` : 'Sin emoji'}>
-          {chosen ? <Text style={styles.big}>{chosen}</Text> : <T v="caption" color={t.inkMuted}>Sin emoji</T>}
+        <Animated.View
+          style={[styles.current, { backgroundColor: t.fill, borderColor: chosen ? t.lime : 'transparent' }, popStyle]}
+          accessible
+          accessibilityLabel={chosen ? `Emoji elegido: ${chosen}` : 'Sin emoji'}
+        >
+          {chosen ? (
+            <Text style={styles.big}>{chosen}</Text>
+          ) : (
+            <T v="caption" color={t.inkMuted}>
+              Sin emoji
+            </T>
+          )}
         </Animated.View>
         <T v="titleM" color={t.ink} style={{ marginTop: 14 }} accessibilityRole="header">
           {group.name}
@@ -64,14 +73,21 @@ export default function GroupEmoji() {
         {group.suggestions.map((e) => {
           const on = e === chosen;
           return (
-            <Tap key={e} onPress={() => pick(e)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={e} style={[styles.option, { backgroundColor: t.fill, borderColor: on ? t.lime : 'rgba(255,255,255,0.08)' }]}>
+            <Tap
+              key={e}
+              onPress={() => pick(e)}
+              accessibilityRole="radio"
+              accessibilityState={{ checked: on }}
+              accessibilityLabel={e}
+              style={[styles.option, { backgroundColor: t.fill, borderColor: on ? t.lime : 'transparent' }]}
+            >
               <Text style={styles.mid}>{e}</Text>
             </Tap>
           );
         })}
       </View>
 
-      <Tap onPress={() => input.current?.focus()} accessibilityRole="none" style={[styles.field, { backgroundColor: t.fill, borderColor: t.line }]}>
+      <Tap onPress={() => input.current?.focus()} accessibilityRole="none" style={[styles.field, { backgroundColor: t.fill }]}>
         <Text style={styles.small}>☺️</Text>
         <TextInput
           ref={input}
@@ -94,7 +110,7 @@ export default function GroupEmoji() {
       <Button label="Guardar" style={{ marginTop: 16 }} onPress={save} />
       {chosen ? (
         <Tap onPress={() => setChosen(null)} accessibilityRole="button" style={styles.remove}>
-          <T v="labelStrong" color={t.ink} style={{ fontFamily: font.medium }}>
+          <T v="labelStrong" color={t.ink} style={{ fontWeight: '600' }}>
             Quitar emoji
           </T>
         </Tap>
@@ -110,7 +126,7 @@ const styles = StyleSheet.create({
   option: { flexBasis: '22%', flexGrow: 1, height: 72, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   mid: { fontSize: 34, lineHeight: 42 },
   small: { fontSize: 20 },
-  field: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 56, borderRadius: 28, borderWidth: 1, paddingHorizontal: 16, marginTop: 18 },
-  input: { flex: 1, fontFamily: font.regular, fontSize: 16, height: 56 },
+  field: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 56, borderRadius: 28, paddingHorizontal: 16, marginTop: 18 },
+  input: { flex: 1, fontSize: 17, height: 56 },
   remove: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: 4 },
 });

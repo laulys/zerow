@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
+import { Aurora } from '../components/Aurora';
 import { BrandGradient } from '../components/BrandGradient';
 import { Money } from '../components/Money';
 import { AvatarStack } from '../components/Avatar';
@@ -12,12 +13,11 @@ import { Button, Lockup, T } from '../components/ui';
 import { font, light } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
-const COIN = 168;
+const COIN = 220;
 
 // 1.1 → 1.2 Bienvenida. First the brand: the two halves of the coin meet (the
-// bill is split, the accounts reach zero). Then the product (option C, "así se
-// verá"): one sentence and the trip card it turns into. Tapping during the intro
-// skips straight to the demo.
+// bill is split, the accounts reach zero) and «Empezar» waits below. Then the
+// product ("así se verá"): one sentence and the trip card it turns into.
 export default function Welcome() {
   const [phase, setPhase] = useState<'intro' | 'demo'>('intro');
   const reduceMotion = useReducedMotion();
@@ -29,21 +29,13 @@ export default function Welcome() {
     fade.value = withTiming(0, { duration: 350, easing: Easing.out(Easing.quad) });
   };
 
-  useEffect(() => {
-    const id = setTimeout(toDemo, reduceMotion ? 900 : 1500);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const introStyle = useAnimatedStyle(() => ({ opacity: fade.value }));
 
   return (
     <View style={{ flex: 1 }}>
       {phase === 'demo' ? <Demo /> : null}
       <Animated.View style={[StyleSheet.absoluteFill, introStyle]} pointerEvents={phase === 'intro' ? 'auto' : 'none'}>
-        <Pressable style={{ flex: 1 }} onPress={toDemo} accessibilityRole="button" accessibilityLabel="Zerow. Toca para continuar">
-          <Intro still={reduceMotion} />
-        </Pressable>
+        <Intro still={reduceMotion} onStart={toDemo} />
       </Animated.View>
     </View>
   );
@@ -66,7 +58,7 @@ function Half({ side, still }: { side: 'left' | 'right'; still: boolean }) {
   );
 }
 
-function Intro({ still }: { still: boolean }) {
+function Intro({ still, onStart }: { still: boolean; onStart: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <BrandGradient style={{ flex: 1 }}>
@@ -80,6 +72,10 @@ function Intro({ still }: { still: boolean }) {
           zerow
         </Animated.Text>
       </View>
+      {/* On the all-lime screen the button is the logo's black, not the cards' graphite. */}
+      <Animated.View entering={FadeIn.delay(still ? 0 : 950).duration(300)} style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
+        <Button label="Empezar" bg={light.inkFixed} color="#F4F4F0" onPress={onStart} />
+      </Animated.View>
     </BrandGradient>
   );
 }
@@ -91,6 +87,7 @@ function Demo() {
   return (
     <View style={[styles.wrap, { backgroundColor: t.page, paddingTop: insets.top + 12, paddingBottom: insets.bottom + 8 }]}>
       <StatusBar style="light" />
+      <Aurora />
       <Animated.View entering={FadeIn.duration(300)}>
         <Lockup color={t.ink} size={30} />
       </Animated.View>
@@ -107,7 +104,7 @@ function Demo() {
               <T v="titleM" color={light.inkFixed}>
                 Lisboa 2026
               </T>
-              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={30} outline="#D3F27F" on="lime" />
+              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={28} on="lime" />
             </View>
             <T v="label" color={light.inkMutedFixed} style={{ marginTop: 36, marginBottom: 4 }}>
               Te deben
@@ -118,7 +115,7 @@ function Demo() {
       </View>
 
       <Animated.View entering={at(1250)}>
-        <T v="display" color={t.ink} style={{ marginBottom: 10 }}>
+        <T v="display" color={t.ink} style={{ marginBottom: 12 }}>
           Dilo en voz alta. Zerow hace las cuentas.
         </T>
         <T v="body" color={t.inkMuted} style={{ marginBottom: 24 }}>
@@ -126,8 +123,8 @@ function Demo() {
         </T>
       </Animated.View>
       <Animated.View entering={at(1350)}>
-        <Button label="Empezar" icon="arrow-right" onPress={() => router.replace('/grupos')} />
-        <Button label="Ya tengo cuenta" kind="text" height={48} onPress={() => router.push('/entrar')} style={{ marginTop: 6 }} />
+        <Button label="Continuar" onPress={() => router.replace('/grupos')} />
+        <Button label="Ya tengo cuenta" kind="text" height={48} onPress={() => router.push('/entrar')} style={{ marginTop: 4 }} />
       </Animated.View>
     </View>
   );
@@ -135,9 +132,9 @@ function Demo() {
 
 const styles = StyleSheet.create({
   introWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  wordmark: { fontFamily: font.medium, fontSize: 40, letterSpacing: -1.6, color: light.inkFixed, marginTop: 10 },
+  wordmark: { fontFamily: font.medium, fontSize: 40, letterSpacing: -1.6, color: light.inkFixed, marginTop: 4 },
   wrap: { flex: 1, paddingHorizontal: 20 },
   bubble: { alignSelf: 'flex-end', borderRadius: 20, borderBottomRightRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },
-  card: { borderRadius: 32, padding: 20, paddingBottom: 18 },
+  card: { borderRadius: 32, padding: 20 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

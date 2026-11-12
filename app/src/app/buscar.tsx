@@ -1,3 +1,4 @@
+import { Aurora } from '../components/Aurora';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -7,7 +8,6 @@ import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
 import { Card, Hairline, T, Tap } from '../components/ui';
 import { eurText, kindEmoji, openEmoji, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, balancesFor, type Expense, type PersonId } from '../data/trip';
-import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -31,7 +31,7 @@ export default function Search() {
   const between = usePeopleBalances();
   const piso = usePisoBalance();
   const lisboa = balancesFor(expenses).tu;
-  const owe = (v: number) => (Math.abs(v) < 0.005 ? 'A mano' : v > 0 ? `Te deben ${eurText(v)}` : `Debes ${eurText(-v)}`);
+  const owe = (v: number) => (Math.abs(v) < 0.005 ? 'A cero' : v > 0 ? `Te deben ${eurText(v)}` : `Debes ${eurText(-v)}`);
 
   const groupRows: Row[] = [
     {
@@ -66,7 +66,7 @@ export default function Search() {
   const personRows: Row[] = between.map((p) => ({
     key: p.id,
     title: people[p.id].name,
-    sub: p.net > 0 ? `Te debe ${eurText(p.net)}` : p.net < 0 ? `Le debes ${eurText(-p.net)}` : 'A mano',
+    sub: p.net > 0 ? `Te debe ${eurText(p.net)}` : p.net < 0 ? `Le debes ${eurText(-p.net)}` : 'A cero',
     lead: { avatar: p.id },
     go: () => router.push({ pathname: '/persona', params: { id: p.id } }),
   }));
@@ -96,6 +96,7 @@ export default function Search() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top + 8 }}>
+      <Aurora height={380} strength={0.75} />
       <View style={styles.bar}>
         <View style={[styles.field, { backgroundColor: t.surface }]}>
           <Icon name="search" size={18} color={t.inkMuted} />
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 6,
   },
-  input: { flex: 1, height: 44, fontFamily: font.regular, fontSize: 16 },
+  input: { flex: 1, height: 44, fontSize: 17 },
   clear: {
     width: 32,
     height: 32,

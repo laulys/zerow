@@ -1,24 +1,31 @@
-import { useId, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 import { Icon, type IconName } from './Icon';
 
-/** Type scale from the Figma text styles. */
+/**
+ * Type scale from the Figma "v3/…" text styles. Space Grotesk Medium for
+ * headlines and titles; SF Pro (the system font) for everything you read:
+ * body 17, note 15, footnote 13 (the smallest size in the app).
+ */
 export const type = StyleSheet.create({
-  display: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -1.2 },
+  display: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -0.8 },
   titleL: { fontFamily: font.medium, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 },
   titleM: { fontFamily: font.medium, fontSize: 22, lineHeight: 26, letterSpacing: -0.3 },
   /** Section headers on a screen (Contactos, Anteriores): a step under the card titles, like iOS grouped headers. */
-  section: { fontFamily: font.medium, fontSize: 19, lineHeight: 24, letterSpacing: -0.2 },
-  body: { fontFamily: font.regular, fontSize: 16, lineHeight: 22 },
-  bodyStrong: { fontFamily: font.medium, fontSize: 16, lineHeight: 22 },
-  label: { fontFamily: font.regular, fontSize: 14, lineHeight: 18 },
-  labelStrong: { fontFamily: font.medium, fontSize: 15, lineHeight: 20 },
-  caption: { fontFamily: font.regular, fontSize: 13, lineHeight: 17 },
+  section: { fontFamily: font.medium, fontSize: 20, lineHeight: 24, letterSpacing: -0.2 },
+  body: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2 },
+  bodyStrong: { fontSize: 17, lineHeight: 22, letterSpacing: -0.2, fontWeight: '600' },
+  label: { fontSize: 15, lineHeight: 20, letterSpacing: -0.1 },
+  labelStrong: { fontSize: 15, lineHeight: 20, letterSpacing: -0.1, fontWeight: '600' },
+  caption: { fontSize: 13, lineHeight: 18 },
 });
+
+/** Emphasis inside SF Pro text (replaces switching to Space Grotesk Medium). */
+export const strong = { fontWeight: '600' } as const;
 
 export function T({ v, color, style, children, ...rest }: Omit<TextProps, 'style'> & { v: keyof typeof type; color: string; style?: StyleProp<TextStyle>; children: ReactNode }) {
   return (
@@ -68,6 +75,7 @@ export function Button({
   style,
   height = 56,
   color,
+  bg: bgProp,
   disabled,
 }: {
   label: string;
@@ -78,11 +86,15 @@ export function Button({
   style?: StyleProp<ViewStyle>;
   height?: number;
   color?: string;
+  /** Overrides the fill, e.g. the logo's black on the all-lime welcome screen. */
+  bg?: string;
   disabled?: boolean;
 }) {
   const { t } = useTheme();
-  const bg = kind === 'primary' ? t.action : kind === 'onGradient' ? t.inkFixed : kind === 'secondary' ? t.fill : 'transparent';
-  const fg = color ?? (kind === 'primary' ? t.onAction : kind === 'onGradient' ? '#FFFFFF' : t.ink);
+  // Primary is lime with a soft lime glow; secondary is glass with no outline;
+  // on a lime card the dark button takes the graphite of the cards.
+  const bg = bgProp ?? (kind === 'primary' ? t.action : kind === 'onGradient' ? t.onLimeButton : kind === 'secondary' ? t.glass : 'transparent');
+  const fg = color ?? (kind === 'primary' ? t.onAction : kind === 'onGradient' ? t.ink : t.ink);
   return (
     <Tap
       onPress={disabled ? undefined : onPress}
@@ -93,7 +105,7 @@ export function Button({
       style={[
         disabled && { opacity: 0.4 },
         { height, borderRadius: height / 2, backgroundColor: bg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 20 },
-        kind === 'secondary' && { borderWidth: 1, borderColor: t.line },
+        kind === 'primary' && !bgProp && !disabled && { shadowColor: t.lime, shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 8 } },
         style,
       ]}
     >
@@ -139,36 +151,14 @@ export function Lockup({ color, size = 32 }: { color: string; size?: number }) {
 }
 
 /**
- * Dark cards catch a little of the lime glow: a soft green sheen from the top
- * right corner that fades out before the middle, like light from the screen's
- * glow falling on the card (Revolut does the same with its wallpaper). Only on
- * the graphite surfaces; lime cards stay flat. Text sits on the plain part, so
- * contrast doesn't change where it matters.
+ * v3 Aurora cards: translucent white (7 %) so the page and its glow show
+ * through, radius 28, no border and no sheen. Pass `bg` only for the cards that
+ * are not the standard surface (a lime one, a raised one).
  */
-export function Card({ children, style, bg, sheen }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg: string; sheen?: boolean }) {
+export function Card({ children, style, bg }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg?: string; sheen?: boolean }) {
   const { t } = useTheme();
-  const id = useId().replace(/:/g, '');
-  const radius = (StyleSheet.flatten(style)?.borderRadius as number | undefined) ?? 26;
-  const glow = sheen ?? (bg === t.surface || bg === t.panel);
-  return (
-    <View style={[{ backgroundColor: bg, borderRadius: 26, padding: 16 }, style]}>
-      {glow ? (
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: radius, overflow: 'hidden' }]}>
-          <Svg width="100%" height="100%">
-            <Defs>
-              <LinearGradient id={`sheen${id}`} x1="1" y1="0" x2="0.15" y2="0.9">
-                <Stop offset="0" stopColor={t.lime} stopOpacity={0.09} />
-                <Stop offset="0.35" stopColor={t.lime} stopOpacity={0.035} />
-                <Stop offset="0.7" stopColor={t.lime} stopOpacity={0} />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill={`url(#sheen${id})`} />
-          </Svg>
-        </View>
-      ) : null}
-      {children}
-    </View>
-  );
+  const fill = !bg || bg === t.surface || bg === t.panel ? t.card : bg;
+  return <View style={[{ backgroundColor: fill, borderRadius: 28, padding: 16 }, style]}>{children}</View>;
 }
 
 export function Hairline({ color, inset = 0 }: { color: string; inset?: number }) {
@@ -204,7 +194,7 @@ export function Chip({
       accessibilityLabel={label}
       style={[
         { height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: leading ? 6 : 14, paddingRight: 14, backgroundColor: selected ? t.selected : t.fill },
-        dashed && { backgroundColor: 'transparent', borderWidth: 1, borderColor: t.line },
+        dashed && { backgroundColor: t.glass },
         off && { opacity: 0.4 },
       ]}
     >
@@ -221,7 +211,7 @@ export function Chip({
 export function Segmented<K extends string>({ options, value, onChange }: { options: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
   const { t } = useTheme();
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: t.surface, borderRadius: 16, padding: 4, borderWidth: 1, borderColor: t.line }} accessibilityRole="radiogroup">
+    <View style={{ flexDirection: 'row', backgroundColor: t.card, borderRadius: 16, padding: 4 }} accessibilityRole="radiogroup">
       {options.map((o) => {
         const on = o.key === value;
         return (
@@ -255,14 +245,12 @@ export function Field({ label, children }: { label: string; children: ReactNode 
   );
 }
 
-export const inputStyle = (t: { surface: string; line: string; ink: string }) => ({
+/** Fields are 56 pt tall, translucent like the cards, with no outline. */
+export const inputStyle = (t: { fill: string; ink: string }) => ({
   height: 56,
   borderRadius: 16,
-  backgroundColor: t.surface,
-  borderWidth: 1,
-  borderColor: t.line,
+  backgroundColor: t.fill,
   paddingHorizontal: 16,
   color: t.ink,
-  fontFamily: font.regular,
-  fontSize: 16,
+  fontSize: 17,
 });

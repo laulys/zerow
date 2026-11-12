@@ -1,4 +1,4 @@
-import { Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { people, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
@@ -7,8 +7,8 @@ export type AvatarOn = 'dark' | 'lime';
 
 /**
  * Memoji in a circle. Decorative next to a visible name. On the graphite UI the
- * disc is solid, one step above the card it sits on, with no border; on the lime
- * cards (`on="lime"`) it stays translucent white so the gradient shows through.
+ * disc is solid, a step lighter than the page, with no ring; on the lime cards
+ * (`on="lime"`) it is translucent white, also with no ring.
  * `bg` overrides the disc colour, e.g. `t.surface` for faces sitting on the page.
  */
 export function Avatar({ id, size = 32, decorative = true, bg, on = 'dark' }: { id: PersonId; size?: number; decorative?: boolean; bg?: string; on?: AvatarOn }) {
@@ -27,29 +27,25 @@ export function Avatar({ id, size = 32, decorative = true, bg, on = 'dark' }: { 
 }
 
 /**
- * Faces that overlap like a small group photo. Each face gets a thin ring in
- * the colour behind the stack (`outline`), so the overlap reads as a cut-out
- * instead of circles piled on top of each other.
+ * A group's faces side by side (v3: no overlap, no ring), 8 pt apart. `max`
+ * keeps the row short on a card; the rest fold into a "+n" disc.
  */
-export function AvatarStack({ ids, size = 30, overlap, outline, on }: { ids: PersonId[]; size?: number; overlap?: number; outline?: string; on?: AvatarOn }) {
-  const ov = overlap ?? Math.round(size * 0.34);
-  const ring = outline ? 2 : 0;
+export function AvatarStack({ ids, size = 30, gap = 8, max, on }: { ids: PersonId[]; size?: number; gap?: number; max?: number; on?: AvatarOn; overlap?: number; outline?: string }) {
+  const { t } = useTheme();
+  const shown = max && ids.length > max ? ids.slice(0, max - 1) : ids;
+  const rest = ids.length - shown.length;
   return (
-    <View style={{ flexDirection: 'row' }} importantForAccessibility="no-hide-descendants">
-      {ids.map((id, i) => (
-        <View
-          key={id}
-          style={{
-            marginLeft: i === 0 ? 0 : -ov,
-            zIndex: ids.length - i,
-            borderRadius: (size + ring * 2) / 2,
-            borderWidth: ring,
-            borderColor: outline ?? 'transparent',
-          }}
-        >
-          <Avatar id={id} size={size} on={on} />
-        </View>
+    <View style={{ flexDirection: 'row', gap }} importantForAccessibility="no-hide-descendants">
+      {shown.map((id) => (
+        <Avatar key={id} id={id} size={size} on={on} />
       ))}
+      {rest > 0 ? (
+        <View style={[styles.ring, on === 'lime' ? styles.onLime : { backgroundColor: t.panelRaised }, { width: size, height: size, borderRadius: size / 2 }]}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: on === 'lime' ? t.inkFixed : t.ink }} maxFontSizeMultiplier={1}>
+            +{rest}
+          </Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -60,9 +56,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  onLime: {
-    backgroundColor: 'rgba(255,255,255,0.35)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.55)',
-  },
+  onLime: { backgroundColor: 'rgba(255,255,255,0.3)' },
 });

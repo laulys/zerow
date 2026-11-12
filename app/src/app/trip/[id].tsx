@@ -1,3 +1,4 @@
+import { Aurora } from '../../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -12,13 +13,13 @@ import { Orb } from '../../components/Orb';
 import { Money, RollingAmount, RollingMoney } from '../../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap, type as typeScale } from '../../components/ui';
 import { PISO_SHARE, balancesFor, eurText, people, pisoGroup, settleUp, transferKey, usePisoBalance, useTrip, type Expense, type Group, type PersonId } from '../../data/trip';
-import { font, light, motion } from '../../theme/tokens';
+import { light, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 const order: PersonId[] = ['tu', 'luis', 'ana', 'marta'];
 
 function caption(id: PersonId, v: number) {
-  if (Math.abs(v) < 0.005) return 'a mano';
+  if (Math.abs(v) < 0.005) return 'a cero';
   if (id === 'tu') return v > 0 ? 'te deben' : 'debes';
   return v > 0 ? 'le deben' : 'debe';
 }
@@ -77,6 +78,7 @@ function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; b
   if (!list.length) return <ListeningEmpty group={group} />;
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
+      <Aurora height={380} strength={0.75} />
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 8,
@@ -85,11 +87,11 @@ function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; b
         }}
       >
         <View style={styles.header}>
-          <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+          <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
           <IconButton
             name="user-plus"
             label="Invitar al grupo"
-            bg={t.surface}
+            bg={t.glass}
             color={t.ink}
             onPress={() =>
               router.push({
@@ -107,7 +109,7 @@ function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; b
         </T>
         <Card bg={t.panel} style={{ padding: 20 }}>
           <T v="label" color={t.onPanelMuted} style={{ marginBottom: 6 }}>
-            {list.length ? (Math.abs(mine) < 0.005 ? 'A mano' : mine > 0 ? 'Te deben' : 'Debes') : `Saldo ${kindWord[group.kind]}`}
+            {list.length ? (Math.abs(mine) < 0.005 ? 'A cero' : mine > 0 ? 'Te deben' : 'Debes') : `Saldo ${kindWord[group.kind]}`}
           </T>
           <RollingMoney value={Math.abs(mine)} size={64} color={t.onPanel} centsColor={t.onPanelMuted} currency={group.currency} duration={motion.numbers} />
           <View
@@ -120,7 +122,9 @@ function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; b
           >
             <AvatarStack ids={group.members} size={30} outline={t.panel} />
             <T v="caption" color={t.onPanelMuted}>
-              {list.length ? `${eurText(list.reduce((a, e) => a + e.amountEur, 0))} en ${list.length} gasto${list.length === 1 ? '' : 's'}` : `${group.members.length} personas · todavía nadie debe nada`}
+              {list.length
+                ? `${eurText(list.reduce((a, e) => a + e.amountEur, 0))} en ${list.length} gasto${list.length === 1 ? '' : 's'}`
+                : `${group.members.length} personas · todavía nadie debe nada`}
             </T>
           </View>
           {action}
@@ -138,14 +142,14 @@ function EmptyGroup({ group, base = [], mine: fixed, action }: { group: Group; b
             ))}
           </Card>
         ) : (
-        <Card bg={t.surface} style={{ padding: 20, alignItems: 'flex-start' }}>
-          <T v="bodyStrong" color={t.ink}>
-            Aún no hay gastos
-          </T>
-          <T v="label" color={t.inkMuted} style={{ marginTop: 4 }}>
-            Cuéntale el primero al micro, por ejemplo: «Pagué el taxi, 45 dólares, para Ana y para mí».
-          </T>
-        </Card>
+          <Card bg={t.surface} style={{ padding: 20, alignItems: 'flex-start' }}>
+            <T v="bodyStrong" color={t.ink}>
+              Aún no hay gastos
+            </T>
+            <T v="label" color={t.inkMuted} style={{ marginTop: 4 }}>
+              Cuéntale el primero al micro, por ejemplo: «Pagué el taxi, 45 dólares, para Ana y para mí».
+            </T>
+          </Card>
         )}
       </ScrollView>
       <CaptureBar bottom={insets.bottom} group={group.id} />
@@ -165,10 +169,15 @@ function ListeningEmpty({ group }: { group: Group }) {
   const tryIt = (ejemplo?: string) => router.push({ pathname: '/nuevo', params: { grupo: group.id, ...(ejemplo ? { ejemplo } : {}) } });
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
+      <Aurora height={380} strength={0.75} />
       <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 150, flexGrow: 1 }}>
         <View style={[styles.header, { gap: 10 }]}>
-          <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} accessible accessibilityLabel={`${group.name}. ${group.members.length} personas. Saldo 0,00 ${sym}, sin gastos`}>
+          <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+          <View
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+            accessible
+            accessibilityLabel={`${group.name}. ${group.members.length} personas. Saldo 0,00 ${sym}, sin gastos`}
+          >
             <AvatarStack ids={group.members} size={28} outline={t.page} />
             <View style={{ flex: 1 }}>
               <T v="bodyStrong" color={t.ink} numberOfLines={1}>
@@ -179,7 +188,7 @@ function ListeningEmpty({ group }: { group: Group }) {
               </T>
             </View>
           </View>
-          <IconButton name="user-plus" label="Invitar al grupo" bg={t.surface} color={t.ink} onPress={() => router.push({ pathname: '/invitar', params: { nombre: group.name } })} />
+          <IconButton name="user-plus" label="Invitar al grupo" bg={t.glass} color={t.ink} onPress={() => router.push({ pathname: '/invitar', params: { nombre: group.name } })} />
         </View>
 
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 24 }}>
@@ -189,13 +198,13 @@ function ListeningEmpty({ group }: { group: Group }) {
               Cuéntame el primer gasto
             </T>
             <T v="body" color={t.inkMuted} style={{ textAlign: 'center', marginTop: 10, paddingHorizontal: 12 }}>
-              Dilo como se lo dirías a un amigo. Yo lo convierto en un borrador y nada cuenta hasta que lo confirmes.
+              Dilo como se lo dirías a un amigo. Yo lo preparo y nada cuenta hasta que lo revises.
             </T>
           </Animated.View>
           <Animated.View entering={at(280)} style={{ alignItems: 'center', gap: 8, marginTop: 24 }}>
             {firstExamples.map((ex) => (
               <Tap key={ex} onPress={() => tryIt(ex)} accessibilityRole="button" accessibilityLabel={`Probar: ${ex}`} style={[styles.example, { backgroundColor: t.surface }]}>
-                <T v="label" color={t.ink} style={{ fontFamily: font.medium }}>
+                <T v="label" color={t.ink} style={{ fontWeight: '600' }}>
                   «{ex.replace(' euros', ' €')}»
                 </T>
               </Tap>
@@ -233,6 +242,7 @@ function Trip() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
+      <Aurora height={380} strength={0.75} />
       <ScrollView
         contentContainerStyle={{
           paddingTop: insets.top + 8,
@@ -241,10 +251,16 @@ function Trip() {
         }}
       >
         <View style={styles.header}>
-          <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+          <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
           <View style={{ flexDirection: 'row', gap: 8 }}>
-            <IconButton name="user-plus" label="Invitar al grupo" bg={t.surface} color={t.ink} onPress={() => router.push('/invitar')} />
-            <Button label={pendingPayments ? `Saldar · ${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A mano'} icon="arrow-left-right" kind="secondary" height={44} onPress={() => router.push('/saldar')} />
+            <IconButton name="user-plus" label="Invitar al grupo" bg={t.glass} color={t.ink} onPress={() => router.push('/invitar')} />
+            <Button
+              label={pendingPayments ? `Saldar · ${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'}
+              icon="arrow-left-right"
+              kind="secondary"
+              height={44}
+              onPress={() => router.push('/saldar')}
+            />
           </View>
         </View>
         <Animated.View entering={FadeInDown.duration(220)}>
@@ -329,7 +345,12 @@ function Trip() {
       </ScrollView>
 
       {toast && lastSaved ? (
-        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOutDown.duration(160)} style={[styles.toast, { backgroundColor: t.panel, bottom: insets.bottom + 84 }]} accessibilityLiveRegion="polite">
+        <Animated.View
+          entering={FadeInDown.duration(motion.standard)}
+          exiting={FadeOutDown.duration(160)}
+          style={[styles.toast, { backgroundColor: t.panel, bottom: insets.bottom + 84 }]}
+          accessibilityLiveRegion="polite"
+        >
           <T v="label" color={t.onPanel} style={{ flex: 1 }}>
             {lastSaved.title} guardado en Lisboa 2026
           </T>
@@ -371,7 +392,7 @@ function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm:
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
         <Orb size={18} onGradient />
         <T v="caption" color={ink}>
-          Borrador de Zerow · aún no cuenta
+          Por revisar · aún no cuenta
         </T>
       </View>
       <View style={[styles.rowBetween, { marginTop: 10 }]}>
@@ -384,8 +405,8 @@ function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm:
         Pagó {people[draft.payer].name} · {eurText(each)} cada uno, entre {draft.splitWith.length}
       </T>
       <View style={[styles.rowBetween, { marginTop: 16, gap: 8 }]}>
-        <Button label="Descartar" kind="text" color={ink} height={48} onPress={onDiscard} style={{ paddingHorizontal: 12 }} />
-        <Button label="Confirmar" icon="check" kind="onGradient" height={48} onPress={onConfirm} style={{ flex: 1 }} />
+        <Button label="No es así" kind="text" color={ink} height={48} onPress={onDiscard} style={{ paddingHorizontal: 12 }} />
+        <Button label="Sí, sumarlo" icon="check" kind="onGradient" height={48} onPress={onConfirm} style={{ flex: 1 }} />
       </View>
     </BrandGradient>
   );
@@ -395,7 +416,12 @@ function ExpenseRow({ e, group }: { e: Expense; group: string }) {
   const { t } = useTheme();
   const who = e.splitWith.length > 2 ? `entre ${e.splitWith.length}` : `entre ${e.splitWith.map((p) => people[p].name).join(' y ')}`;
   return (
-    <Tap onPress={() => router.push({ pathname: '/gasto', params: { grupo: group, id: e.id } })} accessibilityRole="button" accessibilityLabel={`${e.title}, ${eurText(e.amountEur)}. Pagó ${people[e.payer].name}, ${who}. Ver detalle`} style={styles.expRow}>
+    <Tap
+      onPress={() => router.push({ pathname: '/gasto', params: { grupo: group, id: e.id } })}
+      accessibilityRole="button"
+      accessibilityLabel={`${e.title}, ${eurText(e.amountEur)}. Pagó ${people[e.payer].name}, ${who}. Ver detalle`}
+      style={styles.expRow}
+    >
       <Avatar id={e.payer} size={40} />
       <View style={{ flex: 1, marginLeft: 12 }}>
         <T v="bodyStrong" color={t.ink}>
@@ -423,15 +449,20 @@ function ExpenseRow({ e, group }: { e: Expense; group: string }) {
 function CaptureBar({ bottom, group = 'lisboa' }: { bottom: number; group?: string }) {
   const { t } = useTheme();
   return (
-    <Tap onPress={() => router.push({ pathname: '/nuevo', params: { grupo: group } })} accessibilityRole="button" accessibilityLabel="Cuéntame un gasto" style={[styles.captureWrap, { bottom: Math.max(bottom - 8, 12) }]}>
+    <Tap
+      onPress={() => router.push({ pathname: '/nuevo', params: { grupo: group } })}
+      accessibilityRole="button"
+      accessibilityLabel="Cuéntame un gasto"
+      style={[styles.captureWrap, { bottom: Math.max(bottom - 8, 12) }]}
+    >
       <Glass fallback={t.panel} style={styles.capture}>
-      <T v="body" color={t.onPanelMuted} style={{ flex: 1 }}>
-        Cuéntame un gasto…
-      </T>
-      <Icon name="keyboard" size={22} color={t.onPanelMuted} />
-      <View style={[styles.mic, { backgroundColor: t.onPanel }]}>
-        <Icon name="mic" size={22} color={t.inkFixed} />
-      </View>
+        <T v="body" color={t.onPanelMuted} style={{ flex: 1 }}>
+          Cuéntame un gasto…
+        </T>
+        <Icon name="keyboard" size={22} color={t.onPanelMuted} />
+        <View style={[styles.mic, { backgroundColor: t.lime }]}>
+          <Icon name="mic" size={22} color={t.inkFixed} />
+        </View>
       </Glass>
     </Tap>
   );

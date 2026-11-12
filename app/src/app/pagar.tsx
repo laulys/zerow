@@ -11,7 +11,7 @@ import { Money } from '../components/Money';
 import { Button, T, Tap } from '../components/ui';
 import { afterSheet } from '../data/session';
 import { useTrip } from '../data/trip';
-import { font, motion } from '../theme/tokens';
+import { motion } from '../theme/tokens';
 import { glassSheets } from '../components/Glass';
 import { useTheme } from '../theme/useTheme';
 
@@ -130,9 +130,15 @@ export default function Pay() {
         )}
       </Animated.View>
 
-      <Button label={paying ? `Abriendo ${method.key === 'banco' ? 'tu banco' : method.name}…` : 'Pagar 18,40 €'} icon={paying ? undefined : 'check'} style={{ marginTop: 16 }} onPress={pay} disabled={paying} />
+      <Button
+        label={paying ? `Abriendo ${method.key === 'banco' ? 'tu banco' : method.name}…` : 'Pagar 18,40 €'}
+        icon={paying ? undefined : 'check'}
+        style={{ marginTop: 16 }}
+        onPress={pay}
+        disabled={paying}
+      />
       <Tap onPress={() => finish('Otra forma')} accessibilityRole="button" style={styles.other} disabled={paying}>
-        <T v="labelStrong" color={t.ink} style={{ fontFamily: font.medium }}>
+        <T v="labelStrong" color={t.ink} style={{ fontWeight: '600' }}>
           Ya le pagué de otra forma
         </T>
       </Tap>

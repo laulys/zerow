@@ -1,3 +1,4 @@
+import { Aurora } from '../../components/Aurora';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
@@ -44,6 +45,7 @@ export default function SignIn() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Aurora height={380} strength={0.75} />
       <StatusBar style="dark" />
       <StretchyScroll background={header} backgroundHeight={HEADER} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 24, height: HEADER - 24 }}>
@@ -84,7 +86,7 @@ export default function SignIn() {
               placeholder="tu@correo.com"
               placeholderTextColor={t.inkMuted}
               selectionColor={t.lime}
-              style={[inputStyle(t), focused && { borderColor: t.ink, borderWidth: 1.5 }, bad && { borderColor: t.danger }]}
+              style={[inputStyle(t), focused && { borderColor: t.ink, borderWidth: 1.5 }, bad && { borderColor: t.danger, borderWidth: 1.5 }]}
               accessibilityLabel="Correo"
             />
             <T v="caption" color={bad ? t.danger : t.inkMuted} style={{ marginTop: 8 }} accessibilityLiveRegion="polite">

@@ -11,7 +11,7 @@ import { Orb } from '../components/Orb';
 import { Button, Card, IconButton, T, Tap } from '../components/ui';
 import { interpret, missing, type Partial } from '../data/interpret';
 import { balancesFor, eurText, people, useTrip, type Expense } from '../data/trip';
-import { font, light, motion } from '../theme/tokens';
+import { light, motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 type Msg = { id: number; from: 'me' | 'zerow'; text: string };
@@ -29,7 +29,12 @@ export default function NewExpense() {
   const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
   const [picking, setPicking] = useState(false);
   const groupName = options.find((o) => o.id === groupId)?.name ?? 'Lisboa 2026';
-  const members = groupId === 'lisboa' ? (['tu', 'ana', 'luis', 'marta'] as Expense['splitWith']) : groupId === 'piso' ? (['tu', 'ana', 'luis'] as Expense['splitWith']) : (groups.find((g) => g.id === groupId)?.members ?? ['tu']);
+  const members =
+    groupId === 'lisboa'
+      ? (['tu', 'ana', 'luis', 'marta'] as Expense['splitWith'])
+      : groupId === 'piso'
+        ? (['tu', 'ana', 'luis'] as Expense['splitWith'])
+        : (groups.find((g) => g.id === groupId)?.members ?? ['tu']);
   const ledger = groupId === 'lisboa' ? expenses : (groupExpenses[groupId] ?? []);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
@@ -59,7 +64,14 @@ export default function NewExpense() {
     if (gap === 'amount') return setTimeout(() => say('zerow', '¿Cuánto fue? Prefiero preguntarte a adivinarlo.'), 350);
     setPreparing(true);
     setTimeout(() => {
-      const e: Expense = { id: `n${Date.now()}`, title: next.title!, payer: 'tu', amountEur: next.amountEur!, originalUsd: next.originalUsd, splitWith: (next.splitWith ?? members).filter((p) => members.includes(p)) };
+      const e: Expense = {
+        id: `n${Date.now()}`,
+        title: next.title!,
+        payer: 'tu',
+        amountEur: next.amountEur!,
+        originalUsd: next.originalUsd,
+        splitWith: (next.splitWith ?? members).filter((p) => members.includes(p)),
+      };
       if (!e.splitWith.length) e.splitWith = members;
       const before = balancesFor(ledger).tu;
       const after = balancesFor([e, ...ledger]).tu;
@@ -98,13 +110,19 @@ export default function NewExpense() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.header, { paddingTop: 16 }]}>
-        <IconButton name="x" label="Cerrar" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <View style={{ alignItems: 'center' }}>
           <T v="bodyStrong" color={t.ink}>
             Nuevo gasto
           </T>
-          <Tap onPress={() => setPicking((v) => !v)} accessibilityRole="button" accessibilityLabel={`Grupo: ${groupName}. Cambiar`} accessibilityState={{ expanded: picking }} style={[styles.picker, { backgroundColor: t.surface }]}>
-            <T v="caption" color={t.ink} style={{ fontFamily: font.medium }}>
+          <Tap
+            onPress={() => setPicking((v) => !v)}
+            accessibilityRole="button"
+            accessibilityLabel={`Grupo: ${groupName}. Cambiar`}
+            accessibilityState={{ expanded: picking }}
+            style={[styles.picker, { backgroundColor: t.surface }]}
+          >
+            <T v="caption" color={t.ink} style={{ fontWeight: '600' }}>
               {groupName}
             </T>
             <View style={{ transform: [{ rotate: picking ? '-90deg' : '90deg' }] }}>
@@ -115,7 +133,7 @@ export default function NewExpense() {
         <View style={{ width: 44 }} />
       </View>
       {picking ? (
-        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(120)} style={[styles.menu, { backgroundColor: t.surface, borderColor: t.line }]}>
+        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(120)} style={[styles.menu, { backgroundColor: t.panelRaised }]}>
           {options.map((o) => (
             <Tap
               key={o.id}
@@ -126,7 +144,7 @@ export default function NewExpense() {
                 if (draft && !saved) {
                   setDraft(null);
                   setPartial({});
-                  say('zerow', `Ahora apunto en ${o.name}. Repíteme el gasto y preparo el borrador allí.`);
+                  say('zerow', `Ahora apunto en ${o.name}. Repíteme el gasto y lo preparo allí para que lo revises.`);
                 }
               }}
               accessibilityRole="button"
@@ -190,9 +208,9 @@ export default function NewExpense() {
               <Skel w={220} h={12} />
             </Card>
             <View style={[styles.speaker, { marginTop: 10 }]}>
-              <Orb size={20} state="composing" label="Zerow está preparando el borrador" />
+              <Orb size={20} state="composing" label="Zerow está preparando el gasto" />
               <T v="caption" color={t.inkMuted}>
-                Zerow está preparando el borrador…
+                Zerow está preparando el gasto…
               </T>
             </View>
           </Animated.View>
@@ -221,7 +239,7 @@ export default function NewExpense() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <Orb size={18} onGradient />
                   <T v="caption" color={light.inkFixed}>
-                    Borrador de Zerow · aún no cuenta
+                    Por revisar · aún no cuenta
                   </T>
                 </View>
                 <View style={[styles.rowBetween, { marginTop: 10 }]}>
@@ -236,8 +254,8 @@ export default function NewExpense() {
                   {draft.originalUsd ? ` · ${draft.originalUsd.toFixed(2).replace('.', ',')} US$` : ''}
                 </T>
                 <View style={[styles.rowBetween, { marginTop: 16, gap: 8 }]}>
-                  <Button label="Descartar" kind="text" color={light.inkFixed} height={48} onPress={discard} style={{ paddingHorizontal: 12 }} />
-                  <Button label="Confirmar" icon="check" kind="onGradient" height={48} onPress={confirm} style={{ flex: 1 }} />
+                  <Button label="No es así" kind="text" color={light.inkFixed} height={48} onPress={discard} style={{ paddingHorizontal: 12 }} />
+                  <Button label="Sí, sumarlo" icon="check" kind="onGradient" height={48} onPress={confirm} style={{ flex: 1 }} />
                 </View>
               </BrandGradient>
             )}
@@ -256,7 +274,7 @@ export default function NewExpense() {
           returnKeyType="send"
           accessibilityLabel="Cuéntame un gasto"
         />
-        <Tap onPress={() => send()} accessibilityRole="button" accessibilityLabel={text ? 'Enviar' : 'Dictar'} style={[styles.send, { backgroundColor: text ? t.lime : t.onPanel }]}>
+        <Tap onPress={() => send()} accessibilityRole="button" accessibilityLabel={text ? 'Enviar' : 'Dictar'} style={[styles.send, { backgroundColor: t.lime }]}>
           <Icon name={text ? 'arrow-right' : 'mic'} size={22} color={t.inkFixed} />
         </Tap>
       </View>
@@ -276,9 +294,9 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   draft: { borderRadius: 26, padding: 18 },
   bar: { marginHorizontal: 20, height: 64, borderRadius: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8, gap: 10 },
-  input: { flex: 1, fontFamily: font.regular, fontSize: 16, height: 48 },
+  input: { flex: 1, fontSize: 17, height: 48 },
   picker: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, paddingLeft: 10, paddingRight: 8, height: 26, borderRadius: 13 },
-  menu: { marginHorizontal: 20, borderRadius: 22, borderWidth: 1, paddingVertical: 4, marginBottom: 4 },
+  menu: { marginHorizontal: 20, borderRadius: 20, paddingVertical: 4, marginBottom: 4 },
   menuRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16 },
   speaker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, marginLeft: 2 },
   send: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },

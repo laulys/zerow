@@ -11,13 +11,14 @@ const face = (c: WalletCard, front: boolean) => (typeof c.content === 'function'
 const CARD_H = 250;
 const PEEK = 48;
 const BACK_SCALE = 0.91;
-const BACK_DIM = 0.65;
 // How far the back card moves up so its top edge shows above the front one.
 const BACK_LIFT = PEEK + (CARD_H * (1 - BACK_SCALE)) / 2;
 const settle = { damping: 17, stiffness: 220, mass: 0.9 } as const;
 
 /**
- * Open groups as a stack of cards, like Apple Wallet. Swipe the front card
+ * Open groups as a stack of cards, like Apple Wallet. v3: the card in front is
+ * always on the brand gradient and the one behind is a glass strip; each card
+ * carries both faces and cross-fades between them as it changes place. Swipe the front card
  * sideways and the one behind comes forward on a spring; tapping its edge (or
  * VoiceOver's swipe up/down) do the same. Built on PanResponder, so it needs no
  * extra native module.
@@ -156,18 +157,27 @@ function StackCard({
     }
     return { opacity: 0, transform: [{ translateX: 0 }, { translateY: -BACK_LIFT }, { scale: BACK_SCALE }, { rotate: '0deg' }] };
   });
-  // The card behind is the same colour, dimmed, and brightens as it comes forward.
-  const dim = useAnimatedStyle(() => ({ opacity: role === 'back' ? BACK_DIM * (1 - Math.min(1, Math.abs(x.value) / 260)) : 0 }));
+  // Each card has two faces: lit (the brand gradient) in front, glass behind.
+  // They cross-fade with the drag, so the card coming forward lights up as it arrives.
+  const lit = useAnimatedStyle(() => ({ opacity: role === 'front' ? 1 : role === 'back' ? Math.min(1, Math.abs(x.value) / 260) : 0 }));
+  const glass = useAnimatedStyle(() => ({ opacity: role === 'back' ? 1 - Math.min(1, Math.abs(x.value) / 260) : 0 }));
+  const twoFaced = typeof card.content === 'function';
   return (
     <Animated.View
       style={[styles.slot, { top, height, zIndex: role === 'front' ? 2 : role === 'back' ? 1 : 0 }, styles.card, style]}
       pointerEvents={role === 'front' ? 'auto' : 'none'}
       {...panHandlers}
     >
-      <Pressable onPress={card.onPress} style={{ flex: 1 }} disabled={role !== 'front' || !card.onPress}>
-        {face(card, role === 'front')}
-      </Pressable>
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.page }, dim]} />
+      <Animated.View style={[{ flex: 1 }, twoFaced && lit]}>
+        <Pressable onPress={card.onPress} style={{ flex: 1 }} disabled={role !== 'front' || !card.onPress}>
+          {face(card, true)}
+        </Pressable>
+      </Animated.View>
+      {twoFaced ? (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.glass }, glass]}>
+          {face(card, false)}
+        </Animated.View>
+      ) : null}
     </Animated.View>
   );
 }

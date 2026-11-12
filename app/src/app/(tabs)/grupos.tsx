@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
@@ -9,10 +9,11 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { Money, RollingMoney } from '../../components/Money';
 import { WalletStack, type WalletCard } from '../../components/WalletStack';
 import { Glass } from '../../components/Glass';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { Aurora } from '../../components/Aurora';
 import { Card, Hairline, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, pastGroups, people, settleUp, transferKey, usePeopleBalances, usePisoBalance, useTrip, type Expense, type GroupKind, type PersonId } from '../../data/trip';
-import { font, light } from '../../theme/tokens';
+import { light } from '../../theme/tokens';
 
 import { useTheme } from '../../theme/useTheme';
 
@@ -36,17 +37,18 @@ export default function Home() {
   const mine = balancesFor(expenses).tu;
   const between = usePeopleBalances();
   const piso = usePisoBalance();
-  const pisoWord = Math.abs(piso) < 0.005 ? 'A mano' : piso > 0 ? 'Te deben' : 'Debes';
+  const pisoWord = Math.abs(piso) < 0.005 ? 'A cero' : piso > 0 ? 'Te deben' : 'Debes';
 
   // Open groups, front to back: the trip in progress first, on the brand gradient.
   const cards: WalletCard[] = [
     {
       key: 'lisboa',
-      title: `Lisboa 2026. ${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}${draft ? '. 1 borrador por confirmar' : ''}`,
+      title: `Lisboa 2026. ${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}${draft ? '. 1 gasto por revisar' : ''}`,
       onPress: () => router.push('/trip/lisboa'),
       content: (front: boolean) => (
-        <BrandGradient style={styles.cardBody} seed={3}>
+        <Face front={front} seed={3}>
           <CardTop
+            glass={!front}
             title="Lisboa 2026"
             meta="12–18 nov · en curso"
             people={['tu', 'ana', 'luis', 'marta']}
@@ -65,7 +67,7 @@ export default function Home() {
               </T>
             )}
           </View>
-        </BrandGradient>
+        </Face>
       ),
     },
     {
@@ -74,8 +76,9 @@ export default function Home() {
       // Unpaid, the card is the quick way to pay Ana; once paid it opens the flat.
       onPress: () => router.push(pisoPaid ? '/trip/piso' : '/pagar'),
       content: (front: boolean) => (
-        <BrandGradient style={styles.cardBody} seed={7} lively>
+        <Face front={front} seed={7} lively>
           <CardTop
+            glass={!front}
             title="Piso Calle Mayor"
             meta="3 personas · 2 gastos este mes"
             people={['tu', 'ana', 'luis']}
@@ -90,7 +93,7 @@ export default function Home() {
             {pisoPaid ? (
               <>
                 <Icon name="check" size={16} color={light.inkFixed} />
-                <T v="caption" color={light.inkFixed} style={{ fontFamily: font.medium }}>
+                <T v="caption" color={light.inkFixed} style={{ fontWeight: '600' }}>
                   Pagaste 18,40 € a Ana
                 </T>
               </>
@@ -98,7 +101,7 @@ export default function Home() {
               <ActionPill label="Pagar a Ana" />
             )}
           </View>
-        </BrandGradient>
+        </Face>
       ),
     },
     ...groups.map((g) => {
@@ -109,8 +112,9 @@ export default function Home() {
         title: `${g.name}. ${list.length ? `${bal >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(bal), g.currency)}` : 'Sin gastos todavía'}`,
         onPress: () => router.push({ pathname: '/trip/[id]', params: { id: g.id } }),
         content: (front: boolean) => (
-          <BrandGradient style={styles.cardBody} seed={11} lively>
+          <Face front={front} seed={11} lively>
             <CardTop
+              glass={!front}
               title={g.name}
               meta={`${g.members.length} personas${g.dates ? ' · ' + g.dates : ''}`}
               people={g.members}
@@ -126,14 +130,13 @@ export default function Home() {
                 {list.length ? `${list.length} gasto${list.length === 1 ? '' : 's'}` : 'Sin gastos todavía'}
               </T>
             </View>
-          </BrandGradient>
+          </Face>
         ),
       };
     }),
   ];
 
   const headerTop = insets.top + 8;
-  const { width } = useWindowDimensions();
   // The dark fade under the status bar only appears once you scroll, so at rest
   // it doesn't dim the glow.
   const y = useSharedValue(0);
@@ -147,7 +150,7 @@ export default function Home() {
       <Animated.ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingTop: headerTop + HEADER_H + 28,
+          paddingTop: headerTop + HEADER_H + 24,
           paddingHorizontal: 20,
           paddingBottom: 140,
         }}
@@ -156,39 +159,30 @@ export default function Home() {
         scrollEventThrottle={16}
       >
         <FocusStatusBar style="light" />
-        {/* A lime glow behind the wallet (reference: Paynx), olive at the top and
-            fading into the graphite page, so the cards and the glass header sit
-            on colour. It scrolls with the page. */}
-        <Svg pointerEvents="none" style={[styles.glow, { top: -GLOW_OVERSCROLL, width }]} width={width} height={GLOW_H + GLOW_OVERSCROLL}>
-          <Defs>
-            <LinearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor="#3D4A1F" stopOpacity={1} />
-              <Stop offset={String(GLOW_OVERSCROLL / (GLOW_H + GLOW_OVERSCROLL) + 0.12)} stopColor="#3D4A1F" stopOpacity={0.85} />
-              <Stop offset="0.62" stopColor="#2A3318" stopOpacity={0.45} />
-              <Stop offset="1" stopColor={t.page} stopOpacity={0} />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" fill="url(#glow)" />
-        </Svg>
+        {/* v3 Aurora: the brand's lime and mint as ambient light at the top, fading
+            into the graphite page. It scrolls with the page. */}
+        <View pointerEvents="none" style={styles.glow}>
+          <Aurora height={GLOW_H} overscroll={GLOW_OVERSCROLL} />
+        </View>
         <WalletStack cards={cards} />
 
         {/* Quick actions, by how often you need them: add (the main one, on the brand
             gradient) · settle (a pending task, with its count) · split a bill. */}
         <View style={styles.actions}>
           <AddExpense onPress={() => router.push('/nuevo')} />
-          <View style={{ flex: 1, gap: 8 }}>
+          <View style={{ flex: 1, gap: 12 }}>
             <ActionRow icon="arrow-left-right" title="Saldar" sub={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
             <ActionRow icon="receipt" title="Dividir" sub="Cuenta" onPress={() => router.push('/cuenta')} />
           </View>
         </View>
 
-        <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
+        <T v="section" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
           Contactos
         </T>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={styles.people}>
           <Tap onPress={() => router.push({ pathname: '/invitar', params: { elegir: '1' } })} accessibilityRole="button" accessibilityLabel="Invitar a alguien" style={styles.person}>
-            {/* An empty seat: dashed, no fill, so it never reads as one more person. */}
-            <View style={[styles.face, styles.addFace, { borderColor: t.inkMuted }]}>
+            {/* A solid disc, the same as the faces, with a plus instead of a face. */}
+            <View style={[styles.face, { backgroundColor: t.panelRaised }]}>
               <Icon name="plus" size={22} color={t.ink} />
             </View>
             <T v="caption" color={t.inkMuted} style={styles.personName} numberOfLines={1} maxFontSizeMultiplier={1.4}>
@@ -207,8 +201,8 @@ export default function Home() {
                 accessibilityHint="Ver lo que os debéis"
                 style={styles.person}
               >
-                <Avatar id={p.id} size={FACE} bg={t.surface} />
-                <T v="caption" color={t.ink} style={[styles.personName, { fontFamily: font.medium }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+                <Avatar id={p.id} size={FACE} />
+                <T v="caption" color={t.ink} style={[styles.personName, { fontWeight: '600' }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
                   {name}
                 </T>
               </Tap>
@@ -218,10 +212,10 @@ export default function Home() {
 
         <SpentOn expenses={expenses} />
 
-        <T v="section" color={t.ink} style={{ marginTop: 28, marginBottom: 12 }} accessibilityRole="header">
+        <T v="section" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
           Anteriores
         </T>
-        <Card bg={t.surface} style={{ paddingVertical: 4 }}>
+        <Card style={{ paddingVertical: 4 }}>
           {pastGroups.map((p, i) => (
             <View key={p.id}>
               <Tap
@@ -277,11 +271,21 @@ export default function Home() {
         </Svg>
       </Animated.View>
       <View style={[styles.header, { position: 'absolute', top: headerTop, left: 20, right: 20 }]}>
-        <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={[styles.ring, { borderColor: 'rgba(203, 242, 107, 0.45)' }]}>
-          <Avatar id="tu" size={40} />
+        <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={styles.ring}>
+          {/* A thin lime-to-mint ring around your own face (reference: Revolut). */}
+          <Svg width={48} height={48} style={StyleSheet.absoluteFill}>
+            <Defs>
+              <LinearGradient id="me" x1="0" y1="0" x2="1" y2="1">
+                <Stop offset="0" stopColor={t.lime} />
+                <Stop offset="1" stopColor={t.mint} />
+              </LinearGradient>
+            </Defs>
+            <Circle cx={24} cy={24} r={23.25} stroke="url(#me)" strokeWidth={1.5} fill="none" />
+          </Svg>
+          <Avatar id="tu" size={40} bg={t.glass} />
         </Tap>
         <Tap onPress={() => router.push('/buscar')} accessibilityRole="search" accessibilityLabel="Buscar grupos, contactos o gastos" style={{ flex: 1 }}>
-          <Glass fallback={t.surface} style={styles.search}>
+          <Glass fallback={t.glass} style={styles.search}>
             <Icon name="search" size={18} color={t.ink} />
             <T v="body" color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.4}>
               Buscar
@@ -289,7 +293,7 @@ export default function Home() {
           </Glass>
         </Tap>
         <Tap onPress={() => router.push('/dividir')} accessibilityRole="button" accessibilityLabel="Dividir algo nuevo">
-          <Glass fallback={t.surface} style={styles.round}>
+          <Glass fallback={t.glass} style={styles.round}>
             <Icon name="plus" size={20} color={t.ink} />
           </Glass>
         </Tap>
@@ -302,25 +306,39 @@ export default function Home() {
  * Group name, dates and faces. On the card behind, only this strip shows, so it
  * carries the balance instead of the faces: both groups read without swiping.
  */
-function CardTop({ title, meta, people, peek }: { title: string; meta: string; people: PersonId[]; peek?: string }) {
+function CardTop({ title, meta, people, peek, glass }: { title: string; meta: string; people: PersonId[]; peek?: string; glass?: boolean }) {
+  const { t } = useTheme();
+  const ink = glass ? t.ink : light.inkFixed;
+  const muted = glass ? t.inkMuted : light.inkMutedFixed;
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
       <View style={{ flex: 1 }}>
-        <T v="titleM" color={light.inkFixed} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+        <T v="titleM" color={ink} numberOfLines={1} maxFontSizeMultiplier={1.4}>
           {title}
         </T>
-        <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 2 }} numberOfLines={1} maxFontSizeMultiplier={1.4}>
+        <T v="caption" color={muted} style={{ marginTop: 2 }} numberOfLines={1} maxFontSizeMultiplier={1.4}>
           {meta}
         </T>
       </View>
       {peek ? (
-        <T v="bodyStrong" color={light.inkFixed} style={[styles.tabular, { marginTop: 2, flexShrink: 0 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
+        <T v="bodyStrong" color={ink} style={[styles.tabular, { marginTop: 2, flexShrink: 0 }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>
           {peek}
         </T>
       ) : (
-        <AvatarStack ids={people} size={32} outline="#D3F27F" on="lime" />
+        <AvatarStack ids={people} size={28} max={4} on="lime" />
       )}
     </View>
+  );
+}
+
+/** A group card's face: the brand gradient in front, a clear strip (the stack paints the glass) behind. */
+function Face({ front, seed, lively, children }: { front: boolean; seed: number; lively?: boolean; children: React.ReactNode }) {
+  return front ? (
+    <BrandGradient style={styles.cardBody} seed={seed} lively={lively}>
+      {children}
+    </BrandGradient>
+  ) : (
+    <View style={styles.cardBody}>{children}</View>
   );
 }
 
@@ -350,7 +368,7 @@ function ActionRow({ icon, title, sub, onPress }: { icon: IconName; title: strin
   const { t } = useTheme();
   return (
     <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={{ flex: 1 }}>
-      <Card bg={t.surface} style={styles.actionRow}>
+      <Card style={styles.actionRow}>
         <View style={[styles.rowDisc, { backgroundColor: t.panelRaised }]}>
           <Icon name={icon} size={16} color={t.ink} />
         </View>
@@ -388,9 +406,9 @@ function SpentOn({ expenses }: { expenses: Expense[] }) {
       onPress={() => router.push('/trip/lisboa')}
       accessibilityRole="button"
       accessibilityLabel={`En qué se fue Lisboa 2026: ${rows.map((r) => `${r.name} ${eurText(r.v)}`).join(', ')}`}
-      style={{ marginTop: 28 }}
+      style={{ marginTop: 24 }}
     >
-      <Card bg={t.surface} style={{ padding: 18, paddingBottom: 20, gap: 14 }}>
+      <Card style={{ padding: 20, gap: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <View style={{ flex: 1 }}>
             <T v="bodyStrong" color={t.ink}>
@@ -430,7 +448,7 @@ function ActionPill({ label, dot }: { label: string; dot?: boolean }) {
   return (
     <View style={styles.pill}>
       {dot ? <View style={styles.pillDot} /> : null}
-      <T v="caption" color={light.inkFixed} style={{ fontFamily: font.medium }} maxFontSizeMultiplier={1.4}>
+      <T v="caption" color={light.inkFixed} style={{ fontWeight: '600' }} maxFontSizeMultiplier={1.4}>
         {label}
       </T>
       <Icon name="chevron-right" size={14} color={light.inkFixed} />
@@ -449,8 +467,8 @@ const FACE = 60;
 const styles = StyleSheet.create({
   emoji: { fontSize: 22, lineHeight: 28 },
   tabular: { fontVariant: ['tabular-nums'] },
-  actions: { flexDirection: 'row', gap: 10, marginTop: 20, height: 128 },
-  addTile: { height: 128, borderRadius: 22, padding: 16, justifyContent: 'space-between' },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 24, height: 128 },
+  addTile: { height: 128, borderRadius: 28, padding: 16, justifyContent: 'space-between' },
   micDisc: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(18,18,18,0.12)', alignItems: 'center', justifyContent: 'center' },
   actionRow: { flex: 1, borderRadius: 20, paddingVertical: 0, paddingLeft: 12, paddingRight: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowDisc: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
@@ -459,7 +477,7 @@ const styles = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 16, paddingLeft: 12, paddingRight: 10, paddingVertical: 7, backgroundColor: 'rgba(18,18,18,0.12)' },
   pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: light.inkFixed },
   cardBody: { flex: 1, padding: 20, paddingBottom: 18 },
-  people: { paddingHorizontal: 20, gap: 14 },
+  people: { paddingHorizontal: 20, gap: 16 },
   person: { minWidth: 64, alignItems: 'center' },
   personName: { marginTop: 6 },
   face: {
@@ -469,15 +487,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addFace: { borderWidth: 1.5, borderStyle: 'dashed' },
   cardFoot: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: 10,
   },
-  glow: { position: 'absolute', left: 0 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  glow: { position: 'absolute', left: 0, top: 0 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   search: {
     height: 48,
     borderRadius: 24,
@@ -499,7 +516,6 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },

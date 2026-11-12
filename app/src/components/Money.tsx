@@ -16,18 +16,22 @@ export function Money({ value, size = 64, color, centsColor, currency = 'EUR' }:
       <Text style={[numStyle(size), { color }]} maxFontSizeMultiplier={displayCap(size)}>
         {whole}
       </Text>
-      <Text style={[numStyle(size / 2), { color: centsColor }]} maxFontSizeMultiplier={displayCap(size)}>
+      <Text style={[numStyle(size * CENTS), { color: centsColor }]} maxFontSizeMultiplier={displayCap(size)}>
         {cents}
       </Text>
     </View>
   );
 }
 
+/** Cents are 45 % of the figure (v3 "Importe" styles). */
+const CENTS = 0.45;
+
+// Amounts are Space Grotesk Regular; tracking tightens with size (−3 % at 56 and up, −2 % at 36 and under).
 const numStyle = (size: number): TextStyle => ({
   fontFamily: font.regular,
   fontSize: size,
   lineHeight: size * 1.05,
-  letterSpacing: -size * 0.03,
+  letterSpacing: -size * (size >= 56 ? 0.03 : size >= 44 ? 0.025 : 0.02),
   fontVariant: ['tabular-nums'],
 });
 
@@ -97,7 +101,7 @@ export function RollingMoney({
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
       <NumericText text={whole} countsDown={down} style={[numStyle(size), { color }]} label={eurText(value, currency)} />
-      <NumericText text={cents} countsDown={down} style={[numStyle(size / 2), { color: centsColor }]} label="" />
+      <NumericText text={cents} countsDown={down} style={[numStyle(size * CENTS), { color: centsColor }]} label="" />
     </View>
   );
 }

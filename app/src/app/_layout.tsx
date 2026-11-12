@@ -25,29 +25,29 @@ export default function RootLayout() {
   if (!loaded) return <View style={{ flex: 1, backgroundColor: t.page }} />;
   return (
     <SafeAreaProvider>
-        <TripProvider>
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.page }, animation: 'default' }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
-            <Stack.Screen name="trip/[id]" />
-            <Stack.Screen name="saldar" />
-            <Stack.Screen name="pago" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-            <Stack.Screen name="nuevo" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="dividir" options={sheet(t.surface)} />
-            <Stack.Screen name="invitar" options={sheet(t.surface)} />
-            <Stack.Screen name="pagar" options={sheet(t.surface)} />
-            <Stack.Screen name="emoji" options={sheet(t.surface)} />
-            <Stack.Screen name="persona" options={sheet(t.surface)} />
-            <Stack.Screen name="gasto" />
-            <Stack.Screen name="buscar" options={{ animation: 'fade' }} />
-            <Stack.Screen name="entrar/index" />
-            <Stack.Screen name="entrar/codigo" />
-            <Stack.Screen name="cuenta" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="grupo-nuevo" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="t/[code]" options={{ animation: 'fade' }} />
-          </Stack>
-        </TripProvider>
+      <TripProvider>
+        <StatusBar style={isDark ? 'light' : 'dark'} />
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.page }, animation: 'default' }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          <Stack.Screen name="trip/[id]" />
+          <Stack.Screen name="saldar" />
+          <Stack.Screen name="pago" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="nuevo" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="dividir" options={sheet(t.surface)} />
+          <Stack.Screen name="invitar" options={sheet(t.surface)} />
+          <Stack.Screen name="pagar" options={sheet(t.surface)} />
+          <Stack.Screen name="emoji" options={sheet(t.surface)} />
+          <Stack.Screen name="persona" options={sheet(t.surface)} />
+          <Stack.Screen name="gasto" />
+          <Stack.Screen name="buscar" options={{ animation: 'fade' }} />
+          <Stack.Screen name="entrar/index" />
+          <Stack.Screen name="entrar/codigo" />
+          <Stack.Screen name="cuenta" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="grupo-nuevo" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="t/[code]" options={{ animation: 'fade' }} />
+        </Stack>
+      </TripProvider>
     </SafeAreaProvider>
   );
 }

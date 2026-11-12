@@ -1,3 +1,4 @@
+import { Aurora } from '../../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -67,9 +68,10 @@ export default function Code() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Aurora height={380} strength={0.75} />
       <StatusBar style="light" />
       <View style={{ flex: 1, paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
-        <IconButton name="chevron-left" label="Volver" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
           Revisa tu correo
         </T>
@@ -87,7 +89,7 @@ export default function Code() {
             {Array.from({ length: LENGTH }).map((_, i) => {
               const active = i === code.length && !checking;
               return (
-                <View key={i} style={[styles.box, { backgroundColor: t.surface, borderColor: wrong ? t.danger : active ? t.ink : 'transparent' }]}>
+                <View key={i} style={[styles.box, { backgroundColor: t.fill, borderColor: wrong ? t.danger : active ? t.ink : 'transparent' }]}>
                   <T v="titleL" color={t.ink} style={{ fontFamily: font.regular }}>
                     {code[i] ?? ''}
                   </T>
@@ -127,7 +129,7 @@ export default function Code() {
         )}
       </View>
       <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
-        <Button label={checking ? 'Comprobando…' : 'Entrar'} icon="arrow-right" disabled={code.length < LENGTH || checking || triesLeft <= 0} onPress={() => submit()} />
+        <Button label={checking ? 'Comprobando…' : 'Entrar'} disabled={code.length < LENGTH || checking || triesLeft <= 0} onPress={() => submit()} />
       </View>
     </KeyboardAvoidingView>
   );

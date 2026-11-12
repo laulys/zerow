@@ -1,3 +1,4 @@
+import { Aurora } from '../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useRef, useState } from 'react';
@@ -72,14 +73,24 @@ export default function QuickSplit() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Aurora height={380} strength={0.75} />
       <ScrollView contentContainerStyle={{ paddingTop: 16, paddingHorizontal: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-        <IconButton name="x" label="Cerrar" bg={t.surface} color={t.ink} onPress={() => router.back()} />
+        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
 
         <T v="label" color={t.inkMuted} style={{ marginTop: 24 }}>
           Dividir una cuenta
         </T>
         {editingTitle ? (
-          <TextInput value={title} onChangeText={setTitle} autoFocus onBlur={() => setEditingTitle(false)} onSubmitEditing={() => setEditingTitle(false)} returnKeyType="done" style={[styles.titleInput, { color: t.ink, borderColor: t.line }]} accessibilityLabel="Nombre de la cuenta" />
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            autoFocus
+            onBlur={() => setEditingTitle(false)}
+            onSubmitEditing={() => setEditingTitle(false)}
+            returnKeyType="done"
+            style={[styles.titleInput, { color: t.ink, borderColor: t.line }]}
+            accessibilityLabel="Nombre de la cuenta"
+          />
         ) : (
           <Tap onPress={() => setEditingTitle(true)} accessibilityRole="button" accessibilityLabel={`${title}. Cambiar nombre`} style={styles.titleRow}>
             <T v="titleM" color={t.ink}>
@@ -96,7 +107,7 @@ export default function QuickSplit() {
           </T>
         </View>
 
-        <Tap onPress={() => amountRef.current?.focus()} accessibilityRole="none" style={[styles.totalField, { backgroundColor: t.surface, borderColor: editingAmount ? t.ink : t.line }]}>
+        <Tap onPress={() => amountRef.current?.focus()} accessibilityRole="none" style={[styles.totalField, { backgroundColor: t.fill, borderColor: editingAmount ? t.ink : 'transparent' }]}>
           <T v="label" color={t.inkMuted} style={{ flex: 1 }}>
             Total de la cuenta
           </T>
@@ -164,7 +175,7 @@ export default function QuickSplit() {
 const styles = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, alignSelf: 'flex-start', minHeight: 44 },
   titleInput: { fontFamily: font.medium, fontSize: 22, marginTop: 4, height: 44, borderBottomWidth: 1 },
-  totalField: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 52, borderRadius: 16, borderWidth: 1, paddingLeft: 16, paddingRight: 14, marginTop: 16 },
+  totalField: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 56, borderRadius: 16, borderWidth: 1.5, paddingLeft: 16, paddingRight: 14, marginTop: 16 },
   totalInput: { fontFamily: font.medium, fontSize: 17, minWidth: 60, textAlign: 'right', paddingVertical: 0 },
   pill: { alignSelf: 'flex-start', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, marginTop: 12 },
   section: { marginTop: 28, marginBottom: 10 },
