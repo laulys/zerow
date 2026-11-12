@@ -123,7 +123,7 @@ function Demo() {
         </T>
       </Animated.View>
       <Animated.View entering={at(1350)}>
-        <Button label="Continuar" onPress={() => router.replace('/grupos')} />
+        <Button label="Empezar" onPress={() => router.push('/empezar')} />
         <Button label="Ya tengo cuenta" kind="text" height={48} onPress={() => router.push('/entrar')} style={{ marginTop: 4 }} />
       </Animated.View>
     </View>

@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
+import { Aurora } from '../components/Aurora';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandGradient } from '../components/BrandGradient';
 import { Icon } from '../components/Icon';
@@ -43,6 +44,38 @@ export default function NewExpense() {
   const [draft, setDraft] = useState<Expense | null>(null);
   const [saved, setSaved] = useState(false);
   const id = useRef(0);
+  const input = useRef<TextInputInstance>(null);
+  // 3.4 Dictando. There is no speech recognition in this build yet: while the
+  // orb listens, the first example is written out word by word as a stand-in
+  // for the transcript, and stopping sends it like any typed sentence.
+  const [listening, setListening] = useState(false);
+  const [heard, setHeard] = useState('');
+  useEffect(() => {
+    if (!listening) return;
+    const words = examples[0].split(' ');
+    let i = 0;
+    const timer = setInterval(() => {
+      i += 1;
+      setHeard(words.slice(0, i).join(' '));
+      if (i >= words.length) clearInterval(timer);
+    }, 320);
+    return () => clearInterval(timer);
+  }, [listening]);
+  const listen = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setHeard('');
+    setPicking(false);
+    setListening(true);
+  };
+  const stop = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setListening(false);
+    if (heard) send(heard);
+  };
+  const write = () => {
+    setListening(false);
+    setTimeout(() => input.current?.focus(), 80);
+  };
   const scroll = useRef<ScrollViewInstance>(null);
 
   const say = (from: Msg['from'], body: string) => {
@@ -120,7 +153,7 @@ export default function NewExpense() {
             accessibilityRole="button"
             accessibilityLabel={`Grupo: ${groupName}. Cambiar`}
             accessibilityState={{ expanded: picking }}
-            style={[styles.picker, { backgroundColor: t.surface }]}
+            style={[styles.picker, { backgroundColor: t.glass }]}
           >
             <T v="caption" color={t.ink} style={{ fontWeight: '600' }}>
               {groupName}
@@ -160,7 +193,38 @@ export default function NewExpense() {
         </Animated.View>
       ) : null}
 
-      <ScrollView ref={scroll} contentContainerStyle={{ padding: 20, paddingBottom: 24, gap: 10 }} keyboardShouldPersistTaps="handled">
+      {listening ? (
+        <Animated.View entering={FadeIn.duration(motion.standard)} style={{ flex: 1, paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 12) }}>
+          <View pointerEvents="none" style={styles.listenGlow}>
+            <Aurora height={360} strength={0.6} />
+          </View>
+          <T v="label" color={t.inkMuted} style={{ marginTop: 20 }}>
+            Di qué pagaste, cuánto y para quién.
+          </T>
+          <T v="titleL" color={heard ? t.ink : t.inkMuted} style={{ marginTop: 12, minHeight: 68 }} accessibilityLiveRegion="polite">
+            {heard || 'Te escucho…'}
+          </T>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <Orb size={112} state="listening" label="Zerow te escucha" />
+            <T v="label" color={t.inkMuted} style={{ marginTop: 16 }}>
+              Zerow te escucha…
+            </T>
+          </View>
+          <View style={{ alignItems: 'center' }}>
+            <Tap onPress={stop} accessibilityRole="button" accessibilityLabel="Parar y enviar" style={[styles.stop, { backgroundColor: t.lime, shadowColor: t.lime }]}>
+              <View style={[styles.stopSquare, { backgroundColor: t.onLime }]} />
+            </Tap>
+            <Tap onPress={write} accessibilityRole="button" accessibilityLabel="Escribir en vez de dictar" style={styles.write}>
+              <Icon name="keyboard" size={20} color={t.ink} />
+              <T v="labelStrong" color={t.ink}>
+                Escribir
+              </T>
+            </Tap>
+          </View>
+        </Animated.View>
+      ) : null}
+
+      <ScrollView ref={scroll} style={listening && { display: 'none' }} contentContainerStyle={{ padding: 20, paddingBottom: 24, gap: 10 }} keyboardShouldPersistTaps="handled">
         {messages.length === 0 ? (
           <View>
             <T v="body" color={t.inkMuted}>
@@ -263,8 +327,9 @@ export default function NewExpense() {
         ) : null}
       </ScrollView>
 
-      <View style={[styles.bar, { backgroundColor: t.panel, marginBottom: Math.max(insets.bottom - 8, 12) }]}>
+      <View style={[styles.bar, { backgroundColor: t.panelRaised, marginBottom: Math.max(insets.bottom - 8, 12) }, listening && { display: 'none' }]}>
         <TextInput
+          ref={input}
           value={text}
           onChangeText={setText}
           onSubmitEditing={() => send()}
@@ -274,7 +339,7 @@ export default function NewExpense() {
           returnKeyType="send"
           accessibilityLabel="Cuéntame un gasto"
         />
-        <Tap onPress={() => send()} accessibilityRole="button" accessibilityLabel={text ? 'Enviar' : 'Dictar'} style={[styles.send, { backgroundColor: t.lime }]}>
+        <Tap onPress={() => (text ? send() : listen())} accessibilityRole="button" accessibilityLabel={text ? 'Enviar' : 'Dictar'} style={[styles.send, { backgroundColor: t.lime }]}>
           <Icon name={text ? 'arrow-right' : 'mic'} size={22} color={t.inkFixed} />
         </Tap>
       </View>
@@ -292,10 +357,14 @@ const styles = StyleSheet.create({
   example: { borderRadius: 14, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8, alignSelf: 'flex-start' },
   bubble: { maxWidth: '82%', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 10 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  draft: { borderRadius: 26, padding: 18 },
+  listenGlow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 360, transform: [{ scaleY: -1 }] },
+  stop: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.18, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
+  stopSquare: { width: 24, height: 24, borderRadius: 7 },
+  write: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingHorizontal: 16, marginTop: 12 },
+  draft: { borderRadius: 28, padding: 16 },
   bar: { marginHorizontal: 20, height: 64, borderRadius: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 8, gap: 10 },
   input: { flex: 1, fontSize: 17, height: 48 },
-  picker: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4, paddingLeft: 10, paddingRight: 8, height: 26, borderRadius: 13 },
+  picker: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8, paddingLeft: 12, paddingRight: 8, height: 32, borderRadius: 16 },
   menu: { marginHorizontal: 20, borderRadius: 20, paddingVertical: 4, marginBottom: 4 },
   menuRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16 },
   speaker: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4, marginLeft: 2 },

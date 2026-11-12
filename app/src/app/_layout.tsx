@@ -29,6 +29,7 @@ export default function RootLayout() {
         <StatusBar style={isDark ? 'light' : 'dark'} />
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: t.page }, animation: 'default' }}>
           <Stack.Screen name="index" />
+          <Stack.Screen name="empezar" />
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="trip/[id]" />
           <Stack.Screen name="saldar" />
