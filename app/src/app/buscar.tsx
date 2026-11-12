@@ -98,13 +98,13 @@ export default function Search() {
     <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top + 8 }}>
       <Aurora height={380} strength={0.75} />
       <View style={styles.bar}>
-        <View style={[styles.field, { backgroundColor: t.surface }]}>
+        <View style={[styles.field, { backgroundColor: t.glass }]}>
           <Icon name="search" size={18} color={t.inkMuted} />
           <TextInput
             value={q}
             onChangeText={setQ}
             autoFocus
-            placeholder="Grupos, contactos o gastos"
+            placeholder="Buscar"
             placeholderTextColor={t.inkMuted}
             selectionColor={t.lime}
             returnKeyType="search"

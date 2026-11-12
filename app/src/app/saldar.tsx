@@ -1,17 +1,17 @@
 import { Aurora } from '../components/Aurora';
+import { ZeroRing } from '../components/ZeroRing';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, AvatarStack } from '../components/Avatar';
-import { BrandGradient } from '../components/BrandGradient';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../components/ui';
 import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type PersonId, type Transfer } from '../data/trip';
-import { light, motion } from '../theme/tokens';
+import { motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const who = (t: Transfer) => (t.to === 'tu' ? `${people[t.from].name} te paga` : t.from === 'tu' ? `Pagas a ${people[t.to].name}` : `${people[t.from].name} paga a ${people[t.to].name}`);
@@ -53,6 +53,47 @@ export default function SettleUp() {
       ? 'Todos estáis a cero. Buen viaje.'
       : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
 
+  // 4.4 A cero: the app's biggest moment gets the whole screen. The ring of
+  // light closes around 0,00 €, then the words and the people who made it.
+  if (settled) {
+    const share = () => Share.share({ message: `Lisboa 2026 quedó a cero: ${eurText(total)} en ${expenses.length} gastos, saldado con ${transfers.length} pagos. Hecho con Zerow.` });
+    const at = (ms: number) => FadeInDown.delay(ms).duration(350);
+    return (
+      <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top + 8, paddingBottom: insets.bottom + 8 }}>
+        <Aurora height={460} strength={0.9} />
+        <View style={{ paddingHorizontal: 20 }}>
+          <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+        </View>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
+          <ZeroRing>
+            <View accessible accessibilityLabel="0,00 euros pendientes" style={{ alignItems: 'center' }}>
+              <Money value={0} size={56} color={t.ink} centsColor={t.inkMuted} />
+              <T v="caption" color={t.inkMuted} style={{ marginTop: 2 }}>
+                pendientes
+              </T>
+            </View>
+          </ZeroRing>
+          <Animated.View entering={at(900)} style={{ alignItems: 'center' }}>
+            <T v="display" color={t.ink} style={{ fontSize: 52, lineHeight: 56, letterSpacing: -1, marginTop: 36 }} accessibilityRole="header">
+              A cero
+            </T>
+            <T v="body" color={t.inkMuted} style={{ marginTop: 12, textAlign: 'center' }}>
+              Lisboa 2026 quedó saldado:{'\n'}
+              {eurText(total)} entre 4, en {transfers.length} pagos.
+            </T>
+          </Animated.View>
+          <Animated.View entering={at(1100)} style={{ marginTop: 24 }}>
+            <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={40} />
+          </Animated.View>
+        </View>
+        <Animated.View entering={at(1300)} style={{ paddingHorizontal: 20 }}>
+          <Button label="Compartir resumen" icon="share" onPress={share} />
+          <Button label="Ver el resumen del viaje" kind="text" height={48} style={{ marginTop: 4 }} onPress={() => router.navigate('/trip/lisboa')} />
+        </Animated.View>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
       <Aurora height={380} strength={0.75} />
@@ -84,33 +125,6 @@ export default function SettleUp() {
             ))}
           </Card>
         </>
-      ) : null}
-
-      {settled ? (
-        <Animated.View entering={ZoomIn.springify().damping(14).duration(motion.bigMoment)}>
-          <BrandGradient style={styles.mano} seed={5}>
-            <View style={styles.rowBetween}>
-              <T v="bodyStrong" color={light.inkFixed}>
-                Lisboa 2026
-              </T>
-              <View style={[styles.badge, { backgroundColor: light.inkFixed }]}>
-                <Icon name="check" size={14} color={t.lime} />
-                <T v="labelStrong" color={t.lime}>
-                  A cero
-                </T>
-              </View>
-            </View>
-            <T v="titleL" color={light.inkFixed} style={{ fontSize: 56, lineHeight: 60, letterSpacing: -1.6, marginTop: 28 }}>
-              A cero
-            </T>
-            <T v="label" color={light.inkMutedFixed}>
-              {eurText(total)} en {expenses.length} gastos · saldado con {transfers.length} pagos
-            </T>
-            <View style={{ marginTop: 18 }}>
-              <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={40} outline="#D3F27F" on="lime" />
-            </View>
-          </BrandGradient>
-        </Animated.View>
       ) : null}
 
       {!draft &&

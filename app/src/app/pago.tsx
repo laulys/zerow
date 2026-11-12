@@ -93,16 +93,17 @@ export default function PaymentSent() {
           <T v="bodyStrong" color={t.inkMuted} style={{ marginBottom: 4 }}>
             Pagado
           </T>
-          <Money value={amount} size={72} color={t.ink} centsColor={t.inkMuted} />
+          <Money value={amount} size={56} color={t.ink} centsColor={t.inkMuted} />
           <T v="label" color={t.inkMuted} style={{ marginTop: 6, textAlign: 'center' }}>
             Ya no debes nada en {group}
           </T>
         </Animated.View>
 
-        <View style={[styles.slotLine, { backgroundColor: t.line }]} />
+        {/* The slot the receipt comes out of: a dark groove with the paper sliding down from it. */}
+        <View style={styles.slotLine} />
         <View style={styles.slot}>
           <Animated.View style={paperStyle}>
-            <View style={[styles.receipt, { backgroundColor: t.surface }]}>
+            <View style={[styles.receipt, { backgroundColor: t.panelRaised }]}>
               {rows.map(([k, v, who], i) => (
                 <View key={k} style={[styles.row, i < rows.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: t.line }]}>
                   <T v="label" color={t.inkMuted}>
@@ -121,7 +122,8 @@ export default function PaymentSent() {
               </T>
             </View>
             <Svg width="100%" height={14} viewBox="0 0 320 14" preserveAspectRatio="none">
-              <Path d={`M0 0 H320 ${Array.from({ length: 16 }, (_, i) => `L${320 - i * 20 - 10} 14 L${320 - (i + 1) * 20} 0`).join(' ')} Z`} fill={t.surface} />
+              {/* A scalloped tear-off edge: half circles cut out of the bottom of the paper. */}
+              <Path d={`M0 0 H320 V10 ${Array.from({ length: 16 }, () => 'h-2 a8 8 0 0 0 -16 0 h-2').join(' ')} Z`} fill={t.panelRaised} />
             </Svg>
           </Animated.View>
         </View>
@@ -129,7 +131,7 @@ export default function PaymentSent() {
 
       <Animated.View entering={at(1700)} style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 8 }}>
         <Button label="Compartir comprobante" icon="share" onPress={share} />
-        <Button label="Listo" kind="text" height={48} style={{ marginTop: 6 }} onPress={() => router.back()} />
+        <Button label="Listo" kind="text" height={48} style={{ marginTop: 4 }} onPress={() => router.back()} />
       </Animated.View>
     </View>
   );
@@ -139,8 +141,8 @@ const styles = StyleSheet.create({
   badgeWrap: { alignSelf: 'center', width: 96, height: 96, alignItems: 'center', justifyContent: 'center' },
   ring: { position: 'absolute', width: 96, height: 96, borderRadius: 48, borderWidth: 2 },
   disc: { width: 96, height: 96, borderRadius: 48, alignItems: 'center', justifyContent: 'center' },
-  slotLine: { height: 2, borderRadius: 1, marginTop: 22 },
-  slot: { height: RECEIPT_H + 24, overflow: 'hidden', paddingTop: 8 },
-  receipt: { paddingHorizontal: 20, paddingTop: 6, paddingBottom: 10, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
+  slotLine: { height: 10, borderRadius: 5, marginTop: 24, backgroundColor: '#0E0E10', zIndex: 1 },
+  slot: { height: RECEIPT_H + 24, overflow: 'hidden', marginTop: -5, marginHorizontal: 8 },
+  receipt: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, minHeight: 44 },
 });
