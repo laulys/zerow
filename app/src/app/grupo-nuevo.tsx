@@ -119,7 +119,7 @@ export default function NewGroup() {
                 label={p === 'tu' ? 'Laura (tú)' : people[p].name}
                 off={!on}
                 onPress={() => p !== 'tu' && setWho((l) => (on ? l.filter((x) => x !== p) : everyone.filter((x) => x === p || l.includes(x))))}
-                leading={<Avatar id={p} size={32} bg={t.faceOnCard} />}
+                leading={<Avatar id={p} size={32} bg={t.disc} inset />}
               />
             );
           })}

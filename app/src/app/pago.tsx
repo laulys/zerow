@@ -120,7 +120,7 @@ export default function PaymentSent() {
                     {k}
                   </T>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
-                    {who ? <Avatar id={who} size={24} bg={t.faceOnCard} /> : null}
+                    {who ? <Avatar id={who} size={24} bg={t.disc} inset /> : null}
                     <T v="labelStrong" color={t.ink} numberOfLines={1}>
                       {v}
                     </T>

@@ -13,6 +13,7 @@ import { Money } from '../components/Money';
 import { Orb } from '../components/Orb';
 import { useScreen } from '../components/Screen';
 import { Button, Card, Hairline, T, Tap } from '../components/ui';
+import { Fact } from '../components/Fact';
 import { light } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
@@ -239,28 +240,6 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
   );
 }
 
-function Fact({ label, value, faces, amount }: { label: string; value: string; faces?: ('tu' | 'ana')[]; amount?: boolean }) {
-  const { t } = useTheme();
-  return (
-    <View style={styles.fact} accessible accessibilityLabel={`${label}: ${value}`}>
-      <T v="label" color={t.inkMuted} style={{ flex: 1 }}>
-        {label}
-      </T>
-      {faces ? (
-        <View style={{ flexDirection: 'row', gap: 4 }}>
-          {faces.map((id) => (
-            <Avatar key={id} id={id} size={28} />
-          ))}
-        </View>
-      ) : null}
-      {/* Amounts are Space Grotesk (Título XS); names, Nota fuerte. */}
-      <T v={amount ? 'titleXS' : 'labelStrong'} color={t.ink} style={{ fontVariant: ['tabular-nums'] }}>
-        {value}
-      </T>
-    </View>
-  );
-}
-
 /** 1.5 → 1.6: the open trip (a glass card) becomes its closing summary (on the gradient). */
 function Closing({ onNext }: { onNext: () => void }) {
   const { t } = useTheme();
@@ -399,7 +378,6 @@ const styles = StyleSheet.create({
   skip: { height: 44, paddingHorizontal: 12, justifyContent: 'center' },
   bubble: { maxWidth: 282, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  fact: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 52 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 15, paddingHorizontal: 12, height: 30 },
   fade: { position: 'absolute', left: -20, right: -20, height: 170 },
   glowLime: { backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },

@@ -38,7 +38,7 @@ export default function Person() {
   return (
     <SheetBody>
       <View style={styles.head}>
-        <Avatar id={p.id} size={56} />
+        <Avatar id={p.id} size={56} bg={t.disc} inset />
         <View>
           <T v="titleM" color={t.ink} accessibilityRole="header">
             Tú y {name}

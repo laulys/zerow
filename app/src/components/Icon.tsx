@@ -62,10 +62,25 @@ const heavy = new Set<IconName>(['mic', 'check', 'arrow-right', 'undo', 'pen']);
  * `heavy`) whatever the icon's size, so the stroke is scaled back from the 24
  * box: a 20 pt icon still draws a 1.75 pt line, not 1.46.
  */
+// Glyphs whose box is centred but whose weight isn't: nudged (in 24-unit space) so they look centred.
+// «user-plus»: the person is heavy and on the left, the «+» thin on the right, so it read off to the left.
+const optical: Partial<Record<IconName, number>> = { 'user-plus': 1.25 };
+
 export function Icon({ name, size = 20, color, weight }: { name: IconName; size?: number; color: string; weight?: number }) {
   const w = weight ?? (heavy.has(name) ? 2 : 1.75);
+  const dx = ((optical[name] ?? 0) * size) / 24;
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={(w * 24) / size} strokeLinecap="round" strokeLinejoin="round">
+    <Svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth={(w * 24) / size}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={dx ? { transform: [{ translateX: dx }] } : undefined}
+    >
       {paths[name].map((d) => (
         <Path key={d} d={d} />
       ))}

@@ -235,10 +235,13 @@ function NewExpense() {
       {/* Full screen (Figma 3.4–3.6): the header row sits at the top inset. */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
-        <View style={{ flex: 1, alignItems: 'center', gap: 8 }}>
-          <T v="section" color={t.ink} accessibilityRole="header">
-            Nuevo gasto
-          </T>
+        {/* The title is centred on the close button's 44 pt row; the group pill sits 12 under it. */}
+        <View style={{ flex: 1, alignItems: 'center', gap: 12 }}>
+          <View style={styles.titleRow}>
+            <T v="section" color={t.ink} accessibilityRole="header">
+              Nuevo gasto
+            </T>
+          </View>
           <Tap
             onPress={() => setPicking((v) => !v)}
             accessibilityRole="button"
@@ -287,7 +290,7 @@ function NewExpense() {
 
       {listening ? (
         <Animated.View entering={FadeIn.duration(motion.standard)} style={{ flex: 1, paddingHorizontal: 20, paddingBottom: insets.bottom }}>
-          <T v="label" color={t.inkMuted} style={{ marginTop: 21 }}>
+          <T v="label" color={t.inkMuted} style={{ marginTop: 28 }}>
             Di qué pagaste, cuánto y para quién.
           </T>
           <LiveWords text={spoken} count={heard ? heard.split(' ').length : 0} />
@@ -311,7 +314,7 @@ function NewExpense() {
         </Animated.View>
       ) : (
         <>
-          <ScrollView ref={scroll} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: chat ? 17 : 21, paddingBottom: 24, gap: 12 }} keyboardShouldPersistTaps="handled">
+          <ScrollView ref={scroll} contentContainerStyle={{ paddingHorizontal: 20, paddingTop: chat ? 20 : 28, paddingBottom: 24, gap: 12 }} keyboardShouldPersistTaps="handled">
             {!chat ? (
               // 3.4b Escribiendo.
               <View style={{ gap: 12 }}>
@@ -435,9 +438,9 @@ function NewExpense() {
                 <T v="label" color={t.ink} style={{ flex: 1, fontWeight: '500' }}>
                   Sumado en {groupName}
                 </T>
-                <Tap onPress={undo} accessibilityRole="button" accessibilityLabel={`Deshacer: quitar ${draft.title}`} style={[styles.undo, { backgroundColor: t.glass }]}>
-                  <Icon name="undo" size={16} color={t.ink} />
-                  <T v="labelStrong" color={t.ink}>
+                <Tap onPress={undo} accessibilityRole="button" accessibilityLabel={`Deshacer: quitar ${draft.title}`} style={styles.undo}>
+                  <Icon name="undo" size={16} color={t.lime} />
+                  <T v="labelStrong" color={t.lime}>
                     Deshacer
                   </T>
                 </Tap>
@@ -565,6 +568,7 @@ function ArrowUp({ color }: { color: string }) {
 const styles = StyleSheet.create({
   liveWords: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 16 },
+  titleRow: { height: 44, justifyContent: 'center' },
   picker: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12 },
   menu: { marginHorizontal: 20, marginTop: 8, borderRadius: 20, paddingVertical: 4 },
   menuRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16 },
@@ -580,8 +584,9 @@ const styles = StyleSheet.create({
   glowLime: { borderRadius: 28, backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { borderRadius: 28, backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 126 },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 48, borderRadius: 24, paddingLeft: 16, paddingRight: 6, marginBottom: 16 },
-  undo: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, paddingLeft: 12, paddingRight: 16 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 48, borderRadius: 24, paddingLeft: 16, paddingRight: 4, marginBottom: 16 },
+  // A lime text button, like the notice on Lisboa (3.2): no pill squeezed into the 48 pt notice.
+  undo: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12 },
   bar: { height: 60, borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 6 },
   barTyping: { height: 56, borderRadius: 28, gap: 8 },
   input: { flex: 1, fontSize: 17, height: 48 },

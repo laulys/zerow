@@ -102,7 +102,7 @@ export default function Activity() {
               style={styles.row}
             >
               {it.who ? (
-                <Avatar id={it.who} size={40} bg={t.faceOnCard} />
+                <Avatar id={it.who} size={40} bg={t.disc} inset />
               ) : (
                 // Figma «Emoji»: the group's emoji on a white 8 % tile.
                 <View style={styles.tile}>

@@ -1,16 +1,16 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
-import { Avatar, AvatarStack } from '../../components/Avatar';
+import { Avatar, AvatarStack, RingAvatar } from '../../components/Avatar';
 import { Icon, type IconName } from '../../components/Icon';
 import { BrandGradient } from '../../components/BrandGradient';
 import { Money, RollingMoney } from '../../components/Money';
 import { WalletStack, type WalletCard } from '../../components/WalletStack';
 import { Glass } from '../../components/Glass';
-import Svg, { Circle, Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Aurora } from '../../components/Aurora';
 import { LIST_PANE, useScreen } from '../../components/Screen';
 import { TripView } from '../trip/[id]';
@@ -148,21 +148,7 @@ export default function Home({ initial }: { initial?: string }) {
 
   const meButton = (
     <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={styles.ring}>
-      {/* Figma «Avatar · laura»: a 44 pt disc (white 8 %) with the memoji filling it, and a 1.5 pt ring drawn
-          OUTSIDE the disc, diagonal from lime (top left) through mint to a faint lime (bottom right). */}
-      <View style={styles.meDisc}>
-        <Image source={people.tu.avatar} style={styles.meFace} resizeMode="contain" />
-      </View>
-      <Svg width={47} height={47} style={styles.meRing} pointerEvents="none">
-        <Defs>
-          <LinearGradient id="me" x1={7.7} y1={7.7} x2={39.2} y2={39.2} gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor={t.lime} stopOpacity={1} />
-            <Stop offset="0.55" stopColor={t.mint} stopOpacity={0.9} />
-            <Stop offset="1" stopColor={t.lime} stopOpacity={0.2} />
-          </LinearGradient>
-        </Defs>
-        <Circle cx={23.5} cy={23.5} r={22.75} stroke="url(#me)" strokeWidth={1.5} fill="none" />
-      </Svg>
+      <RingAvatar id="tu" />
     </Tap>
   );
   const plusButton = (
@@ -279,7 +265,7 @@ export default function Home({ initial }: { initial?: string }) {
                 accessibilityHint="Ver lo que os debéis"
                 style={styles.person}
               >
-                <Avatar id={p.id} size={FACE} />
+                <Avatar id={p.id} size={FACE} bg={t.disc} inset />
                 <T v="caption" color={t.ink} style={[styles.personName, { fontWeight: '500' }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
                   {name}
                 </T>
@@ -595,11 +581,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   ring: { width: 44, height: 44 },
-  meDisc: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  // Figma's memoji sits a little inside the disc, not cropped by it.
-  meFace: { width: 40, height: 40, marginTop: 2 },
-  // The ring hangs 1.5 pt outside the 44 pt disc, as Figma's outside stroke does.
-  meRing: { position: 'absolute', left: -1.5, top: -1.5 },
   rowBetween: {
     flexDirection: 'row',
     alignItems: 'center',
