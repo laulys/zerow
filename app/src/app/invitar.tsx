@@ -65,7 +65,7 @@ export default function Invite() {
         </View>
       ) : null}
       <T v="label" color={t.inkMuted}>
-        Quien entra empieza en cero. Solo le cuentan los gastos en los que le incluyáis.
+        Quien entra empieza en cero. Solo le cuentan los gastos en los que lo incluyáis.
       </T>
 
       <View style={[styles.link, { backgroundColor: t.card }]}>

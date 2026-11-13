@@ -546,17 +546,17 @@ function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm:
   );
 }
 
-// Figma writes Lisboa's two-way split as «Pagó Ana · Ana y Luis» and Piso's as «Pagó Luis, entre Ana y Luis».
-function splitLine(e: Expense, group: string) {
+// «Pagó Luis, entre 4» or, between two, «Pagó Ana, entre Ana y Luis».
+function splitLine(e: Expense) {
   const who = e.payer === 'tu' ? 'Pagaste tú' : `Pagó ${people[e.payer].name}`;
   if (e.splitWith.length > 2) return `${who}, entre ${e.splitWith.length}`;
   const names = e.splitWith.map((p) => people[p].name).join(' y ');
-  return group === 'lisboa' ? `${who} · ${names}` : `${who}, entre ${names}`;
+  return `${who}, entre ${names}`;
 }
 
 function ExpenseRow({ e, group, currency = 'EUR' }: { e: Expense; group: string; currency?: Currency }) {
   const { t } = useTheme();
-  const line = splitLine(e, group);
+  const line = splitLine(e);
   // The second line on the right: the original dollars, or the note («propina 15 %»).
   const aside = e.originalUsd ? `${e.originalUsd.toFixed(2).replace('.', ',')} US$` : e.note;
   return (

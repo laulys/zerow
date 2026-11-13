@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Aurora } from '../components/Aurora';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,7 +12,7 @@ import { Frost } from '../components/Frost';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Orb } from '../components/Orb';
-import { Button, Card, Chip, IconButton, T, Tap } from '../components/ui';
+import { Button, Card, Chip, IconButton, T, Tap, type } from '../components/ui';
 import { interpret, missing, type Partial } from '../data/interpret';
 import { balancesFor, eurText, people, useTrip, type Expense, type PersonId } from '../data/trip';
 import { motion } from '../theme/tokens';
@@ -99,16 +99,18 @@ function NewExpense() {
   // except when it comes with an example to send.
   const [listening, setListening] = useState(!params.ejemplo);
   const [heard, setHeard] = useState('');
+  // Words arrive at the pace of speech: a short pause before the first one, then
+  // longer words take a little longer, like live dictation.
   useEffect(() => {
     if (!listening) return;
     const words = spoken.split(' ');
-    let i = 0;
-    const timer = setInterval(() => {
-      i += 1;
-      setHeard(words.slice(0, i).join(' '));
-      if (i >= words.length) clearInterval(timer);
-    }, 320);
-    return () => clearInterval(timer);
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    let at = 450;
+    words.forEach((w, i) => {
+      timers.push(setTimeout(() => setHeard(words.slice(0, i + 1).join(' ')), at));
+      at += 150 + w.length * 28;
+    });
+    return () => timers.forEach(clearTimeout);
   }, [listening]);
   const listen = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -288,9 +290,7 @@ function NewExpense() {
           <T v="label" color={t.inkMuted} style={{ marginTop: 21 }}>
             Di qué pagaste, cuánto y para quién.
           </T>
-          <T v="titleL" color={heard ? t.ink : t.inkMuted} style={{ marginTop: 12, minHeight: 68 }} accessibilityLiveRegion="polite">
-            {heard || 'Te escucho…'}
-          </T>
+          <LiveWords text={spoken} count={heard ? heard.split(' ').length : 0} />
           <Examples style={{ marginTop: 64 }} onPick={(ex) => send(ex)} />
           <View style={{ flex: 1 }} />
           <View style={{ alignItems: 'center' }}>
@@ -563,6 +563,7 @@ function ArrowUp({ color }: { color: string }) {
 }
 
 const styles = StyleSheet.create({
+  liveWords: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 16 },
   picker: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12 },
   menu: { marginHorizontal: 20, marginTop: 8, borderRadius: 20, paddingVertical: 4 },
@@ -595,5 +596,41 @@ export default function NewExpenseRoute() {
     <SummaryPanes group={useLocalSearchParams<{ grupo?: string }>().grupo ?? 'lisboa'}>
       <NewExpense />
     </SummaryPanes>
+  );
+}
+
+/**
+ * The dictated sentence, word by word. The whole sentence is laid out from the
+ * start (invisible), so lines never re-wrap as words arrive; each word then
+ * fades in and rises 6 pt on a soft ease-out. Instant with Reduce Motion.
+ */
+function LiveWords({ text, count }: { text: string; count: number }) {
+  const words = text.split(' ');
+  return (
+    <View style={{ marginTop: 12, minHeight: 68 }} accessible accessibilityLiveRegion="polite" accessibilityLabel={count ? words.slice(0, count).join(' ') : 'Zerow te escucha'}>
+      <View style={styles.liveWords}>
+        {words.map((w, i) => (
+          <LiveWord key={i} word={w} shown={i < count} last={i === words.length - 1} delay={i === 0 ? 120 : 0} />
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function LiveWord({ word, shown, last, delay }: { word: string; shown: boolean; last: boolean; delay: number }) {
+  const { t } = useTheme();
+  const reduce = useReducedMotion();
+  const p = useSharedValue(shown ? 1 : 0);
+  useEffect(() => {
+    const to = shown ? 1 : 0;
+    // The first word arrives a beat after the orb starts listening.
+    p.value = reduce || !shown ? to : withDelay(delay, withTiming(1, { duration: 380, easing: Easing.bezier(0.23, 1, 0.32, 1) }));
+  }, [shown, reduce, p, delay]);
+  const style = useAnimatedStyle(() => ({ opacity: p.value, transform: [{ translateY: 2 + (1 - p.value) * 6 }] })); // +2: titleL's own nudge
+  return (
+    <Animated.Text style={[type.titleL, { color: t.ink }, style]} importantForAccessibility="no">
+      {word}
+      {last ? '' : ' '}
+    </Animated.Text>
   );
 }

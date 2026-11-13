@@ -153,7 +153,7 @@ function TellIt({ onNext }: { onNext: () => void }) {
           {/* Figma aligns the title and the amount on their baseline; both line boxes end together. */}
           <View style={[styles.rowBetween, { alignItems: 'flex-end', marginTop: 12 }]}>
             <T v="titleM" color={light.inkFixed}>
-              Taxi al hotel
+              Taxi al aeropuerto
             </T>
             <Money value={45} size={36} color={light.inkFixed} currency="USD" />
           </View>
@@ -195,7 +195,7 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
       <Animated.View entering={at(150)}>
         {/* Figma breaks the question in three lines by hand. */}
         <T v="titleL" color={t.ink} style={{ marginTop: 24 }} accessibilityRole="header">
-          {'¿Pagaste el taxi\nal hotel, 45 US$,\npara Ana y para ti?'}
+          {'¿Pagaste el taxi\nal aeropuerto, 45 US$,\npara Ana y para ti?'}
         </T>
         <T v="body" color={t.inkMuted} style={{ marginTop: 12 }}>
           Nada suma hasta que respondes.
