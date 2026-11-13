@@ -66,7 +66,7 @@ export default function Pay() {
     // Figma 2.7: who and why, the amount (Importe L), the saved way to pay in a list card, the button and a text button.
     <SheetBody>
       <View style={styles.head}>
-        <Avatar id="ana" size={48} decorative={false} />
+        <Avatar id="ana" size={48} decorative={false} bg={t.disc} inset />
         <View>
           <T v="titleM" color={t.ink} accessibilityRole="header">
             Pagar a Ana

@@ -16,6 +16,8 @@ import { Frost } from '../components/Frost';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../components/ui';
+import { DraftCard } from './trip/[id]';
+import { UndoNotice } from '../components/Notice';
 import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type PersonId, type Transfer } from '../data/trip';
 import { motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
@@ -27,7 +29,12 @@ const who = (t: Transfer) => (t.to === 'tu' ? `${people[t.from].name} te paga` :
 function SettleUp() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, draft, paid, markPaid, unmarkPaid, confirmDraft, discardDraft } = useTrip();
+  const { expenses, draft, paid, markPaid, unmarkPaid, confirmDraft, discardDraft, undoLast } = useTrip();
+  // 4.1 → 4.2: after either answer, a notice with «Deshacer» (Figma «Aviso», as on Lisboa).
+  // «No contarlo» only hides the draft while the notice is up, so «Deshacer» can bring it back.
+  const [notice, setNotice] = useState<{ title: string; kind: 'sumado' | 'descartado' } | null>(null);
+  const skipping = notice?.kind === 'descartado';
+  const asking = draft && !skipping ? draft : null;
   const balances = balancesFor(expenses);
   const transfers = settleUp(balances);
   const pending = transfers.filter((x) => !paid.has(transferKey(x)));
@@ -36,6 +43,27 @@ function SettleUp() {
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
   const [showBalances, setShowBalances] = useState(false);
   const [summary, setSummary] = useState(false);
+
+  const leaving = useRef(false);
+  useEffect(() => {
+    leaving.current = skipping;
+  }, [skipping]);
+  // Leaving with a «No es así» still undoable makes it final.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => (leaving.current ? discardDraft() : undefined), []);
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => {
+      if (notice.kind === 'descartado') discardDraft();
+      setNotice(null);
+    }, 10000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notice]);
+  const onUndo = () => {
+    if (notice?.kind === 'sumado') undoLast();
+    setNotice(null);
+  };
 
   // Only the person who pays gets a receipt (it's theirs to keep and share).
   // When someone pays you, it just moves to "Pagado" with undo.
@@ -129,38 +157,43 @@ function SettleUp() {
   }
 
   // 4.1: an expense is still unreviewed, so the screen asks just that, one question, before any payment.
-  if (draft)
+  if (asking)
     return (
       <AddFirst
-        draft={draft}
+        draft={asking}
+        expenses={expenses}
         onAdd={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           confirmDraft();
+          setNotice({ title: asking.title, kind: 'sumado' });
         }}
-        onSkip={discardDraft}
+        onSkip={() => {
+          Haptics.selectionAsync();
+          setNotice({ title: asking.title, kind: 'descartado' });
+        }}
       />
     );
 
   return (
-    <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
-      <Aurora preset="task" />
-      <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
-      <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
-        Saldar cuentas
-      </T>
-      <T v="label" color={t.inkSoft} style={{ marginTop: 4 }}>
-        {subtitle}
-      </T>
+    <View style={{ flex: 1, backgroundColor: t.page }}>
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 + (notice ? 64 : 0) }}>
+        <Aurora preset="task" />
+        <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+        <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
+          Saldar cuentas
+        </T>
+        <T v="label" color={t.inkSoft} style={{ marginTop: 4 }}>
+          {subtitle}
+        </T>
 
-      <View style={{ marginTop: 16, gap: 16 }}>
-        {!draft &&
-          pending.map((x) => (
+        <View style={{ marginTop: 16, gap: 16 }}>
+          {pending.map((x) => (
             <Animated.View key={transferKey(x)} entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(160)} layout={LinearTransition.duration(motion.standard)}>
               <Card style={{ gap: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Avatar id={x.from} size={32} bg={t.faceOnCard} />
+                  <Avatar id={x.from} size={32} bg={t.disc} inset />
                   <Icon name="arrow-right" size={16} color={t.inkMuted} />
-                  <Avatar id={x.to} size={32} bg={t.faceOnCard} />
+                  <Avatar id={x.to} size={32} bg={t.disc} inset />
                   <T v="bodyStrong" color={t.ink}>
                     {who(x)}
                   </T>
@@ -186,66 +219,68 @@ function SettleUp() {
             </Animated.View>
           ))}
 
-        {!draft && done.length ? (
-          <Animated.View layout={LinearTransition.duration(motion.standard)} style={{ gap: 12 }}>
-            <T v="labelStrong" color={t.inkMuted}>
-              Pagado
-            </T>
-            {/* Figma draws a single paid row on glass and two or more on a card. */}
-            <View style={[styles.paidCard, { paddingVertical: done.length === 1 ? 2 : 4 }]}>
-              <Frost fill={done.length === 1 ? t.glass : t.card} radius={28} intensity={done.length === 1 ? 20 : 28} />
-              {done.map((x, i) => (
-                <Animated.View key={transferKey(x)} entering={FadeIn.duration(motion.standard)}>
-                  <View style={styles.paidRow}>
-                    <Check color={t.lime} />
-                    <T v="label" color={t.inkSoft} style={{ flex: 1 }}>
-                      {people[x.from].name} → {people[x.to].name} · {eurText(x.amount)}
-                    </T>
-                    <Tap onPress={() => unmarkPaid(x)} accessibilityRole="button" accessibilityLabel={`Deshacer el pago de ${people[x.from].name}`} style={styles.quiet}>
-                      <T v="labelStrong" color={t.ink}>
-                        Deshacer
+          {done.length ? (
+            <Animated.View layout={LinearTransition.duration(motion.standard)} style={{ gap: 12 }}>
+              <T v="labelStrong" color={t.inkMuted}>
+                Pagado
+              </T>
+              {/* Figma draws a single paid row on glass and two or more on a card. */}
+              <View style={[styles.paidCard, { paddingVertical: done.length === 1 ? 2 : 4 }]}>
+                <Frost fill={done.length === 1 ? t.glass : t.card} radius={28} intensity={done.length === 1 ? 20 : 28} />
+                {done.map((x, i) => (
+                  <Animated.View key={transferKey(x)} entering={FadeIn.duration(motion.standard)}>
+                    <View style={styles.paidRow}>
+                      <Check color={t.lime} />
+                      <T v="label" color={t.inkSoft} style={{ flex: 1 }}>
+                        {people[x.from].name} → {people[x.to].name} · {eurText(x.amount)}
                       </T>
-                    </Tap>
-                  </View>
-                  {i < done.length - 1 ? <Hairline /> : null}
-                </Animated.View>
-              ))}
-            </View>
-          </Animated.View>
-        ) : null}
+                      <Tap onPress={() => unmarkPaid(x)} accessibilityRole="button" accessibilityLabel={`Deshacer el pago de ${people[x.from].name}`} style={styles.quiet}>
+                        <T v="labelStrong" color={t.ink}>
+                          Deshacer
+                        </T>
+                      </Tap>
+                    </View>
+                    {i < done.length - 1 ? <Hairline /> : null}
+                  </Animated.View>
+                ))}
+              </View>
+            </Animated.View>
+          ) : null}
 
-        <Tap onPress={() => setShowBalances((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: showBalances }} style={styles.balancesToggle}>
-          <Frost fill={t.glass} radius={28} intensity={20} />
-          <T v="labelStrong" color={t.ink} style={{ flex: 1 }}>
-            Ver saldos de cada uno
-          </T>
-          <View style={{ transform: [{ rotate: showBalances ? '90deg' : '0deg' }] }}>
-            <Icon name="chevron-right" size={16} color={t.inkMuted} />
-          </View>
-        </Tap>
-        {showBalances ? (
-          <Animated.View entering={FadeInDown.duration(motion.standard)} style={{ marginTop: -8 }}>
-            <Card style={{ paddingVertical: 4 }}>
-              {(['tu', 'luis', 'ana', 'marta'] as PersonId[]).map((id, i) => (
-                <View key={id}>
-                  <View style={styles.line}>
-                    <Avatar id={id} size={30} bg={t.faceOnCard} />
-                    <T v="labelStrong" color={t.ink} style={{ flex: 1 }}>
-                      {people[id].name}
-                    </T>
-                    <T v="titleXS" color={t.ink}>
-                      {balances[id] >= 0 ? '+' : '−'}
-                      {eurText(Math.abs(balances[id]))}
-                    </T>
+          <Tap onPress={() => setShowBalances((v) => !v)} accessibilityRole="button" accessibilityState={{ expanded: showBalances }} style={styles.balancesToggle}>
+            <Frost fill={t.glass} radius={28} intensity={20} />
+            <T v="labelStrong" color={t.ink} style={{ flex: 1 }}>
+              Ver saldos de cada uno
+            </T>
+            <View style={{ transform: [{ rotate: showBalances ? '90deg' : '0deg' }] }}>
+              <Icon name="chevron-right" size={16} color={t.inkMuted} />
+            </View>
+          </Tap>
+          {showBalances ? (
+            <Animated.View entering={FadeInDown.duration(motion.standard)} style={{ marginTop: -8 }}>
+              <Card style={{ paddingVertical: 4 }}>
+                {(['tu', 'luis', 'ana', 'marta'] as PersonId[]).map((id, i) => (
+                  <View key={id}>
+                    <View style={styles.line}>
+                      <Avatar id={id} size={30} bg={t.disc} inset />
+                      <T v="labelStrong" color={t.ink} style={{ flex: 1 }}>
+                        {people[id].name}
+                      </T>
+                      <T v="titleXS" color={t.ink}>
+                        {balances[id] >= 0 ? '+' : '−'}
+                        {eurText(Math.abs(balances[id]))}
+                      </T>
+                    </View>
+                    {i < 3 ? <Hairline /> : null}
                   </View>
-                  {i < 3 ? <Hairline /> : null}
-                </View>
-              ))}
-            </Card>
-          </Animated.View>
-        ) : null}
-      </View>
-    </ScrollView>
+                ))}
+              </Card>
+            </Animated.View>
+          ) : null}
+        </View>
+      </ScrollView>
+      {notice ? <UndoNotice text={`${notice.title} ${notice.kind}`} onUndo={onUndo} style={[styles.notice, { bottom: insets.bottom + 16 }]} /> : null}
+    </View>
   );
 }
 
@@ -368,60 +403,45 @@ function Fade() {
   );
 }
 
+/** «te deberán 26,73 €», «deberás 12,00 €» or «quedarás a cero», for the line under the draft. */
+function yourBalance(v: number, future: boolean) {
+  if (Math.abs(v) < 0.005) return future ? 'quedarás a cero' : 'estás a cero';
+  return v > 0 ? `${future ? 'te deberán' : 'te deben'} ${eurText(v)}` : `${future ? 'deberás' : 'debes'} ${eurText(-v)}`;
+}
+
 /**
- * 4.1 «Antes de saldar»: one question about the unreviewed expense, with who
- * paid it and what it costs each. The payments only appear once it's decided,
- * so no figure on screen is about to change.
+ * 4.1, option A (chosen 2026-11-13): Saldar's own header, then the same draft card
+ * as on Lisboa (3.1), decided right there with «No es así» / «Sí, sumarlo», and one
+ * line under it with what it changes for you. Payments appear once it's decided.
  */
-function AddFirst({ draft, onAdd, onSkip }: { draft: Expense; onAdd: () => void; onSkip: () => void }) {
+function AddFirst({ draft, expenses, onAdd, onSkip }: { draft: Expense; expenses: Expense[]; onAdd: () => void; onSkip: () => void }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const n = draft.splitWith.length;
-  const name = draft.title.toLowerCase();
+  const now = balancesFor(expenses).tu;
+  const next = balancesFor([draft, ...expenses]).tu;
   const at = (ms: number) => FadeInDown.delay(ms).duration(motion.standard);
-  const rows = [
-    { label: 'Pagó', value: `${draft.payer === 'tu' ? 'Tú' : people[draft.payer].name} · ${eurText(draft.amountEur)}` },
-    { label: 'Entre', value: `${n === 4 ? 'los 4' : n} · ${eurText(draft.amountEur / n)} cada uno` },
-  ];
   return (
-    <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top, paddingBottom: insets.bottom + 16, paddingHorizontal: 20 }}>
+    // Centred on the page (asked 2026-11-13): the decision sits in the middle, lifted a little for the optical centre.
+    <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}>
       <Aurora preset="task" />
       <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
-      <View style={styles.ask}>
-        <Animated.View entering={at(0)}>
-          <Avatar id={draft.payer} size={72} bg={t.glass} />
+      <View style={styles.centred}>
+        <T v="titleL" color={t.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
+          Saldar cuentas
+        </T>
+        <T v="label" color={t.inkSoft} style={{ marginTop: 4, textAlign: 'center' }}>
+          Antes, decide este gasto: aún no cuenta.
+        </T>
+        <Animated.View entering={at(80)} style={{ marginTop: 20, alignSelf: 'stretch' }}>
+          <DraftCard draft={draft} onConfirm={onAdd} onDiscard={onSkip} />
         </Animated.View>
-        <Animated.View entering={at(80)} style={{ alignItems: 'center', gap: 8 }}>
-          <T v="label" color={t.inkSoft}>
-            Antes de saldar
+        <Animated.View entering={at(160)}>
+          <T v="label" color={t.inkSoft} style={{ marginTop: 16, textAlign: 'center' }}>
+            Si lo sumas, {yourBalance(next, true)} ({`ahora ${yourBalance(now, false).replace(/^te deben |^debes /, '')}`}).
           </T>
-          <T v="titleL" color={t.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
-            ¿Sumamos el {name}?
-          </T>
-        </Animated.View>
-        <Animated.View entering={at(160)} style={{ alignSelf: 'stretch', marginTop: 12 }}>
-          <Card style={{ paddingVertical: 4 }}>
-            {rows.map((r, i) => (
-              <View key={r.label}>
-                {i > 0 ? <Hairline /> : null}
-                <View style={styles.askRow}>
-                  <T v="label" color={t.inkMuted}>
-                    {r.label}
-                  </T>
-                  <T v="labelStrong" color={t.ink}>
-                    {r.value}
-                  </T>
-                </View>
-              </View>
-            ))}
-          </Card>
         </Animated.View>
       </View>
-      <Animated.View entering={at(240)}>
-        <Button label="Sumar y ver pagos" onPress={onAdd} />
-        <TextButton label="No contarlo" style={{ marginTop: 8 }} onPress={onSkip} />
-      </Animated.View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -475,8 +495,8 @@ const styles = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, borderRadius: 15, paddingHorizontal: 12 },
   share: { flexDirection: 'row', alignItems: 'center', height: 38 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
-  ask: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
-  askRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52 },
+  notice: { position: 'absolute', left: 20, right: 20 },
+  centred: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 64 },
   textButton: { height: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
 });
 

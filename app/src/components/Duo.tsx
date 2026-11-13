@@ -81,7 +81,7 @@ export function GroupSummary({ id }: { id: string }) {
             <View key={p}>
               <Hairline color={t.line} />
               <View style={styles.line} accessible accessibilityLabel={`${p === 'tu' ? 'Tú' : people[p].name}: ${signed(bal[p] ?? 0)}`}>
-                <Avatar id={p} size={28} />
+                <Avatar id={p} size={28} bg={t.disc} inset />
                 <T v="body" color={t.ink} style={{ flex: 1 }}>
                   {p === 'tu' ? 'Tú' : people[p].name}
                 </T>

@@ -75,13 +75,17 @@ export default function QuickSplit() {
 
   const amount = (
     <>
-      <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
-
-      {/* Figma «Importe»: a column 8 apart, 16 below the close button. */}
-      <View style={{ marginTop: 16, gap: 8 }}>
-        <T v="caption" color={t.inkMuted}>
+      {/* Like Nuevo gasto: the screen's name is the title of the close button's row, not a small label over the heading. */}
+      <View style={styles.navRow}>
+        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+        <T v="section" color={t.ink} style={styles.navTitle} accessibilityRole="header">
           Dividir una cuenta
         </T>
+        <View style={{ width: 44 }} />
+      </View>
+
+      {/* Figma «Importe»: a column 8 apart, 20 below the close button's row. */}
+      <View style={{ marginTop: 20, gap: 8 }}>
         {editingTitle ? (
           <TextInput
             value={title}
@@ -159,7 +163,7 @@ export default function QuickSplit() {
       </T>
       <View style={styles.wrap}>
         {everyone.map((p) => (
-          <Chip key={p} label={name(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} bg={t.faceOnCard} />} />
+          <Chip key={p} label={name(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} bg={t.disc} inset />} />
         ))}
       </View>
 
@@ -227,6 +231,8 @@ function Fundido() {
 }
 
 const styles = StyleSheet.create({
+  navRow: { flexDirection: 'row', alignItems: 'center', height: 44 },
+  navTitle: { flex: 1, textAlign: 'center' },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
   titleInput: { fontFamily: font.medium, fontSize: 22, height: 27, padding: 0, borderBottomWidth: 1 },
   each: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingVertical: 8 },

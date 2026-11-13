@@ -170,7 +170,7 @@ export default function Search() {
                   <View key={r.key}>
                     <Tap onPress={r.go} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.sub}${r.right ? `. ${r.right}` : ''}`} style={styles.row}>
                       {r.lead.avatar ? (
-                        <Avatar id={r.lead.avatar} size={40} bg={t.faceOnCard} />
+                        <Avatar id={r.lead.avatar} size={40} bg={t.disc} inset />
                       ) : (
                         // Figma «Emoji»: the group's emoji on a white 8 % tile.
                         <View style={styles.tile}>{r.lead.emoji ? <Text style={styles.emoji}>{r.lead.emoji}</Text> : <Icon name={r.lead.icon ?? 'shapes'} size={20} color={t.ink} />}</View>

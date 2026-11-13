@@ -42,6 +42,8 @@ export type Tokens = {
   hairline: string;
   /** v3 faces on a dark card (the page's tone, darker than the card). */
   faceOnCard: string;
+  /** v3 translucent disc behind a memoji (white 8 %): the header face, chips, fact rows. */
+  disc: string;
   /** v3 «sheet»: sheets and alerts. */
   sheet: string;
 };
@@ -74,6 +76,7 @@ export const light: Tokens = {
   controlStroke: 'rgba(18,18,18,0.08)',
   hairline: 'rgba(18,18,18,0.09)',
   faceOnCard: '#EDEDE8',
+  disc: 'rgba(18,18,18,0.05)',
   sheet: '#FFFFFF',
   onLimeButton: '#121212',
   mint: '#7FD8A8',
@@ -110,6 +113,7 @@ export const dark: Tokens = {
   controlStroke: 'rgba(255,255,255,0.18)',
   hairline: 'rgba(255,255,255,0.09)',
   faceOnCard: '#1E1E22',
+  disc: 'rgba(255,255,255,0.08)',
   sheet: '#222226',
 };
 
@@ -176,6 +180,7 @@ export const aurora: Tokens = {
   controlStroke: 'rgba(255,255,255,0.18)',
   hairline: 'rgba(255,255,255,0.09)',
   faceOnCard: '#1E1E22',
+  disc: 'rgba(255,255,255,0.08)',
   sheet: '#222226',
 };
 

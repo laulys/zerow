@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeOutDown, LinearTransition, ZoomOut } from 'react-native-reanimated';
+import Animated, { FadeInDown, LinearTransition, ZoomOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../../components/Avatar';
@@ -16,6 +16,7 @@ import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
 import { Money, RollingAmount, RollingMoney } from '../../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap, type as typeScale } from '../../components/ui';
+import { UndoNotice } from '../../components/Notice';
 import { PISO_SHARE, balancesFor, eurText, invite, people, pisoGroup, settleUp, transferKey, usePisoBalance, useTrip, type Currency, type Expense, type Group, type PersonId } from '../../data/trip';
 import { light, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
@@ -398,7 +399,7 @@ function Trip() {
                       accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si sumas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}. ${id === 'tu' ? 'Ir a saldar' : `Ver lo vuestro`}`}
                       style={styles.balRow}
                     >
-                      <Avatar id={id} size={36} bg={t.faceOnCard} />
+                      <Avatar id={id} size={36} bg={t.disc} inset />
                       <View style={{ flex: 1 }}>
                         <T v="bodyStrong" color={t.ink}>
                           {people[id].name}
@@ -458,21 +459,7 @@ function Trip() {
 
       <CaptureBar bottom={insets.bottom} />
 
-      {notice ? (
-        // Figma «Aviso»: glass, 48 tall, 16 pt above the capture bar.
-        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOutDown.duration(160)} style={[styles.toast, { bottom: bar + BAR + 16 }]} accessibilityLiveRegion="polite">
-          <Frost fill={t.glass} radius={24} intensity={20} />
-          <T v="label" color={t.ink} style={{ flex: 1, fontWeight: '500' }}>
-            {notice.title} {notice.kind}
-          </T>
-          <Tap onPress={onUndo} accessibilityRole="button" accessibilityLabel="Deshacer" style={[styles.undo, { backgroundColor: t.glass }]}>
-            <Glyph name="undo" size={16} color={t.ink} weight={2} />
-            <T v="labelStrong" color={t.ink}>
-              Deshacer
-            </T>
-          </Tap>
-        </Animated.View>
-      ) : null}
+      {notice ? <UndoNotice text={`${notice.title} ${notice.kind}`} onUndo={onUndo} style={[styles.toast, { bottom: bar + BAR + 16 }]} /> : null}
     </View>
   );
 }
@@ -510,7 +497,8 @@ function Expenses({ list, group, currency = 'EUR', flush }: { list: Expense[]; g
   );
 }
 
-function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm: () => void; onDiscard: () => void }) {
+/** The AI draft on the brand gradient (3.1), also used by Saldar (4.1) so a pending expense looks the same everywhere. */
+export function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm: () => void; onDiscard: () => void }) {
   const { t } = useTheme();
   const ink = light.inkFixed;
   const soft = t.inkMutedFixed;
@@ -566,7 +554,7 @@ function ExpenseRow({ e, group, currency = 'EUR' }: { e: Expense; group: string;
       accessibilityLabel={`${e.title}, ${eurText(e.amountEur, currency)}. ${line}. Ver detalle`}
       style={styles.expRow}
     >
-      <Avatar id={e.payer} size={36} bg={t.faceOnCard} />
+      <Avatar id={e.payer} size={36} bg={t.disc} inset />
       <View style={{ flex: 1 }}>
         <T v="labelStrong" color={t.ink} numberOfLines={1}>
           {e.title}
@@ -634,8 +622,7 @@ const styles = StyleSheet.create({
   draftTitle: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 36 },
   expRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 62 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
-  toast: { position: 'absolute', left: 20, right: 20, height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 16, paddingRight: 6 },
-  undo: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 22 },
+  toast: { position: 'absolute', left: 20, right: 20 },
   captureWrap: { position: 'absolute', left: 20, right: 20, height: BAR, borderRadius: 30 },
   capture: { flex: 1, borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 6, gap: 12 },
   micGlow: { width: 48, height: 48, borderRadius: 24, backgroundColor: lime, shadowColor: '#B6F03A', shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 5 } },

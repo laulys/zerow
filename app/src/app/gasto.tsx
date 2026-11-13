@@ -127,7 +127,7 @@ function ExpenseDetail() {
                     accessible
                     accessibilityLabel={`${name(p)}${p === e.payer ? `, pagó ${eurText(e.amountEur, currency)}` : ''}. Su parte: ${inSplit ? eurText(share, currency) : 'nada'}`}
                   >
-                    <Avatar id={p} size={36} bg={t.faceOnCard} />
+                    <Avatar id={p} size={36} bg={t.disc} inset />
                     <View style={{ flex: 1 }}>
                       <T v="bodyStrong" color={t.ink}>
                         {name(p)}

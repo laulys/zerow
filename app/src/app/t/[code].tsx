@@ -55,7 +55,8 @@ export default function Invited() {
 
   const fromRow = (
     <Animated.View entering={at(0)} style={styles.from}>
-      <Avatar id={invite.from} size={36} />
+      {/* Translucent glass disc, like the header's own face (not the solid graphite one). */}
+      <Avatar id={invite.from} size={36} bg={t.disc} inset />
       <T v="bodyStrong" color={t.ink}>
         {from} te invita a un viaje
       </T>
@@ -135,9 +136,10 @@ export default function Invited() {
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <Aurora preset="tab" />
       <StatusBar style="light" />
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 10, paddingHorizontal: 20, paddingBottom: footer + 24 }}>
+      {/* The ticket sits centred in the space between «Ana te invita…» and the buttons, not stuck to the top. */}
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 10, paddingHorizontal: 20, paddingBottom: footer + 24 }}>
         {fromRow}
-        {ticket}
+        <View style={styles.centre}>{ticket}</View>
       </ScrollView>
       <Animated.View entering={at(400)} pointerEvents="box-none" style={[styles.footer, { paddingBottom: bottom }]}>
         <Fundido />
@@ -192,11 +194,12 @@ const styles = StyleSheet.create({
   glow: { shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   shade: { shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   ticket: { borderRadius: 32 },
-  top: { paddingTop: 20, paddingHorizontal: 20, paddingBottom: 16, gap: 4 },
+  top: { paddingTop: 24, paddingHorizontal: 24, paddingBottom: 16, gap: 4 },
   people: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 12 },
   perf: { height: 24, justifyContent: 'center', paddingHorizontal: 24 },
-  // Figma's ticket shape ends 12 above its content box, so 8 is left under the last line.
-  bottom: { paddingTop: 12, paddingHorizontal: 20, paddingBottom: 8, gap: 4 },
+  // 24 on the sides and under the last line, the same as above «Oporto», so the ticket breathes evenly.
+  bottom: { paddingTop: 12, paddingHorizontal: 24, paddingBottom: 24, gap: 4 },
+  centre: { flex: 1, justifyContent: 'center' },
   fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 4 },
   ok: { width: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   later: { height: 44, alignItems: 'center', justifyContent: 'center' },
