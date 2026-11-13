@@ -49,17 +49,29 @@ export default function Person() {
         </View>
       </View>
 
-      <View accessible accessibilityLabel={p.net === 0 ? label : `${label} ${eurText(Math.abs(p.net))}`}>
-        <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
-          {label}
-        </T>
-        <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} />
-      </View>
+      {p.net === 0 ? (
+        // Figma 2.9 «Tú y Luis»: nothing to pay either way, said once, big.
+        <View accessible accessibilityLabel={`${label}. ${name} y tú no os debéis nada.`}>
+          <T v="display" color={t.ink}>
+            {label}
+          </T>
+          <T v="label" color={t.inkMuted} style={{ marginTop: 4 }}>
+            {name} y tú no os debéis nada.
+          </T>
+        </View>
+      ) : (
+        <View accessible accessibilityLabel={`${label} ${eurText(Math.abs(p.net))}`}>
+          <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
+            {label}
+          </T>
+          <Money value={Math.abs(p.net)} size={56} color={p.net > 0 ? t.lime : t.ink} />
+        </View>
+      )}
 
       <SheetList
         rows={p.parts.map((x) => {
           const owe = x.amount < 0;
-          const text = x.amount === 0 ? 'A cero' : owe ? `Le debes ${eurText(-x.amount)}` : `Te debe ${eurText(x.amount)}`;
+          const text = x.amount === 0 ? 'Sin pagos entre vosotros' : owe ? `Le debes ${eurText(-x.amount)}` : `Te debe ${eurText(x.amount)}`;
           return { key: x.key, title: x.group, sub: text, subColor: x.amount > 0 ? t.lime : undefined, emoji: openEmoji[x.key] ?? '🧾', onPress: () => go(x.to) };
         })}
       />
@@ -68,8 +80,10 @@ export default function Person() {
         <Button label={`Pagar ${eurText(-youOwe.amount)} · ${youOwe.group.split(' ')[0]}`} onPress={() => go(youOwe.to)} />
       ) : p.net > 0 ? (
         <Button label="Recordárselo" icon="share" onPress={remind} />
+      ) : p.parts[0] ? (
+        <Button label={`Ver ${p.parts[0].group}`} kind="control" onPress={() => go(p.parts[0].to)} />
       ) : (
-        <Button label={`Dividir algo con ${name}`} kind="secondary" onPress={() => go('/dividir')} />
+        <Button label={`Dividir algo con ${name}`} kind="control" onPress={() => go('/dividir')} />
       )}
       {youOwe && p.net > 0 ? <Button label="Recordárselo" kind="text" height={44} onPress={remind} /> : null}
     </SheetBody>

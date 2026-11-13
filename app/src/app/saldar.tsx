@@ -27,7 +27,7 @@ const who = (t: Transfer) => (t.to === 'tu' ? `${people[t.from].name} te paga` :
 function SettleUp() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, draft, paid, markPaid, unmarkPaid } = useTrip();
+  const { expenses, draft, paid, markPaid, unmarkPaid, confirmDraft, discardDraft } = useTrip();
   const balances = balancesFor(expenses);
   const transfers = settleUp(balances);
   const pending = transfers.filter((x) => !paid.has(transferKey(x)));
@@ -54,11 +54,7 @@ function SettleUp() {
     if (!settled) celebrated.current = false;
   }, [settled]);
 
-  const subtitle = draft
-    ? `Primero, revisa el ${draft.title.toLowerCase()}`
-    : settled
-      ? 'Todos estáis a cero. Buen viaje.'
-      : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
+  const subtitle = settled ? 'Todos estáis a cero. Buen viaje.' : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
 
   // 4.5 Resumen, from «Ver el resumen del viaje»; closing it goes back to «A cero».
   if (settled && summary) return <TripSummary expenses={expenses} payments={transfers.length} onClose={() => setSummary(false)} />;
@@ -132,6 +128,19 @@ function SettleUp() {
     );
   }
 
+  // 4.1: an expense is still unreviewed, so the screen asks just that, one question, before any payment.
+  if (draft)
+    return (
+      <AddFirst
+        draft={draft}
+        onAdd={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          confirmDraft();
+        }}
+        onSkip={discardDraft}
+      />
+    );
+
   return (
     <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
       <Aurora preset="task" />
@@ -144,31 +153,6 @@ function SettleUp() {
       </T>
 
       <View style={{ marginTop: 16, gap: 16 }}>
-        {draft ? (
-          <>
-            {/* 4.1: the expense to review comes first, on the gradient. */}
-            <LimeCard>
-              <T v="label" color={t.inkFixed} style={{ fontWeight: '500' }}>
-                El {draft.title.toLowerCase()} ({eurText(draft.amountEur)}) aún está por revisar. Súmalo o descártalo antes de marcar pagos: si no, las cuentas cambiarían después.
-              </T>
-              <Button label="Revisar el gasto" icon="check" iconColor={t.lime} kind="onGradient" height={48} onPress={() => router.navigate('/trip/lisboa')} />
-            </LimeCard>
-            <View style={{ gap: 12 }}>
-              <T v="caption" color={t.inkMuted} style={{ fontWeight: '600' }}>
-                Pagos previstos · cambian si lo sumas
-              </T>
-              <Card style={{ paddingVertical: 4 }}>
-                {transfers.map((x, i) => (
-                  <View key={transferKey(x)}>
-                    <TransferLine x={x} />
-                    {i < transfers.length - 1 ? <Hairline /> : null}
-                  </View>
-                ))}
-              </Card>
-            </View>
-          </>
-        ) : null}
-
         {!draft &&
           pending.map((x) => (
             <Animated.View key={transferKey(x)} entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(160)} layout={LinearTransition.duration(motion.standard)}>
@@ -384,22 +368,59 @@ function Fade() {
   );
 }
 
-/** 4.1 «Pagos previstos»: who pays whom, as it stands before the expense is reviewed. */
-function TransferLine({ x }: { x: Transfer }) {
+/**
+ * 4.1 «Antes de saldar»: one question about the unreviewed expense, with who
+ * paid it and what it costs each. The payments only appear once it's decided,
+ * so no figure on screen is about to change.
+ */
+function AddFirst({ draft, onAdd, onSkip }: { draft: Expense; onAdd: () => void; onSkip: () => void }) {
   const { t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const n = draft.splitWith.length;
+  const name = draft.title.toLowerCase();
+  const at = (ms: number) => FadeInDown.delay(ms).duration(motion.standard);
+  const rows = [
+    { label: 'Pagó', value: `${draft.payer === 'tu' ? 'Tú' : people[draft.payer].name} · ${eurText(draft.amountEur)}` },
+    { label: 'Entre', value: `${n === 4 ? 'los 4' : n} · ${eurText(draft.amountEur / n)} cada uno` },
+  ];
   return (
-    <View style={styles.line}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <Avatar id={x.from} size={30} bg={t.faceOnCard} />
-        <Icon name="arrow-right" size={16} color={t.inkMuted} />
-        <Avatar id={x.to} size={30} bg={t.faceOnCard} />
+    <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top, paddingBottom: insets.bottom + 16, paddingHorizontal: 20 }}>
+      <Aurora preset="task" />
+      <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+      <View style={styles.ask}>
+        <Animated.View entering={at(0)}>
+          <Avatar id={draft.payer} size={72} bg={t.glass} />
+        </Animated.View>
+        <Animated.View entering={at(80)} style={{ alignItems: 'center', gap: 8 }}>
+          <T v="label" color={t.inkSoft}>
+            Antes de saldar
+          </T>
+          <T v="titleL" color={t.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
+            ¿Sumamos el {name}?
+          </T>
+        </Animated.View>
+        <Animated.View entering={at(160)} style={{ alignSelf: 'stretch', marginTop: 12 }}>
+          <Card style={{ paddingVertical: 4 }}>
+            {rows.map((r, i) => (
+              <View key={r.label}>
+                {i > 0 ? <Hairline /> : null}
+                <View style={styles.askRow}>
+                  <T v="label" color={t.inkMuted}>
+                    {r.label}
+                  </T>
+                  <T v="labelStrong" color={t.ink}>
+                    {r.value}
+                  </T>
+                </View>
+              </View>
+            ))}
+          </Card>
+        </Animated.View>
       </View>
-      <T v="labelStrong" color={t.ink} style={{ flex: 1 }}>
-        {who(x)}
-      </T>
-      <T v="titleXS" color={t.ink}>
-        {eurText(x.amount)}
-      </T>
+      <Animated.View entering={at(240)}>
+        <Button label="Sumar y ver pagos" onPress={onAdd} />
+        <TextButton label="No contarlo" style={{ marginTop: 8 }} onPress={onSkip} />
+      </Animated.View>
     </View>
   );
 }
@@ -454,6 +475,8 @@ const styles = StyleSheet.create({
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, borderRadius: 15, paddingHorizontal: 12 },
   share: { flexDirection: 'row', alignItems: 'center', height: 38 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
+  ask: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16 },
+  askRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 52 },
   textButton: { height: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
 });
 

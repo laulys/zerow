@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
@@ -148,17 +148,20 @@ export default function Home({ initial }: { initial?: string }) {
 
   const meButton = (
     <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={styles.ring}>
-      {/* Figma «Avatar · laura»: 44 pt on white 8 %, with a 1.5 pt ring from lime to mint that fades out. */}
-      <Avatar id="tu" size={44} bg="rgba(255,255,255,0.08)" />
-      <Svg width={44} height={44} style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* Figma «Avatar · laura»: a 44 pt disc (white 8 %) with the memoji filling it, and a 1.5 pt ring drawn
+          OUTSIDE the disc, diagonal from lime (top left) through mint to a faint lime (bottom right). */}
+      <View style={styles.meDisc}>
+        <Image source={people.tu.avatar} style={styles.meFace} resizeMode="contain" />
+      </View>
+      <Svg width={47} height={47} style={styles.meRing} pointerEvents="none">
         <Defs>
-          <LinearGradient id="me" x1="0" y1="0" x2="1" y2="1">
+          <LinearGradient id="me" x1={7.7} y1={7.7} x2={39.2} y2={39.2} gradientUnits="userSpaceOnUse">
             <Stop offset="0" stopColor={t.lime} stopOpacity={1} />
             <Stop offset="0.55" stopColor={t.mint} stopOpacity={0.9} />
             <Stop offset="1" stopColor={t.lime} stopOpacity={0.2} />
           </LinearGradient>
         </Defs>
-        <Circle cx={22} cy={22} r={21.25} stroke="url(#me)" strokeWidth={1.5} fill="none" />
+        <Circle cx={23.5} cy={23.5} r={22.75} stroke="url(#me)" strokeWidth={1.5} fill="none" />
       </Svg>
     </Tap>
   );
@@ -591,13 +594,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  ring: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  ring: { width: 44, height: 44 },
+  meDisc: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  // Figma's memoji sits a little inside the disc, not cropped by it.
+  meFace: { width: 40, height: 40, marginTop: 2 },
+  // The ring hangs 1.5 pt outside the 44 pt disc, as Figma's outside stroke does.
+  meRing: { position: 'absolute', left: -1.5, top: -1.5 },
   rowBetween: {
     flexDirection: 'row',
     alignItems: 'center',
