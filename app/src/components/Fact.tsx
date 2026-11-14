@@ -32,6 +32,6 @@ export function Fact({ label, value, faces, amount }: { label: string; value: st
 }
 
 const styles = StyleSheet.create({
-  fact: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 52 },
+  fact: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 52, paddingVertical: 8 },
   faces: { flexDirection: 'row', gap: 4 },
 });

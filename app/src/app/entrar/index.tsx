@@ -1,6 +1,6 @@
 import { Aurora } from '../../components/Aurora';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
@@ -10,6 +10,7 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { AppleMark, GoogleMark } from '../../components/Icon';
 import { useScreen } from '../../components/Screen';
 import { rise } from '../../components/motion';
+import { useAnnounce } from '../../components/announce';
 import { Button, IconButton, Lockup, T, Tap, inputStyle } from '../../components/ui';
 import { enterApp } from '../../data/session';
 import { light } from '../../theme/tokens';
@@ -28,6 +29,7 @@ export default function SignIn() {
   const [tried, setTried] = useState(false);
   const [focused, setFocused] = useState(false);
   const bad = tried && !looksLikeEmail(email);
+  useAnnounce(bad && (email.includes('@') ? 'A este correo le falta el final, como «.com».' : 'A este correo le falta la arroba.'));
   // Signing in happens once, so the screen may arrive as a short cascade: the pieces rise
   // 12 pt about 40–50 ms apart (half the old gaps), all of it settled in under half a second.
   const reduce = useReducedMotion();
@@ -142,7 +144,7 @@ export default function SignIn() {
   if (split) {
     return (
       <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page, flexDirection: 'row' }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <StatusBar style="dark" />
+        <FocusStatusBar style="dark" />
         <BrandGradient style={{ width: 433, borderTopRightRadius: 36, borderBottomRightRadius: 36 }} seed={4}>
           <View style={{ paddingTop: insets.top + 8, paddingLeft: 50, paddingRight: 30 }}>{greeting}</View>
         </BrandGradient>
@@ -157,7 +159,7 @@ export default function SignIn() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Aurora preset="signin" />
-      <StatusBar style="light" />
+      <FocusStatusBar style="light" />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: insets.top + 30, paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}>
         {hello}
         <View style={{ marginTop: 60 }}>{form}</View>

@@ -9,7 +9,7 @@ import { Frost } from '../components/Frost';
 import { useScreen } from '../components/Screen';
 import { Icon, type IconName } from '../components/Icon';
 import { Card, Hairline, T, Tap } from '../components/ui';
-import { eurText, kindEmoji, openEmoji, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, balancesFor, type Expense, type PersonId } from '../data/trip';
+import { eurText, kindEmoji, openEmoji, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, balancesFor, settledBalances, type Expense, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
 const fold = (s: string) =>
@@ -43,10 +43,10 @@ export default function Search() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
-  const { expenses, groups, groupExpenses, pastEmoji } = useTrip();
+  const { expenses, groups, groupExpenses, pastEmoji, paid } = useTrip();
   const between = usePeopleBalances();
   const piso = usePisoBalance();
-  const lisboa = balancesFor(expenses).tu;
+  const lisboa = settledBalances(expenses, paid).tu;
   const owe = (v: number) => (Math.abs(v) < 0.005 ? 'A cero' : v > 0 ? `Te deben ${eurText(v)}` : `Debes ${eurText(-v)}`);
 
   const groupRows: Row[] = [

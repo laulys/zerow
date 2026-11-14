@@ -6,8 +6,9 @@ import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
-import { StatusBar } from 'expo-status-bar';
+import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { announce } from '../../components/announce';
 import { Button, IconButton, T, Tap } from '../../components/ui';
 import { font } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
@@ -52,6 +53,7 @@ export default function Code() {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     shake.value = withSequence(withTiming(-8, { duration: 50 }), withTiming(8, { duration: 50 }), withTiming(-5, { duration: 50 }), withTiming(0, { duration: 50 }));
     setWrong(true);
+    announce('Ese código no es correcto. Revísalo o pide otro.');
     setTriesLeft((n) => n - 1);
   };
 
@@ -84,7 +86,7 @@ export default function Code() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: t.page }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Aurora preset="onboarding" />
-      <StatusBar style="light" />
+      <FocusStatusBar style="light" />
       <View style={{ flex: 1, paddingTop: insets.top, paddingHorizontal: side }}>
         <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">

@@ -13,6 +13,7 @@ import { EASE, recede, surface } from '../components/motion';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Orb } from '../components/Orb';
+import { announce } from '../components/announce';
 import { Button, Card, Chip, IconButton, T, Tap, type } from '../components/ui';
 import { interpret, missing, type Partial } from '../data/interpret';
 import { balancesFor, eurText, people, useTrip, type Expense, type PersonId } from '../data/trip';
@@ -135,6 +136,8 @@ function NewExpense() {
   const say = (from: Msg['from'], body: string, unsure?: boolean) => {
     const m = { id: ++id.current, from, text: body, unsure };
     setMessages((list) => [...list, m]);
+    // VoiceOver hears Zerow answer (your own bubble is what you just said).
+    if (from !== 'me') announce(body);
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
     return m.id;
   };
@@ -184,7 +187,10 @@ function NewExpense() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.ejemplo]);
 
-  const rewrite = (msgId: number, body: string) => setMessages((list) => list.map((m) => (m.id === msgId ? { ...m, text: body } : m)));
+  const rewrite = (msgId: number, body: string) => {
+    announce(body);
+    setMessages((list) => list.map((m) => (m.id === msgId ? { ...m, text: body } : m)));
+  };
 
   const confirm = () => {
     if (!draft) return;

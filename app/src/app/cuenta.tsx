@@ -9,6 +9,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
 import { Icon } from '../components/Icon';
 import { RollingMoney } from '../components/Money';
+import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Chip, IconButton, T, Tap } from '../components/ui';
 import { eurText, people, useTrip, type Currency, type PersonId } from '../data/trip';
 import { font, motion } from '../theme/tokens';
@@ -34,6 +35,7 @@ export default function QuickSplit() {
   const [who, setWho] = useState<PersonId[]>(everyone);
   const amountRef = useRef<TextInputInstance>(null);
   const before = useRef('84');
+  const veil = useStatusVeil();
 
   const typed = parseFloat(amountText.replace(',', '.'));
   const base = Math.max(0, Number.isFinite(typed) ? typed : parseFloat(before.current.replace(',', '.')) || 0);
@@ -78,7 +80,8 @@ export default function QuickSplit() {
       {/* Like Nuevo gasto: the screen's name is the title of the close button's row, not a small label over the heading. */}
       <View style={styles.navRow}>
         <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
-        <T v="section" color={t.ink} style={styles.navTitle} accessibilityRole="header">
+        {/* A navigation title: like iOS's own, it stops growing before it reaches the close button. */}
+        <T v="section" color={t.ink} style={styles.navTitle} accessibilityRole="header" maxFontSizeMultiplier={1.3} numberOfLines={1}>
           Dividir una cuenta
         </T>
         <View style={{ width: 44 }} />
@@ -186,6 +189,8 @@ export default function QuickSplit() {
   // Figma: 12 above the buttons, 12 between them, 34 under them (the home indicator).
   const bottom = Math.max(insets.bottom, 16);
   const footer = 12 + 56 + 12 + 56 + bottom;
+  // With larger text the buttons wrap and the footer grows: the list leaves it that much room.
+  const [footerH, setFooterH] = useState(footer);
 
   // Open iPhone Duo (Figma «Duo abierto · 2.5»): what each one puts in on the left; who and how on the right.
   return (
@@ -195,12 +200,13 @@ export default function QuickSplit() {
           <Aurora preset="onboarding" />
           <View style={{ flex: 1 }}>
             {/* Full screen (Figma): the close button sits at the top inset. */}
-            <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: footer + 6 }} keyboardShouldPersistTaps="handled">
+            <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: Math.max(footer, footerH) + 6 }} keyboardShouldPersistTaps="handled">
               {amount}
               <View style={{ marginTop: 24 }}>{choices}</View>
             </ScrollView>
+            {veil.veil}
             {/* Figma «Fundido»: the page rises from clear behind the buttons, so the list scrolls away under them. */}
-            <View pointerEvents="box-none" style={[styles.footer, { height: footer, paddingBottom: bottom }]}>
+            <View pointerEvents="box-none" style={[styles.footer, { minHeight: footer, paddingBottom: bottom }]} onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}>
               <Fundido />
               {actions}
             </View>
@@ -231,15 +237,15 @@ function Fundido() {
 }
 
 const styles = StyleSheet.create({
-  navRow: { flexDirection: 'row', alignItems: 'center', height: 44 },
-  navTitle: { flex: 1, textAlign: 'center' },
+  navRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  navTitle: { flex: 1, textAlign: 'center', paddingHorizontal: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
-  titleInput: { fontFamily: font.medium, fontSize: 22, height: 27, padding: 0, borderBottomWidth: 1 },
+  titleInput: { fontFamily: font.medium, fontSize: 22, minHeight: 27, padding: 0, borderBottomWidth: 1 },
   each: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingVertical: 8 },
   // 1.5 pt focus edge inside the 16 pt padding, so the content sits where Figma has it.
-  totalField: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14.5 },
+  totalField: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14.5 },
   totalInput: { fontSize: 17, fontWeight: '600', minWidth: 60, textAlign: 'right', paddingVertical: 0 },
-  pill: { alignSelf: 'flex-start', height: 26, borderRadius: 13, paddingHorizontal: 12, justifyContent: 'center', marginTop: 12 },
+  pill: { alignSelf: 'flex-start', minHeight: 26, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 2, justifyContent: 'center', marginTop: 12 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 20, gap: 12 },
 });

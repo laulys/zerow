@@ -1,10 +1,11 @@
 import { Aurora } from '../../components/Aurora';
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { LayoutAnimationConfig, LinearTransition, useAnimatedScrollHandler, useReducedMotion } from 'react-native-reanimated';
+import Animated, { LayoutAnimationConfig, LinearTransition, useAnimatedScrollHandler, useReducedMotion, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useScreen } from '../../components/Screen';
+import { StatusVeil } from '../../components/StatusVeil';
 import { Avatar } from '../../components/Avatar';
 import { rise, EASE } from '../../components/motion';
 import { useMinimizeOnScroll } from '../../components/TabChrome';
@@ -31,7 +32,11 @@ export default function Activity() {
   // into place and the ones below make room.
   const reduce = useReducedMotion();
   const minimize = useMinimizeOnScroll();
-  const onScroll = useAnimatedScrollHandler((e) => minimize(e.contentOffset.y, e.contentSize.height, e.layoutMeasurement.height));
+  const y = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((e) => {
+    y.value = e.contentOffset.y;
+    minimize(e.contentOffset.y, e.contentSize.height, e.layoutMeasurement.height);
+  });
   // Open iPhone Duo (Figma «Duo abierto · 2.2»): «Hoy» and «Ayer» side by side, 353 each.
   const { form } = useScreen();
   const split = form === 'split';
@@ -150,30 +155,33 @@ export default function Activity() {
   );
 
   return (
-    <Animated.ScrollView
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      style={[{ backgroundColor: t.page }, wide && styles.unclipped]}
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingLeft: split ? 50 : 20, paddingRight: split ? 40 : 20, paddingBottom: 140 }}
-    >
-      <Aurora preset="tab" />
-      <FocusStatusBar style="light" />
-      <T v="titleL" color={t.ink} accessibilityRole="header" style={styles.title}>
-        Actividad
-      </T>
-      {/* On the first render nothing enters: the rows are simply there. */}
-      <LayoutAnimationConfig skipEntering>
-        {split ? (
-          // Two columns on the open Duo: today on the left, the rest on the right.
-          <View style={styles.spread}>
-            <View style={{ flex: 1 }}>{section(sections[0], 0)}</View>
-            <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g, i) => section(g, i + 1))}</View>
-          </View>
-        ) : (
-          <View style={{ gap: 20 }}>{sections.map((g, i) => section(g, i))}</View>
-        )}
-      </LayoutAnimationConfig>
-    </Animated.ScrollView>
+    <View style={[{ flex: 1, backgroundColor: t.page }, wide && styles.unclipped]}>
+      <Animated.ScrollView
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        style={[{ flex: 1, backgroundColor: t.page }, wide && styles.unclipped]}
+        contentContainerStyle={{ paddingTop: insets.top + 12, paddingLeft: split ? 50 : 20, paddingRight: split ? 40 : 20, paddingBottom: 140 }}
+      >
+        <Aurora preset="tab" />
+        <FocusStatusBar style="light" />
+        <T v="titleL" color={t.ink} accessibilityRole="header" style={styles.title}>
+          Actividad
+        </T>
+        {/* On the first render nothing enters: the rows are simply there. */}
+        <LayoutAnimationConfig skipEntering>
+          {split ? (
+            // Two columns on the open Duo: today on the left, the rest on the right.
+            <View style={styles.spread}>
+              <View style={{ flex: 1 }}>{section(sections[0], 0)}</View>
+              <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g, i) => section(g, i + 1))}</View>
+            </View>
+          ) : (
+            <View style={{ gap: 20 }}>{sections.map((g, i) => section(g, i))}</View>
+          )}
+        </LayoutAnimationConfig>
+      </Animated.ScrollView>
+      <StatusVeil y={y} />
+    </View>
   );
 }
 
@@ -200,5 +208,5 @@ const styles = StyleSheet.create({
   emoji: { fontSize: 23, lineHeight: 28 },
   unclipped: { overflow: 'visible' },
   spread: { flexDirection: 'row', alignItems: 'flex-start', gap: 71 },
-  pill: { height: 26, borderRadius: 13, paddingHorizontal: 12, justifyContent: 'center' },
+  pill: { minHeight: 26, borderRadius: 13, paddingHorizontal: 12, justifyContent: 'center' },
 });

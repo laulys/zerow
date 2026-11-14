@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { FocusStatusBar } from '../components/FocusStatusBar';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeIn, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
@@ -36,7 +36,7 @@ export default function Welcome() {
   return (
     <View style={{ flex: 1 }}>
       {/* Both screens stay mounted, so one status bar follows the phase: dark text on the lime intro, light on 1.2. */}
-      <StatusBar style={phase === 'intro' ? 'dark' : 'light'} />
+      <FocusStatusBar style={phase === 'intro' ? 'dark' : 'light'} />
       {/* 1.2 is mounted from the start, under the intro, so its card's gradient is
           already drawn when you tap «Empezar»; its pieces then come in one by one. */}
       <View style={StyleSheet.absoluteFill} pointerEvents={phase === 'demo' ? 'auto' : 'none'}>

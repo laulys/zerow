@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { balancesFor, eurText, people, pisoExpenses, pisoGroup, usePisoBalance, useTrip, type Expense, type PersonId } from '../data/trip';
+import { balancesFor, eurText, people, pisoExpenses, pisoGroup, settledBalances, usePisoBalance, useTrip, type Expense, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 import { Aurora } from './Aurora';
 import { Avatar } from './Avatar';
@@ -43,7 +43,7 @@ export function payerLine(e: Expense) {
 export function GroupSummary({ id }: { id: string }) {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, groups, groupExpenses } = useTrip();
+  const { expenses, groups, groupExpenses, paid } = useTrip();
   const piso = usePisoBalance();
   const created = groups.find((g) => g.id === id);
   const g = id === 'piso' ? pisoGroup : created;
@@ -52,7 +52,8 @@ export function GroupSummary({ id }: { id: string }) {
   const meta = g ? [g.dates, `${g.members.length} personas`].filter(Boolean).join(' · ') : '12–18 nov · 4 personas';
   const list = id === 'piso' ? [...(groupExpenses.piso ?? []), ...pisoExpenses] : g ? (groupExpenses[g.id] ?? []) : expenses;
   const currency = g?.currency ?? 'EUR';
-  const bal = balancesFor(list);
+  // Lisboa counts the payments already marked in Saldar.
+  const bal = id === 'piso' || g ? balancesFor(list) : settledBalances(list, paid);
   if (id === 'piso') bal.tu = piso;
   const mine = bal.tu;
   const signed = (v: number) => (Math.abs(v) < 0.005 ? eurText(0, currency) : `${v > 0 ? '+' : '−'}${eurText(Math.abs(v), currency)}`);

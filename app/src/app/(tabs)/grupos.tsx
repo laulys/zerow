@@ -15,7 +15,21 @@ import { Aurora } from '../../components/Aurora';
 import { LIST_PANE, useScreen } from '../../components/Screen';
 import { TripView } from '../trip/[id]';
 import { Card, Hairline, T, Tap } from '../../components/ui';
-import { balancesFor, eurText, pastGroups, people, settleUp, transferKey, usePeopleBalances, usePisoBalance, useTrip, type Expense, type GroupKind, type PersonId } from '../../data/trip';
+import {
+  balancesFor,
+  eurText,
+  pastGroups,
+  people,
+  settleUp,
+  settledBalances,
+  transferKey,
+  usePeopleBalances,
+  usePisoBalance,
+  useTrip,
+  type Expense,
+  type GroupKind,
+  type PersonId,
+} from '../../data/trip';
 import { light } from '../../theme/tokens';
 
 import { useMinimizeOnScroll } from '../../components/TabChrome';
@@ -37,7 +51,9 @@ export default function Home({ initial }: { initial?: string }) {
   const insets = useSafeAreaInsets();
   const { expenses, draft, groups, groupExpenses, pisoPaid, pastEmoji, paid } = useTrip();
   const pendingPayments = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
-  const mine = balancesFor(expenses).tu;
+  const mine = settledBalances(expenses, paid).tu;
+  // Lisboa's line above the amount: «A cero» once every payment is marked.
+  const mineWord = Math.abs(mine) < 0.005 ? 'A cero' : mine > 0 ? 'Te deben' : 'Debes';
   const between = usePeopleBalances();
   const piso = usePisoBalance();
   const { form } = useScreen();
@@ -56,13 +72,13 @@ export default function Home({ initial }: { initial?: string }) {
   const cards: WalletCard[] = [
     {
       key: 'lisboa',
-      title: `Lisboa 2026. ${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}${draft ? '. 1 gasto por revisar' : ''}`,
+      title: `Lisboa 2026. ${Math.abs(mine) < 0.005 ? 'A cero' : `${mineWord} ${eurText(Math.abs(mine))}`}${draft ? '. 1 gasto por revisar' : ''}`,
       onPress: () => router.push('/trip/lisboa'),
       content: (front: boolean) => (
         <Face front={front} seed={3}>
           <CardTop glass={!front} title="Lisboa 2026" meta="12–18 nov · en curso" people={['tu', 'ana', 'luis', 'marta']} peek={front ? undefined : peekText(mine)} />
           <T v="label" color={light.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
-            {mine >= 0 ? 'Te deben' : 'Debes'}
+            {mineWord}
           </T>
           <RollingMoney value={Math.abs(mine)} size={heroSize(mine)} color={light.inkFixed} centsColor={light.inkMutedFixed} />
           <View style={styles.cardFoot}>
@@ -147,7 +163,7 @@ export default function Home({ initial }: { initial?: string }) {
     y.value = e.contentOffset.y;
     minimize(e.contentOffset.y, e.contentSize.height, e.layoutMeasurement.height);
   });
-  const fadeStyle = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, 60], [0, 1], Extrapolation.CLAMP) }));
+  const fadeStyle = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, 32], [0, 1], Extrapolation.CLAMP) }));
 
   const meButton = (
     <Tap onPress={() => router.navigate('/perfil')} accessibilityRole="button" accessibilityLabel="Tu perfil" style={styles.ring}>
@@ -337,8 +353,8 @@ export default function Home({ initial }: { initial?: string }) {
         <Svg width="100%" height={headerTop + HEADER_H + 24}>
           <Defs>
             <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={t.page} stopOpacity={0.9} />
-              <Stop offset="0.55" stopColor={t.page} stopOpacity={0.6} />
+              <Stop offset="0" stopColor={t.page} stopOpacity={0.96} />
+              <Stop offset={(headerTop + HEADER_H) / (headerTop + HEADER_H + 24)} stopColor={t.page} stopOpacity={0.9} />
               <Stop offset="1" stopColor={t.page} stopOpacity={0} />
             </LinearGradient>
           </Defs>

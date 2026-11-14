@@ -12,7 +12,7 @@ import { useScreen } from '../../components/Screen';
 import { StretchyScroll } from '../../components/StretchyScroll';
 import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { Card, Hairline, T, Tap } from '../../components/ui';
-import { balancesFor, eurText, settleUp, transferKey, useTrip } from '../../data/trip';
+import { balancesFor, eurText, settleUp, settledBalances, transferKey, useTrip } from '../../data/trip';
 import { light } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
@@ -33,7 +33,8 @@ export default function Profile() {
   const minimize = useMinimizeOnScroll();
   const header = insets.top + HEADER_BELOW_INSET;
 
-  const mine = balancesFor(expenses).tu;
+  const mine = settledBalances(expenses, paid).tu;
+  const mineLine = Math.abs(mine) < 0.005 ? 'Estás a cero' : `${mine > 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}`;
   const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
   const open = 2 + groups.length;
   const total = open + 4;
@@ -77,7 +78,7 @@ export default function Profile() {
         <Tap
           onPress={() => router.push('/saldar')}
           accessibilityRole="button"
-          accessibilityLabel={`${mine >= 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))} en Lisboa 2026. ${pending ? `Faltan ${pending} pagos` : 'A cero'}. Ir a saldar`}
+          accessibilityLabel={`${mineLine} en Lisboa 2026. ${pending ? `Falta${pending === 1 ? '' : 'n'} ${pending} pago${pending === 1 ? '' : 's'}` : 'Sin pagos pendientes'}. Ir a saldar`}
         >
           <Card style={{ paddingVertical: 4 }}>
             <View style={styles.highlight}>
@@ -86,10 +87,10 @@ export default function Profile() {
               </View>
               <View style={{ flex: 1 }}>
                 <T v="bodyStrong" color={t.ink}>
-                  {mine >= 0 ? 'Te deben' : 'Debes'} {eurText(Math.abs(mine))}
+                  {mineLine}
                 </T>
                 <T v="caption" color={t.inkMuted}>
-                  En Lisboa 2026 · {pending ? `faltan ${pending} pago${pending === 1 ? '' : 's'}` : 'a cero'}
+                  En Lisboa 2026 · {pending ? `falta${pending === 1 ? '' : 'n'} ${pending} pago${pending === 1 ? '' : 's'}` : 'sin pagos pendientes'}
                 </T>
               </View>
               <Icon name="chevron-right" size={16} color={t.inkMuted} />
@@ -249,7 +250,7 @@ const styles = StyleSheet.create({
   head: { alignSelf: 'stretch', height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   edit: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(17,17,18,0.12)', alignItems: 'center', justifyContent: 'center' },
   ring: { position: 'absolute', top: -10, left: -10 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, height: 36, paddingLeft: 12, paddingRight: 16, borderRadius: 18, backgroundColor: 'rgba(17,17,18,0.08)' },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, minHeight: 36, paddingLeft: 12, paddingRight: 16, borderRadius: 18, backgroundColor: 'rgba(17,17,18,0.08)' },
   dot: { width: 8, height: 8, borderRadius: 4 },
   highlight: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 68 },
   highlightIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

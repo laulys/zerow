@@ -141,6 +141,6 @@ const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   box: { paddingTop: 4, paddingBottom: 4, paddingLeft: 16, paddingRight: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, minHeight: 66 },
-  change: { height: 44, paddingHorizontal: 12, justifyContent: 'center' },
+  change: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
   tile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });
