@@ -1,15 +1,29 @@
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, useReducedMotion } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import Animated, {
+  Easing,
+  FadeIn,
+  FadeOut,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Aurora } from '../components/Aurora';
 import { Avatar, AvatarStack } from '../components/Avatar';
 import { BrandGradient } from '../components/BrandGradient';
 import { Icon } from '../components/Icon';
-import { Money } from '../components/Money';
+import { Money, RollingMoney } from '../components/Money';
 import { Orb } from '../components/Orb';
 import { useScreen } from '../components/Screen';
 import { Button, Card, Hairline, T, Tap } from '../components/ui';
@@ -104,13 +118,83 @@ function Fade() {
   );
 }
 
+/** When each line of the 1.3 conversation lands (ms). Zerow «types» for 650 ms before its answers. */
+const CHAT = { you1: 250, zerow1: 1250, you2: 1900, zerow2: 2900, card: 3450 };
+const OUT = Easing.bezier(0.23, 1, 0.32, 1);
+
+/** The prepared card: rises 16 pt from 97 % as it fades in, on a strong ease-out. */
+const arrive = (delay: number) => () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 16 }, { scale: 0.97 }] },
+    animations: {
+      opacity: withDelay(delay, withTiming(1, { duration: 320, easing: OUT })),
+      transform: [{ translateY: withDelay(delay, withTiming(0, { duration: 520, easing: OUT })) }, { scale: withDelay(delay, withTiming(1, { duration: 520, easing: OUT })) }],
+    },
+  };
+};
+
+/**
+ * One chat line (Figma 1.3): yours lime on the right, Zerow's raised graphite on the left, both
+ * round (22) and at most 282 wide. It pops from its corner (bottom right or bottom left) from 90 %
+ * on a soft spring. With `typing`, three dots show in its place for 650 ms first.
+ */
+function Bubble({ mine, at, typing, children }: { mine?: boolean; at: number; typing?: boolean; children: ReactNode }) {
+  const { t } = useTheme();
+  const reduce = useReducedMotion();
+  const p = useSharedValue(reduce ? 1 : 0);
+  const dots = useSharedValue(0);
+  useEffect(() => {
+    if (reduce) return;
+    if (typing) dots.value = withDelay(at - 650, withSequence(withTiming(1, { duration: 160, easing: OUT }), withDelay(400, withTiming(0, { duration: 120 }))));
+    p.value = withDelay(at, withSpring(1, { damping: 15, stiffness: 200, mass: 0.8 }));
+  }, [reduce, typing, at, p, dots]);
+  const line = useAnimatedStyle(() => ({ opacity: Math.min(1, p.value * 1.5), transform: [{ translateY: (1 - p.value) * 8 }, { scale: 0.9 + 0.1 * p.value }] }));
+  const typingStyle = useAnimatedStyle(() => ({ opacity: dots.value, transform: [{ scale: 0.85 + 0.15 * dots.value }] }));
+  return (
+    <View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', maxWidth: 282 }}>
+      {typing ? (
+        <Animated.View style={[styles.typing, { backgroundColor: t.panelRaised }, typingStyle]} pointerEvents="none" accessibilityElementsHidden>
+          <TypingDots color={t.inkMuted} />
+        </Animated.View>
+      ) : null}
+      <Animated.View style={[styles.bubble, { backgroundColor: mine ? t.lime : t.panelRaised, transformOrigin: mine ? 'right bottom' : 'left bottom' }, line]}>
+        <T v="body" color={mine ? t.onLime : t.ink}>
+          {children}
+        </T>
+      </Animated.View>
+    </View>
+  );
+}
+
+/** Three dots that rise and fall in turn while Zerow «types». */
+function TypingDots({ color }: { color: string }) {
+  const phase = useSharedValue(0);
+  useEffect(() => {
+    phase.value = withRepeat(withTiming(1, { duration: 900, easing: Easing.linear }), -1);
+  }, [phase]);
+  return (
+    <View style={{ flexDirection: 'row', gap: 5 }}>
+      {[0, 1, 2].map((i) => (
+        <Dot key={i} phase={phase} offset={i * 0.18} color={color} />
+      ))}
+    </View>
+  );
+}
+
+function Dot({ phase, offset, color }: { phase: SharedValue<number>; offset: number; color: string }) {
+  const style = useAnimatedStyle(() => {
+    const x = (((phase.value - offset) % 1) + 1) % 1;
+    const up = x < 0.4 ? Math.sin((x / 0.4) * Math.PI) : 0;
+    return { opacity: 0.45 + 0.55 * up, transform: [{ translateY: -3 * up }] };
+  });
+  return <Animated.View style={[{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: color }, style]} />;
+}
+
 /** 1.3: a short conversation that ends in an expense to review. */
 function TellIt({ onNext }: { onNext: () => void }) {
   const { t } = useTheme();
   const reduce = useReducedMotion();
-  const at = (ms: number) => (reduce ? undefined : FadeInDown.delay(ms).duration(300));
-  // Figma: your lines are lime on the right, Zerow's are raised graphite on the left; both round (22), at most 282 wide.
-  const bubble = (mine: boolean) => [styles.bubble, mine ? { alignSelf: 'flex-end' as const, backgroundColor: t.lime } : { alignSelf: 'flex-start' as const, backgroundColor: t.panelRaised }];
   const words = (
     <>
       <T v="titleL" color={t.ink} style={{ marginTop: 12 }} accessibilityRole="header">
@@ -121,29 +205,28 @@ function TellIt({ onNext }: { onNext: () => void }) {
       </T>
     </>
   );
+  // Like a real chat: your lines pop up from the bottom right; Zerow «types» (three dots) before each answer;
+  // the card it prepared arrives last, with a light tap. Everything is laid out from the start, so nothing jumps.
+  useEffect(() => {
+    if (reduce) return;
+    const id = setTimeout(() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light), CHAT.card + 200);
+    return () => clearTimeout(id);
+  }, [reduce]);
   const talk = (
     <>
-      <Animated.View entering={at(150)} style={bubble(true)}>
-        <T v="body" color={t.onLime}>
-          Pagué el taxi para Ana y para mí
-        </T>
-      </Animated.View>
-      <Animated.View entering={at(650)} style={bubble(false)}>
-        <T v="body" color={t.ink}>
-          ¿Cuánto fue? Prefiero preguntarte a adivinarlo.
-        </T>
-      </Animated.View>
-      <Animated.View entering={at(1150)} style={bubble(true)}>
-        <T v="body" color={t.onLime}>
-          45 dólares
-        </T>
-      </Animated.View>
-      <Animated.View entering={at(1650)} style={bubble(false)}>
-        <T v="body" color={t.ink}>
-          Listo. Te lo dejo para que lo revises.
-        </T>
-      </Animated.View>
-      <Animated.View entering={at(2050)}>
+      <Bubble mine at={CHAT.you1}>
+        Pagué el taxi para Ana y para mí
+      </Bubble>
+      <Bubble at={CHAT.zerow1} typing>
+        ¿Cuánto fue? Prefiero preguntarte a adivinarlo.
+      </Bubble>
+      <Bubble mine at={CHAT.you2}>
+        45 dólares
+      </Bubble>
+      <Bubble at={CHAT.zerow2} typing>
+        Listo. Te lo dejo para que lo revises.
+      </Bubble>
+      <Animated.View entering={reduce ? undefined : arrive(CHAT.card)}>
         <LimeCard radius={28} padding={16} seed={9}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Sparkle size={14} color={light.inkFixed} />
@@ -173,8 +256,8 @@ function TellIt({ onNext }: { onNext: () => void }) {
       phone={
         <>
           {words}
-          <View style={{ marginTop: 20, gap: 12 }}>{talk}</View>
-          <View style={{ flex: 1 }} />
+          {/* The conversation sits in the middle of the room under the heading, a little high. */}
+          <View style={styles.talk}>{talk}</View>
           <Fade />
           <Button label="Siguiente" onPress={onNext} />
         </>
@@ -187,7 +270,8 @@ function TellIt({ onNext }: { onNext: () => void }) {
 function OneQuestion({ onNext }: { onNext: () => void }) {
   const { t } = useTheme();
   const reduce = useReducedMotion();
-  const at = (ms: number) => (reduce ? undefined : FadeInDown.delay(ms).duration(300));
+  // Each piece rises into place (16 pt, from 97 %), one after another.
+  const at = (ms: number) => (reduce ? undefined : arrive(ms));
   const question = (
     <>
       <Animated.View entering={at(0)}>
@@ -228,11 +312,11 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
       actions={answers}
       phone={
         <>
-          <View style={{ marginTop: 32 }}>
+          {/* The question and its facts sit in the middle of the room above the answers, a little high. */}
+          <View style={styles.middle}>
             {question}
             <View style={{ marginTop: 24 }}>{facts}</View>
           </View>
-          <View style={{ flex: 1 }} />
           {answers}
         </>
       }
@@ -240,19 +324,57 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
   );
 }
 
+/** The open card stepping back: fades and shrinks to 97 % in 160 ms (exits are quicker than entrances). */
+const stepBack = () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 1, transform: [{ scale: 1 }] },
+    animations: { opacity: withTiming(0, { duration: 160, easing: OUT }), transform: [{ scale: withTiming(0.97, { duration: 160, easing: OUT }) }] },
+  };
+};
+/** The summary coming forward: from 96 % and 10 pt low to its place, on a soft spring. */
+const comeForward = (delay: number) => () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: 10 }, { scale: 0.96 }] },
+    animations: {
+      opacity: withDelay(delay, withTiming(1, { duration: 260, easing: OUT })),
+      transform: [{ translateY: withDelay(delay, withSpring(0, { damping: 16, stiffness: 180 })) }, { scale: withDelay(delay, withSpring(1, { damping: 16, stiffness: 180 })) }],
+    },
+  };
+};
+/** The «A cero» seal pressing in: from 70 % with a little bounce. */
+const seal = (delay: number) => () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.7 }] },
+    animations: { opacity: withDelay(delay, withTiming(1, { duration: 180, easing: OUT })), transform: [{ scale: withDelay(delay, withSpring(1, { damping: 10, stiffness: 260 })) }] },
+  };
+};
+
 /** 1.5 → 1.6: the open trip (a glass card) becomes its closing summary (on the gradient). */
 function Closing({ onNext }: { onNext: () => void }) {
   const { t } = useTheme();
   const reduce = useReducedMotion();
+  // The story in three beats: the open trip, everyone pays (36,23 € rolls down to 0,00 €),
+  // then the open card steps back and the summary arrives on the gradient with its «A cero» seal.
+  const [paidUp, setPaidUp] = useState(reduce);
   const [closed, setClosed] = useState(reduce);
   useEffect(() => {
     if (reduce) return;
-    const id = setTimeout(() => setClosed(true), 1600);
-    return () => clearTimeout(id);
+    const a = setTimeout(() => setPaidUp(true), 900);
+    const b = setTimeout(() => {
+      setClosed(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }, 1900);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
   }, [reduce]);
   // Figma 1.5 «Viaje · Lisboa»: white 7 % glass, radius 32, padding 20.
   const open = (
-    <Animated.View key="open" exiting={FadeOut.duration(150)}>
+    <Animated.View key="open" exiting={reduce ? undefined : stepBack}>
       <Card style={{ borderRadius: 32, padding: 20 }}>
         <T v="titleM" color={t.ink}>
           Lisboa 2026
@@ -264,14 +386,14 @@ function Closing({ onNext }: { onNext: () => void }) {
           Te deben
         </T>
         <View style={{ marginTop: 8 }}>
-          <Money value={36.23} size={56} color={t.ink} />
+          <RollingMoney value={paidUp ? 0 : 36.23} size={56} color={t.ink} />
         </View>
-        <T v="label" color={t.ink} style={{ marginTop: 8, fontWeight: '500' }}>
-          3 pagos pendientes
+        <T v="label" color={paidUp ? t.lime : t.ink} style={{ marginTop: 8, fontWeight: '500' }}>
+          {paidUp ? 'Todos han pagado' : '3 pagos pendientes'}
         </T>
         <View style={{ flexDirection: 'row', gap: 8, marginTop: 30 }} importantForAccessibility="no-hide-descendants">
           {(['tu', 'ana', 'luis', 'marta'] as const).map((id) => (
-            <Avatar key={id} id={id} size={32} bg={t.glass} />
+            <Avatar key={id} id={id} size={32} bg={t.disc} inset />
           ))}
         </View>
       </Card>
@@ -279,7 +401,7 @@ function Closing({ onNext }: { onNext: () => void }) {
   );
   // Figma 1.6 «Resumen · Lisboa»: on the gradient, with the «A cero» badge and «Compartir».
   const summary = (
-    <Animated.View key="closed" entering={reduce ? undefined : FadeInDown.duration(350)}>
+    <Animated.View key="closed" entering={reduce ? undefined : comeForward(140)}>
       <LimeCard radius={32} padding={20} seed={5}>
         <View style={[styles.rowBetween, { alignItems: 'flex-start' }]}>
           <View>
@@ -290,7 +412,7 @@ function Closing({ onNext }: { onNext: () => void }) {
               12–18 nov · 4 personas
             </T>
           </View>
-          <Animated.View entering={reduce ? undefined : FadeIn.delay(250).duration(300)} style={[styles.badge, { backgroundColor: t.onLimeButton }]}>
+          <Animated.View entering={reduce ? undefined : seal(560)} style={[styles.badge, { backgroundColor: t.onLimeButton }]}>
             <Icon name="check" size={16} weight={2.5} color={t.lime} />
             <T v="caption" color={t.lime} style={{ fontWeight: '600' }}>
               A cero
@@ -376,7 +498,10 @@ const styles = StyleSheet.create({
   dots: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: { width: 6, height: 6, borderRadius: 3 },
   skip: { height: 44, paddingHorizontal: 12, justifyContent: 'center' },
-  bubble: { maxWidth: 282, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10 },
+  bubble: { borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10 },
+  typing: { position: 'absolute', left: 0, top: 0, height: 44, borderRadius: 22, paddingHorizontal: 16, justifyContent: 'center' },
+  talk: { flex: 1, justifyContent: 'center', gap: 12, paddingTop: 20, paddingBottom: 56 },
+  middle: { flex: 1, justifyContent: 'center', paddingBottom: 40 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 15, paddingHorizontal: 12, height: 30 },
   fade: { position: 'absolute', left: -20, right: -20, height: 170 },

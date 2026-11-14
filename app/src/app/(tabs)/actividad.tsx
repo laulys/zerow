@@ -1,7 +1,8 @@
 import { Aurora } from '../../components/Aurora';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { Easing, LinearTransition, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useScreen } from '../../components/Screen';
@@ -17,6 +18,22 @@ const sample = new Set(['hotel', 'taxi', 'cena', 'almuerzo']);
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 const roma = pastGroups.find((g) => g.id === 'roma')!;
 
+// The feed arrives top to bottom: each block rises 14 pt as it fades in, and the rows inside it
+// follow 35 ms apart, rising 6 pt, entering while their card is still rising (no empty card). Strong ease-out.
+const EASE = Easing.bezier(0.23, 1, 0.32, 1);
+const rise =
+  (delay: number, distance: number, duration = 460) =>
+  () => {
+    'worklet';
+    return {
+      initialValues: { opacity: 0, transform: [{ translateY: distance }] },
+      animations: {
+        opacity: withDelay(delay, withTiming(1, { duration: duration * 0.8, easing: EASE })),
+        transform: [{ translateY: withDelay(delay, withTiming(0, { duration, easing: EASE })) }],
+      },
+    };
+  };
+
 // 2.2 Actividad: what happened, newest first. "Hoy" follows what you do in the
 // app (adding the lunch, new expenses, payments, new groups); "Ayer" is the
 // trip's sample history; the last block is an older group that reached zero.
@@ -24,6 +41,16 @@ export default function Activity() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { draft, expenses, paid, pisoPaid, groups, pastEmoji } = useTrip();
+  const reduce = useReducedMotion();
+  // Every time you come back to the tab the feed arrives again (the first visit already animates on mount).
+  const [run, setRun] = useState(0);
+  const visited = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (visited.current) setRun((r) => r + 1);
+      visited.current = true;
+    }, []),
+  );
   // Open iPhone Duo (Figma «Duo abierto · 2.2»): «Hoy» and «Ayer» side by side, 353 each.
   const { form } = useScreen();
   const split = form === 'split';
@@ -87,14 +114,14 @@ export default function Activity() {
     { label: 'Roma · marzo', items: older },
   ];
 
-  const section = (g: (typeof sections)[number]) => (
-    <View key={g.label} style={styles.section}>
+  const section = (g: (typeof sections)[number], n: number) => (
+    <Animated.View key={`${g.label}-${run}`} entering={reduce ? undefined : rise(n * 70, 14)} style={styles.section}>
       <T v="labelStrong" color={t.inkMuted}>
         {g.label}
       </T>
       <Card style={{ paddingVertical: 4 }}>
         {g.items.map((it, i) => (
-          <Animated.View key={it.key} entering={FadeInDown.duration(motion.standard)}>
+          <Animated.View key={it.key} entering={reduce ? undefined : rise(n * 70 + 50 + i * 35, 6, 380)} layout={LinearTransition.duration(motion.standard)}>
             <Tap
               onPress={it.to ? () => router.push(it.to as never) : undefined}
               accessibilityRole="button"
@@ -118,7 +145,7 @@ export default function Activity() {
                   {it.meta}
                 </T>
               </View>
-              {it.badge ? <Pill label={it.badge} /> : null}
+              {it.badge ? <Pill label={it.badge} pop={run} delay={n * 70 + 50 + i * 35 + 360} /> : null}
               {it.amount ? (
                 <View style={{ alignItems: 'flex-end', gap: it.tag ? 4 : 0 }}>
                   <T v="titleXS" color={t.ink}>
@@ -129,7 +156,7 @@ export default function Activity() {
                       {it.sub}
                     </T>
                   ) : null}
-                  {it.tag ? <Pill label={it.tag} /> : null}
+                  {it.tag ? <Pill label={it.tag} pop={run} delay={n * 70 + 50 + i * 35 + 360} /> : null}
                 </View>
               ) : null}
             </Tap>
@@ -137,7 +164,7 @@ export default function Activity() {
           </Animated.View>
         ))}
       </Card>
-    </View>
+    </Animated.View>
   );
 
   return (
@@ -153,25 +180,35 @@ export default function Activity() {
       {split ? (
         // Two columns on the open Duo: today on the left, the rest on the right.
         <View style={styles.spread}>
-          <View style={{ flex: 1 }}>{section(sections[0])}</View>
-          <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map(section)}</View>
+          <View style={{ flex: 1 }}>{section(sections[0], 0)}</View>
+          <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g, i) => section(g, i + 1))}</View>
         </View>
       ) : (
-        <View style={{ gap: 20 }}>{sections.map(section)}</View>
+        <View style={{ gap: 20 }}>{sections.map((g, i) => section(g, i))}</View>
       )}
     </ScrollView>
   );
 }
 
-/** Figma «Ver» / «Por revisar»: a 26 pt lime tag with dark 13 pt text. */
-function Pill({ label }: { label: string }) {
+/**
+ * Figma «Ver» / «Por revisar»: a 26 pt lime tag with dark 13 pt text. These are the
+ * two things waiting on you, so once the feed has settled they give one soft nod.
+ */
+function Pill({ label, pop = 0, delay = 0 }: { label: string; pop?: number; delay?: number }) {
   const { t } = useTheme();
+  const reduce = useReducedMotion();
+  const scale = useSharedValue(1);
+  useEffect(() => {
+    if (reduce) return;
+    scale.value = withDelay(delay, withSequence(withTiming(1.08, { duration: 160, easing: EASE }), withSpring(1, { damping: 12, stiffness: 220 })));
+  }, [pop, delay, reduce, scale]);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <View style={[styles.pill, { backgroundColor: t.lime }]}>
+    <Animated.View style={[styles.pill, { backgroundColor: t.lime }, style]}>
       <T v="caption" color={t.inkFixed} style={{ fontWeight: '600' }}>
         {label}
       </T>
-    </View>
+    </Animated.View>
   );
 }
 
