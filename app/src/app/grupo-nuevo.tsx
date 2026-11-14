@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
 import { Icon, type IconName } from '../components/Icon';
+import { announce } from '../components/announce';
+import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Chip, IconButton, Segmented, T, inputStyle } from '../components/ui';
 import { people, useTrip, type Currency, type GroupKind, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
@@ -37,11 +39,13 @@ export default function NewGroup() {
   const k = kinds.find((x) => x.key === kind)!;
   const showDates = kind === 'viaje' || kind === 'evento';
   const nameMissing = tried && !name.trim();
+  const veil = useStatusVeil();
 
   const create = () => {
     if (!name.trim()) {
       setTried(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      announce('Ponle un nombre para encontrarlo luego.');
       return;
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -140,10 +144,11 @@ export default function NewGroup() {
           <Aurora preset="onboarding" />
           <View style={{ flex: 1 }}>
             {/* Full screen (Figma): the close button sits at the top inset. */}
-            <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: 12 + 56 + bottom, gap: 16 }} keyboardShouldPersistTaps="handled">
+            <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: 12 + 56 + bottom, gap: 16 }} keyboardShouldPersistTaps="handled">
               {basics}
               {more}
             </ScrollView>
+            {veil.veil}
             <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: bottom }]}>
               <Fundido />
               {action}

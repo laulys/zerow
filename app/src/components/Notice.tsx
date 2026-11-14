@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
+import { announce } from './announce';
 import { Frost } from './Frost';
 import { Icon } from './Icon';
 import { T, Tap } from './ui';
@@ -13,6 +15,8 @@ import { T, Tap } from './ui';
  */
 export function UndoNotice({ text, onUndo, style }: { text: string; onUndo: () => void; style?: StyleProp<ViewStyle> }) {
   const { t } = useTheme();
+  // iOS has no live regions: the notice says itself when it appears.
+  useEffect(() => announce(`${text}. Puedes deshacerlo.`), [text]);
   return (
     <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOutDown.duration(160)} style={[styles.notice, style]} accessibilityLiveRegion="polite">
       <Frost fill={t.glass} radius={24} intensity={20} />
@@ -30,6 +34,6 @@ export function UndoNotice({ text, onUndo, style }: { text: string; onUndo: () =
 }
 
 const styles = StyleSheet.create({
-  notice: { height: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 16, paddingRight: 4 },
-  undo: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12 },
+  notice: { minHeight: 48, borderRadius: 24, flexDirection: 'row', alignItems: 'center', gap: 12, paddingLeft: 16, paddingRight: 4 },
+  undo: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, paddingHorizontal: 12 },
 });

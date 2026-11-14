@@ -16,9 +16,27 @@ import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
 import { Money, RollingAmount, RollingMoney } from '../../components/Money';
 import { EASE, recede, rise } from '../../components/motion';
+import { undoWindow, useScreenReader } from '../../components/announce';
+import { useStatusVeil } from '../../components/StatusVeil';
 import { Button, Card, Hairline, IconButton, T, Tap, type as typeScale } from '../../components/ui';
 import { UndoNotice } from '../../components/Notice';
-import { PISO_SHARE, balancesFor, eurText, invite, people, pisoGroup, settleUp, transferKey, usePisoBalance, useTrip, type Currency, type Expense, type Group, type PersonId } from '../../data/trip';
+import {
+  PISO_SHARE,
+  balancesFor,
+  eurText,
+  invite,
+  people,
+  pisoGroup,
+  settleUp,
+  settledBalances,
+  transferKey,
+  usePisoBalance,
+  useTrip,
+  type Currency,
+  type Expense,
+  type Group,
+  type PersonId,
+} from '../../data/trip';
 import { light, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
@@ -188,11 +206,12 @@ function EmptyGroup({ group, mine: fixed, note, action }: { group: Group; mine?:
   const { groupExpenses } = useTrip();
   const list = groupExpenses[group.id] ?? [];
   const mine = fixed ?? balancesFor(list).tu;
+  const veil = useStatusVeil();
   if (!list.length) return <ListeningEmpty group={group} />;
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <Light />
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) }}>
+      <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) }}>
         <Nav name={group.name} />
         <Heading title={group.name} meta={metaLine(group)} />
         {/* Figma «Saldo»: p16, 4 pt between the lines, 10 pt of air above the action. */}
@@ -217,6 +236,7 @@ function EmptyGroup({ group, mine: fixed, note, action }: { group: Group; mine?:
         </Card>
         <Expenses list={list} group={group.id} currency={group.currency} />
       </ScrollView>
+      {veil.veil}
       <CaptureBar bottom={insets.bottom} group={group.id} />
     </View>
   );
@@ -240,10 +260,11 @@ function ListeningEmpty({ group }: { group: Group }) {
   const reduce = useReducedMotion();
   const at = (ms: number) => rise(ms, 8, reduce, 260);
   const tryIt = (ejemplo: string) => router.push({ pathname: '/nuevo', params: { grupo: group.id, ejemplo } });
+  const veil = useStatusVeil();
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <Light preset="joined" />
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) }}>
+      <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) }}>
         <Nav name={group.name} />
         <Heading title={group.name} meta={metaLine(group)} />
         {/* Figma «Vacío»: a centred column, 12 pt apart, with extra air around the orb. */}
@@ -280,6 +301,7 @@ function ListeningEmpty({ group }: { group: Group }) {
           </Animated.View>
         </View>
       </ScrollView>
+      {veil.veil}
       <CaptureBar bottom={insets.bottom} group={group.id} />
     </View>
   );
@@ -291,15 +313,17 @@ function Trip() {
   const embedded = useContext(Embedded);
   const insets = useSafeAreaInsets();
   const { expenses, draft, confirmDraft, discardDraft, undoLast, paid } = useTrip();
+  const veil = useStatusVeil();
+  const screenReader = useScreenReader();
   // 3.2 / 3.3: a notice with «Deshacer» after either answer. «No es así» only hides
   // the draft; it is dropped when the notice goes, so «Deshacer» can bring it back.
   const [notice, setNotice] = useState<{ title: string; kind: 'sumado' | 'descartado' } | null>(null);
   const discarding = notice?.kind === 'descartado';
   const shown = discarding ? null : draft;
-  const now = balancesFor(expenses);
+  const now = settledBalances(expenses, paid);
   const next = shown ? balancesFor([shown, ...expenses]) : null;
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
-  const pendingPayments = settleUp(now).filter((x) => !paid.has(transferKey(x))).length;
+  const pendingPayments = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
 
   const pending = useRef(false);
   useEffect(() => {
@@ -314,7 +338,7 @@ function Trip() {
     const id = setTimeout(() => {
       if (notice.kind === 'descartado') discardDraft();
       setNotice(null);
-    }, 10000);
+    }, undoWindow(screenReader));
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notice]);
@@ -343,7 +367,7 @@ function Trip() {
     <LayoutAnimationConfig skipEntering>
       <View style={{ flex: 1, backgroundColor: t.page }}>
         <Light />
-        <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) + (notice ? 56 : 0) }}>
+        <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) + (notice ? 56 : 0) }}>
           {embedded ? (
             // In Inicio's detail pane the name sits on the navigation line (Figma «Duo abierto · 2.1»).
             <View style={styles.nav}>
@@ -464,6 +488,7 @@ function Trip() {
             </View>
           </View>
         </ScrollView>
+        {embedded ? null : veil.veil}
 
         <CaptureBar bottom={insets.bottom} />
 
@@ -626,15 +651,15 @@ const styles = StyleSheet.create({
   sideBySide: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   compactRow: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
   nav: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  joined: { alignSelf: 'stretch', height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, paddingRight: 16 },
-  example: { height: 44, borderRadius: 22, paddingHorizontal: 16, justifyContent: 'center' },
-  preview: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 28, paddingBottom: 10 },
-  balRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 56 },
+  joined: { alignSelf: 'stretch', minHeight: 44, paddingVertical: 6, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 12, paddingRight: 16 },
+  example: { minHeight: 44, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 6, justifyContent: 'center' },
+  preview: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 28, paddingBottom: 10 },
+  balRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 6 },
   draftGlow: { borderRadius: 28, backgroundColor: lime, shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   draftShade: { borderRadius: 28, backgroundColor: lime, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   draft: { borderRadius: 28, padding: 16, gap: 12 },
-  draftTitle: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 36 },
-  expRow: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 62 },
+  draftTitle: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, minHeight: 36 },
+  expRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 8 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   toast: { position: 'absolute', left: 20, right: 20 },
   captureWrap: { position: 'absolute', left: 20, right: 20, height: BAR, borderRadius: 30 },

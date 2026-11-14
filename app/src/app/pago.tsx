@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { PixelRatio, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
@@ -51,7 +51,8 @@ export default function PaymentSent() {
   const discOp = useSharedValue(reduce ? 1 : 0);
   const draw = useSharedValue(reduce ? 1 : 0);
   const ring = useSharedValue(reduce ? 1 : 0);
-  const paper = useSharedValue(reduce ? 0 : -RECEIPT_H - 10);
+  // The paper is as tall as its text, so with larger type it starts further up the slot.
+  const paper = useSharedValue(reduce ? 0 : -Math.ceil(RECEIPT_H * Math.max(1, PixelRatio.getFontScale())) - 10);
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -159,10 +160,16 @@ export default function PaymentSent() {
         <View style={{ flex: 1, backgroundColor: t.page }}>
           <Aurora preset="receipt" />
           <StatusBar style="light" />
-          <View style={{ flex: 1, paddingTop: insets.top + 34, paddingHorizontal: 20 }}>
+          {/* It fits on one screen; with larger text it scrolls instead of hiding under the buttons. */}
+          <ScrollView
+            style={{ flex: 1 }}
+            alwaysBounceVertical={false}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingTop: insets.top + 34, paddingHorizontal: 20, paddingBottom: 24 }}
+          >
             {paid}
             <View style={{ marginTop: 24 }}>{receipt}</View>
-          </View>
+          </ScrollView>
           <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom }}>
             {/* Figma «Fundido»: the page fades in under the buttons. */}
             <Svg pointerEvents="none" style={styles.fade} width="100%" height="100%">
@@ -190,10 +197,10 @@ const styles = StyleSheet.create({
   ring: { position: 'absolute', width: 88, height: 88, borderRadius: 44, borderWidth: 2 },
   disc: { width: 88, height: 88, borderRadius: 44, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.28, shadowRadius: 14, shadowOffset: { width: 0, height: 0 } },
   slotLine: { height: 10, borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', zIndex: 1 },
-  slot: { height: RECEIPT_H, overflow: 'hidden', marginTop: -5 },
+  slot: { overflow: 'hidden', marginTop: -5 },
   receipt: { backgroundColor: PAPER, paddingHorizontal: 16, paddingTop: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, height: 46 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 46, paddingVertical: 8 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
   // «Listo»: a 44 pt text button with 17 pt type.
-  listo: { height: 44, marginTop: 12, alignItems: 'center', justifyContent: 'center' },
+  listo: { minHeight: 44, marginTop: 12, alignItems: 'center', justifyContent: 'center' },
 });

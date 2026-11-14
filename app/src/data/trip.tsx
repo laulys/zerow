@@ -83,6 +83,20 @@ export function settleUp(balances: Record<PersonId, number>): Transfer[] {
 
 export const transferKey = (t: Transfer) => `${t.from}>${t.to}`;
 
+/**
+ * Where everyone stands once the payments marked as paid are counted: each one
+ * moves both people toward zero, so «A cero» in Saldar and the balances agree.
+ */
+export function settledBalances(expenses: Expense[], paid: Set<string>): Record<PersonId, number> {
+  const out = balancesFor(expenses);
+  for (const x of settleUp({ ...out })) {
+    if (!paid.has(transferKey(x))) continue;
+    out[x.from] = Math.round((out[x.from] + x.amount) * 100) / 100;
+    out[x.to] = Math.round((out[x.to] - x.amount) * 100) / 100;
+  }
+  return out;
+}
+
 /** Piso Calle Mayor: the sample shared-flat group. Your 18,40 € share is to Ana. */
 export const pisoGroup: Group = { id: 'piso', name: 'Piso Calle Mayor', kind: 'piso', dates: 'noviembre', currency: 'EUR', members: ['tu', 'ana', 'luis'] };
 export const pisoExpenses: Expense[] = [
@@ -206,6 +220,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
         setExpenses((list) => [draft, ...list]);
         setLastSaved(draft);
         setDraft(null);
+        // The ledger changed, so the payments are worked out again.
+        setPaid(new Set());
       },
       discardDraft: () => setDraft(null),
       undoLast: () => {
@@ -213,6 +229,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
         setExpenses((list) => list.filter((e) => e.id !== lastSaved.id));
         setDraft(lastSaved);
         setLastSaved(null);
+        setPaid(new Set());
       },
     }),
     [groups, groupExpenses, expenses, draft, lastSaved, paid, pisoPaid, pastEmoji],

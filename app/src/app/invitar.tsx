@@ -7,6 +7,7 @@ import { AvatarStack } from '../components/Avatar';
 import { useTrip, type PersonId } from '../data/trip';
 import { Icon } from '../components/Icon';
 import { SheetBody } from '../components/Sheet';
+import { announce } from '../components/announce';
 import { Button, Chip, T, Tap } from '../components/ui';
 import { useTheme } from '../theme/useTheme';
 
@@ -38,6 +39,7 @@ export default function Invite() {
   const copy = async () => {
     await Clipboard.setStringAsync(`https://${link}`);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    announce('Enlace copiado');
     setCopied(true);
   };
 
@@ -106,6 +108,6 @@ const slug = (s: string) =>
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  link: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, paddingLeft: 16, paddingRight: 8, height: 60 },
-  copy: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 16 },
+  link: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, paddingLeft: 16, paddingRight: 8, minHeight: 60 },
+  copy: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 16 },
 });

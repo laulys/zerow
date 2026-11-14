@@ -149,7 +149,8 @@ export function Button({
       style={[
         disabled && { opacity: 0.4 },
         {
-          height,
+          minHeight: height,
+          paddingVertical: 8,
           borderRadius: height / 2,
           backgroundColor: frosted ? undefined : bg,
           flexDirection: 'row',
@@ -167,7 +168,7 @@ export function Button({
       {leading}
       {icon ? <Icon name={icon} size={20} color={iconColor ?? fg} /> : null}
       {/* Figma: text buttons («Ya le pagué de otra forma», «Recordárselo») are 17 pt even at 44 tall. */}
-      <T v={height >= 48 || kind === 'text' ? 'bodyStrong' : 'labelStrong'} color={fg}>
+      <T v={height >= 48 || kind === 'text' ? 'bodyStrong' : 'labelStrong'} color={fg} style={{ flexShrink: 1, textAlign: 'center' }}>
         {label}
       </T>
     </Tap>
@@ -273,7 +274,8 @@ export function Chip({
       style={[
         // v3 chips: glass (white 12 % + blur) or, when chosen, the ink colour with dark text.
         {
-          height: 44,
+          minHeight: 44,
+          paddingVertical: 6,
           borderRadius: 22,
           flexDirection: 'row',
           alignItems: 'center',
@@ -308,9 +310,9 @@ export function Segmented<K extends string>({ options, value, onChange }: { opti
             onPress={() => onChange(o.key)}
             accessibilityRole="radio"
             accessibilityState={{ checked: on }}
-            style={{ flex: 1, height: 44, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}
+            style={{ flex: 1, minHeight: 44, paddingVertical: 6, paddingHorizontal: 8, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}
           >
-            <T v="labelStrong" color={on ? t.onLime : t.ink}>
+            <T v="labelStrong" color={on ? t.onLime : t.ink} style={{ textAlign: 'center' }}>
               {o.label}
             </T>
           </Tap>
@@ -335,7 +337,7 @@ export function Field({ label, children }: { label: string; children: ReactNode 
 
 /** Fields are 56 pt tall, translucent like the cards, with no outline. */
 export const inputStyle = (t: { fill: string; ink: string }) => ({
-  height: 56,
+  minHeight: 56,
   borderRadius: 16,
   backgroundColor: t.fill,
   paddingHorizontal: 16,

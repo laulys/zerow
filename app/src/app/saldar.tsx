@@ -15,10 +15,12 @@ import { Frost } from '../components/Frost';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { EASE, recede, rise } from '../components/motion';
+import { announce, undoWindow, useScreenReader } from '../components/announce';
+import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../components/ui';
 import { DraftCard } from './trip/[id]';
 import { UndoNotice } from '../components/Notice';
-import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type PersonId, type Transfer } from '../data/trip';
+import { balancesFor, eurText, people, settleUp, settledBalances, transferKey, useTrip, type Expense, type PersonId, type Transfer } from '../data/trip';
 import { light, motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
@@ -30,6 +32,7 @@ function SettleUp() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { expenses, draft, paid, markPaid, unmarkPaid, confirmDraft, discardDraft, undoLast } = useTrip();
+  const veil = useStatusVeil();
   // 4.1 → 4.2: after either answer, a notice with «Deshacer» (Figma «Aviso», as on Lisboa).
   // «No contarlo» only hides the draft while the notice is up, so «Deshacer» can bring it back.
   const [notice, setNotice] = useState<{ title: string; kind: 'sumado' | 'descartado' } | null>(null);
@@ -37,6 +40,7 @@ function SettleUp() {
   const asking = draft && !skipping ? draft : null;
   const balances = balancesFor(expenses);
   const transfers = settleUp(balances);
+  const current = settledBalances(expenses, paid);
   const pending = transfers.filter((x) => !paid.has(transferKey(x)));
   const done = transfers.filter((x) => paid.has(transferKey(x)));
   const settled = !draft && transfers.length > 0 && pending.length === 0;
@@ -45,6 +49,7 @@ function SettleUp() {
   const reduceMotion = useReducedMotion();
   const [summary, setSummary] = useState(false);
   const [settledOnOpen] = useState(settled);
+  const screenReader = useScreenReader();
 
   const leaving = useRef(false);
   useEffect(() => {
@@ -58,7 +63,7 @@ function SettleUp() {
     const id = setTimeout(() => {
       if (notice.kind === 'descartado') discardDraft();
       setNotice(null);
-    }, 10000);
+    }, undoWindow(screenReader));
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notice]);
@@ -72,8 +77,11 @@ function SettleUp() {
   // The trip reaches zero here: one success tap as the mark on the card closes.
   useEffect(() => {
     if (!settled || settledOnOpen) return;
+    // The app's biggest moment is also said aloud (iOS has no live regions).
+    announce(`A cero. Lisboa 2026 quedó saldado: ${eurText(total)} entre 4.`);
     const id = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 120 + motion.standard);
     return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settled, settledOnOpen]);
 
   const pay = (x: Transfer) => {
@@ -107,7 +115,7 @@ function SettleUp() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 + (notice ? 64 : 0) }}>
+      <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 40 + (notice ? 64 : 0) }}>
         <Aurora preset="task" />
         <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
@@ -205,8 +213,8 @@ function SettleUp() {
                         {people[id].name}
                       </T>
                       <T v="titleXS" color={t.ink}>
-                        {balances[id] >= 0 ? '+' : '−'}
-                        {eurText(Math.abs(balances[id]))}
+                        {Math.abs(current[id]) < 0.005 ? '' : current[id] > 0 ? '+' : '−'}
+                        {eurText(Math.abs(current[id]))}
                       </T>
                     </View>
                     {i < 3 ? <Hairline /> : null}
@@ -217,6 +225,7 @@ function SettleUp() {
           ) : null}
         </View>
       </ScrollView>
+      {veil.veil}
       {notice ? <UndoNotice text={`${notice.title} ${notice.kind}`} onUndo={onUndo} style={[styles.notice, { bottom: insets.bottom + 16 }]} /> : null}
     </View>
   );
@@ -445,22 +454,22 @@ const styles = StyleSheet.create({
   glowLime: { borderRadius: 28, backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { borderRadius: 28, backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58 },
-  quiet: { height: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  quiet: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
   paidCard: { borderRadius: 28, paddingLeft: 16, paddingRight: 6 },
   paidRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52 },
-  balancesToggle: { height: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
+  balancesToggle: { minHeight: 56, paddingVertical: 8, borderRadius: 28, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   ringBox: { width: 256, height: 256, alignItems: 'center', justifyContent: 'center' },
   aCero: { fontSize: 52, lineHeight: 56, letterSpacing: -1.56 },
   faces: { flexDirection: 'row', gap: 14, marginTop: 28 },
   paid: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
   spark: { position: 'absolute', left: 0, top: 0, width: 12, height: 12, borderRadius: 6, shadowOpacity: 0.8, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
   summary: { padding: 20, gap: 8 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, borderRadius: 15, paddingHorizontal: 12 },
-  share: { flexDirection: 'row', alignItems: 'center', height: 38 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 30, borderRadius: 15, paddingHorizontal: 12 },
+  share: { flexDirection: 'row', alignItems: 'center', minHeight: 38 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
   notice: { position: 'absolute', left: 20, right: 20 },
   centred: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 64 },
-  textButton: { height: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
+  textButton: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },
 });
 
 // On the open iPhone Duo the group stays in view in the list pane (Figma «Resumen»).

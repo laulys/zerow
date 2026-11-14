@@ -1,7 +1,7 @@
 import { Aurora } from '../../components/Aurora';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useReducedMotion, withDelay, withTiming } from 'react-native-reanimated';
@@ -135,7 +135,7 @@ export default function Invited() {
   const phone = (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <Aurora preset="tab" />
-      <StatusBar style="light" />
+      <FocusStatusBar style="light" />
       {/* The ticket sits centred in the space between «Ana te invita…» and the buttons, not stuck to the top. */}
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 10, paddingHorizontal: 20, paddingBottom: footer + 24 }}>
         {fromRow}

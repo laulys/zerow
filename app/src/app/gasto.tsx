@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
 import { Money } from '../components/Money';
 import { surface } from '../components/motion';
+import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Card, Hairline, IconButton, T } from '../components/ui';
 import { eurText, people, useTrip, type Expense, type GroupKind, type PersonId } from '../data/trip';
 import { sheetFill } from '../theme/tokens';
@@ -42,6 +43,7 @@ function ExpenseDetail() {
   const { grupo = 'lisboa', id } = useLocalSearchParams<{ grupo?: string; id: string }>();
   const { expenses, groups, groupExpenses, removeExpense } = useTrip();
   const [asking, setAsking] = useState(false);
+  const veil = useStatusVeil();
   const ledger: Expense[] = grupo === 'lisboa' ? expenses : (groupExpenses[grupo] ?? []);
   const e = ledger.find((x) => x.id === id);
   const created = groups.find((g) => g.id === grupo);
@@ -79,7 +81,7 @@ function ExpenseDetail() {
     <View style={{ flex: 1, backgroundColor: t.page }}>
       {/* On the open Duo the summary pane brings its own light. */}
       {split ? null : <Aurora preset="task" />}
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 56 + 40 }}>
+      <ScrollView {...veil.scroll} contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 56 + 40 }}>
         <IconButton name="chevron-left" label="Volver" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
           {e.title}
@@ -149,6 +151,7 @@ function ExpenseDetail() {
           </Card>
         </View>
       </ScrollView>
+      {veil.veil}
 
       <BottomFade height={insets.bottom + 96} />
       {/* Figma «Acciones»: a red text button and the lime «Editar», 12 apart, on the home indicator's line. */}
@@ -189,7 +192,7 @@ function ConfirmDelete({ title, group, onCancel, onDelete }: { title: string; gr
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 58 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58, paddingVertical: 8 },
   foot: { position: 'absolute', left: 20, right: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center' },
   alert: {
