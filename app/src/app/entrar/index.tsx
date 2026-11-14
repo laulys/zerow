@@ -3,12 +3,13 @@ import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import { BrandGradient } from '../../components/BrandGradient';
 import { AppleMark, GoogleMark } from '../../components/Icon';
 import { useScreen } from '../../components/Screen';
+import { rise } from '../../components/motion';
 import { Button, IconButton, Lockup, T, Tap, inputStyle } from '../../components/ui';
 import { enterApp } from '../../data/session';
 import { light } from '../../theme/tokens';
@@ -27,7 +28,10 @@ export default function SignIn() {
   const [tried, setTried] = useState(false);
   const [focused, setFocused] = useState(false);
   const bad = tried && !looksLikeEmail(email);
-  const at = (ms: number) => FadeInDown.delay(ms).duration(300);
+  // Signing in happens once, so the screen may arrive as a short cascade: the pieces rise
+  // 12 pt about 40–50 ms apart (half the old gaps), all of it settled in under half a second.
+  const reduce = useReducedMotion();
+  const at = (ms: number) => rise(ms / 2, 12, reduce, 260);
 
   const send = () => {
     if (!looksLikeEmail(email)) return setTried(true);

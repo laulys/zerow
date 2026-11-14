@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
-import Animated, { Easing, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { Avatar } from '../../components/Avatar';
@@ -10,6 +10,7 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { Icon } from '../../components/Icon';
 import { useScreen } from '../../components/Screen';
 import { StretchyScroll } from '../../components/StretchyScroll';
+import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { Card, Hairline, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, settleUp, transferKey, useTrip } from '../../data/trip';
 import { light } from '../../theme/tokens';
@@ -18,36 +19,24 @@ import { useTheme } from '../../theme/useTheme';
 // Figma «Tarjeta de perfil» is 398 tall on a 54 pt status bar; the rest follows the device's own inset.
 const HEADER_BELOW_INSET = 344;
 
-// The Memoji settles in: it fades up from 94 % with a strong ease-out and no
-// overshoot (the old spring started from nothing and bounced past full size).
-const settleIn = () => {
-  'worklet';
-  return {
-    initialValues: { opacity: 0, transform: [{ scale: 0.94 }] },
-    animations: {
-      opacity: withTiming(1, { duration: 260, easing: Easing.out(Easing.quad) }),
-      transform: [{ scale: withTiming(1, { duration: 420, easing: Easing.bezier(0.23, 1, 0.32, 1) }) }],
-    },
-  };
-};
-
 // 2.3 Perfil: you, on the brand gradient, then the one thing worth acting on
 // (what you're owed) and a plain settings list. Pull down and the gradient stretches.
+// It's a tab, so it doesn't stage an entrance: it cross-fades in like the others. The only
+// movement is the slow dashed ring around you, which stops with Reduce Motion.
 export default function Profile() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { expenses, paid, groups } = useTrip();
   const [notify, setNotify] = useState(true);
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
-  const reduce = useReducedMotion();
   const split = useScreen().form === 'split';
+  const minimize = useMinimizeOnScroll();
   const header = insets.top + HEADER_BELOW_INSET;
 
   const mine = balancesFor(expenses).tu;
   const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
   const open = 2 + groups.length;
   const total = open + 4;
-  const at = (ms: number) => FadeInDown.delay(ms).duration(300);
 
   const gradient = <BrandGradient style={{ flex: 1, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 }} seed={6} />;
 
@@ -62,11 +51,11 @@ export default function Profile() {
           <Icon name="pen" size={20} color={light.inkFixed} weight={1.75} />
         </Tap>
       </View>
-      <Animated.View entering={reduce ? undefined : settleIn} style={{ marginTop: 26 }}>
+      <View style={{ marginTop: 26 }}>
         <Avatar id="tu" size={108} decorative={false} bg="rgba(255,255,255,0.35)" />
         <Ring />
-      </Animated.View>
-      <Animated.View entering={at(180)} style={{ alignItems: 'center' }}>
+      </View>
+      <View style={{ alignItems: 'center' }}>
         <T v="titleM" color={light.inkFixed} style={{ marginTop: 22 }}>
           Laura
         </T>
@@ -79,12 +68,12 @@ export default function Profile() {
             {total} grupos · {open} abiertos
           </T>
         </View>
-      </Animated.View>
+      </View>
     </>
   );
   const settings = (
     <View style={{ gap: 16 }}>
-      <Animated.View entering={at(280)}>
+      <View>
         <Tap
           onPress={() => router.push('/saldar')}
           accessibilityRole="button"
@@ -107,9 +96,9 @@ export default function Profile() {
             </View>
           </Card>
         </Tap>
-      </Animated.View>
+      </View>
 
-      <Animated.View entering={at(360)}>
+      <View>
         <Card style={{ paddingVertical: 4 }}>
           <Row icon={<Icon name="user" size={20} color={t.ink} />} label="Foto de perfil" value="Memoji" chevron />
           <Hairline />
@@ -134,13 +123,13 @@ export default function Profile() {
           <Hairline />
           <Row icon={<Glyph name="circle-help" color={t.ink} />} label="Cómo funciona Zerow" onPress={() => router.push('/')} chevron />
         </Card>
-      </Animated.View>
+      </View>
 
-      <Animated.View entering={at(420)}>
+      <View>
         <Card style={{ paddingVertical: 4 }}>
           <Row icon={<Icon name="log-out" size={20} color={t.danger} />} label="Cerrar sesión" danger onPress={() => router.replace('/')} height={56} />
         </Card>
-      </Animated.View>
+      </View>
     </View>
   );
 
@@ -161,7 +150,7 @@ export default function Profile() {
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <FocusStatusBar style="dark" />
-      <StretchyScroll background={gradient} backgroundHeight={header} contentContainerStyle={{ paddingBottom: 140 }}>
+      <StretchyScroll background={gradient} backgroundHeight={header} contentContainerStyle={{ paddingBottom: 140 }} onScrollY={minimize}>
         <View style={{ height: header, paddingTop: insets.top, paddingHorizontal: 20, alignItems: 'center' }}>{you}</View>
         <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>{settings}</View>
       </StretchyScroll>

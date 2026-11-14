@@ -9,6 +9,7 @@ import { Aurora } from '../components/Aurora';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BrandGradient } from '../components/BrandGradient';
 import { Frost } from '../components/Frost';
+import { EASE, recede, surface } from '../components/motion';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Orb } from '../components/Orb';
@@ -61,9 +62,11 @@ function NewExpense() {
   const insets = useSafeAreaInsets();
   const { expenses, addExpense, removeExpense, groups, groupExpenses, addToGroup } = useTrip();
   const params = useLocalSearchParams<{ grupo?: string; ejemplo?: string }>();
-  const options = [{ id: 'lisboa', name: 'Lisboa 2026' }, { id: 'piso', name: 'Piso Calle Mayor' }, ...groups.map((g) => ({ id: g.id, name: g.name }))];
+  const options = [{ id: 'lisboa', name: 'Lisboa 2026', people: 4 }, { id: 'piso', name: 'Piso Calle Mayor', people: 3 }, ...groups.map((g) => ({ id: g.id, name: g.name, people: g.members.length }))];
   const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
   const [picking, setPicking] = useState(false);
+  const [menuTop, setMenuTop] = useState(0);
+  const reduceMotion = useReducedMotion();
   const groupName = options.find((o) => o.id === groupId)?.name ?? 'Lisboa 2026';
   const members =
     groupId === 'lisboa'
@@ -233,7 +236,7 @@ function NewExpense() {
       ) : null}
 
       {/* Full screen (Figma 3.4–3.6): the header row sits at the top inset. */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top }]} onLayout={(e) => setMenuTop(e.nativeEvent.layout.y + e.nativeEvent.layout.height + 8)}>
         <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
         {/* The title is centred on the close button's 44 pt row; the group pill sits 12 under it. */}
         <View style={{ flex: 1, alignItems: 'center', gap: 12 }}>
@@ -253,40 +256,13 @@ function NewExpense() {
             <T v="labelStrong" color={t.ink}>
               {groupName}
             </T>
-            <View style={{ transform: [{ rotate: picking ? '-90deg' : '90deg' }] }}>
+            <Turn open={picking}>
               <Icon name="chevron-right" size={16} color={t.inkSoft} />
-            </View>
+            </Turn>
           </Tap>
         </View>
         <View style={{ width: 44 }} />
       </View>
-      {picking ? (
-        <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(120)} style={[styles.menu, { backgroundColor: t.panelRaised }]}>
-          {options.map((o) => (
-            <Tap
-              key={o.id}
-              onPress={() => {
-                setPicking(false);
-                if (o.id === groupId) return;
-                setGroupId(o.id);
-                if (draft && !saved) {
-                  setDraft(null);
-                  setPartial({});
-                  say('zerow', `Ahora apunto en ${o.name}. Repíteme el gasto y lo preparo allí para que lo revises.`);
-                }
-              }}
-              accessibilityRole="button"
-              accessibilityState={{ selected: o.id === groupId }}
-              style={styles.menuRow}
-            >
-              <T v="bodyStrong" color={t.ink} style={{ flex: 1 }}>
-                {o.name}
-              </T>
-              {o.id === groupId ? <Icon name="check" size={18} color={t.lime} /> : null}
-            </Tap>
-          ))}
-        </Animated.View>
-      ) : null}
 
       {listening ? (
         <Animated.View entering={FadeIn.duration(motion.standard)} style={{ flex: 1, paddingHorizontal: 20, paddingBottom: insets.bottom }}>
@@ -488,11 +464,68 @@ function NewExpense() {
           </View>
         </>
       )}
+
+      {picking ? (
+        <>
+          {/* Tapping anywhere else closes the menu, as on iOS. */}
+          <Tap onPress={() => setPicking(false)} accessibilityRole="button" accessibilityLabel="Cerrar el menú" style={StyleSheet.absoluteFill}>
+            {null}
+          </Tap>
+          {/* A glass menu that floats over the conversation and grows out of the pill above it. */}
+          <Animated.View entering={surface(reduceMotion)} exiting={recede(reduceMotion, 140)} style={[styles.menu, { top: menuTop }]}>
+            {/* Dark glass, like an iOS menu: what's behind shows through as a blurred wash, never through the words. */}
+            <Frost fill="rgba(34,34,38,0.84)" radius={24} intensity={60} />
+            {options.map((o, i) => (
+              <View key={o.id}>
+                {i > 0 ? <View style={[styles.menuLine, { backgroundColor: t.hairline }]} /> : null}
+                <Tap
+                  highlight
+                  onPress={() => {
+                    setPicking(false);
+                    if (o.id === groupId) return;
+                    setGroupId(o.id);
+                    if (draft && !saved) {
+                      setDraft(null);
+                      setPartial({});
+                      say('zerow', `Ahora apunto en ${o.name}. Repíteme el gasto y lo preparo allí para que lo revises.`);
+                    }
+                  }}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: o.id === groupId }}
+                  accessibilityLabel={`${o.name}, ${o.people} personas`}
+                  style={styles.menuRow}
+                >
+                  <View style={{ flex: 1 }}>
+                    <T v="bodyStrong" color={t.ink} numberOfLines={1}>
+                      {o.name}
+                    </T>
+                    <T v="caption" color={t.inkMuted}>
+                      {o.people} personas
+                    </T>
+                  </View>
+                  {o.id === groupId ? <Icon name="check" size={18} color={t.lime} /> : null}
+                </Tap>
+              </View>
+            ))}
+          </Animated.View>
+        </>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
 
 /** «Por ejemplo» and the example chips (3.4, 3.4b). Tapping one sends it. */
+/** The pill's chevron turns towards the menu instead of flipping. */
+function Turn({ open, children }: { open: boolean; children: ReactNode }) {
+  const reduce = useReducedMotion();
+  const turn = useSharedValue(open ? -90 : 90);
+  useEffect(() => {
+    turn.value = reduce ? (open ? -90 : 90) : withTiming(open ? -90 : 90, { duration: motion.standard, easing: EASE });
+  }, [open, reduce, turn]);
+  const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
+  return <Animated.View style={style}>{children}</Animated.View>;
+}
+
 function Examples({ onPick, style }: { onPick: (example: string) => void; style?: object }) {
   const { t } = useTheme();
   return (
@@ -570,8 +603,24 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 16 },
   titleRow: { height: 44, justifyContent: 'center' },
   picker: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12 },
-  menu: { marginHorizontal: 20, marginTop: 8, borderRadius: 20, paddingVertical: 4 },
-  menuRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 16 },
+  // iOS-style menu: 280 wide under the pill, glass with a white 8 % edge and a soft shadow.
+  menu: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 280,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    transformOrigin: 'top',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+  },
+  menuRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingHorizontal: 8 },
+  menuLine: { height: 1, marginHorizontal: 8 },
   listenGlow: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 852, overflow: 'hidden' },
   stop: { width: 72, height: 72, borderRadius: 36, marginTop: 36, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.22, shadowRadius: 11, shadowOffset: { width: 0, height: 6 } },
   stopSquare: { width: 22, height: 22, borderRadius: 6 },

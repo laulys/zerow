@@ -1,25 +1,25 @@
-import { Spread, SummaryPanes } from '../components/Duo';
+import { SummaryPanes } from '../components/Duo';
 import { Aurora } from '../components/Aurora';
-import { CLOSES_AT, ZeroRing } from '../components/ZeroRing';
 import { makeImageFromView } from '@shopify/react-native-skia';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ScrollView, Share, StyleSheet, View, type ViewInstance } from 'react-native';
-import Animated, { Easing, FadeIn, FadeInDown, FadeOut, LinearTransition, useReducedMotion, withDelay, withSpring, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, LayoutAnimationConfig, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar, AvatarStack } from '../components/Avatar';
 import { BrandGradient } from '../components/BrandGradient';
 import { Frost } from '../components/Frost';
 import { Icon } from '../components/Icon';
-import { Money, RollingMoney } from '../components/Money';
+import { Money } from '../components/Money';
+import { EASE, recede, rise } from '../components/motion';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../components/ui';
 import { DraftCard } from './trip/[id]';
 import { UndoNotice } from '../components/Notice';
 import { balancesFor, eurText, people, settleUp, transferKey, useTrip, type Expense, type PersonId, type Transfer } from '../data/trip';
-import { motion } from '../theme/tokens';
+import { light, motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const who = (t: Transfer) => (t.to === 'tu' ? `${people[t.from].name} te paga` : t.from === 'tu' ? `Pagas a ${people[t.to].name}` : `${people[t.from].name} paga a ${people[t.to].name}`);
@@ -44,6 +44,7 @@ function SettleUp() {
   const [showBalances, setShowBalances] = useState(false);
   const reduceMotion = useReducedMotion();
   const [summary, setSummary] = useState(false);
+  const [settledOnOpen] = useState(settled);
 
   const leaving = useRef(false);
   useEffect(() => {
@@ -68,103 +69,23 @@ function SettleUp() {
 
   // Only the person who pays gets a receipt (it's theirs to keep and share).
   // When someone pays you, it just moves to "Pagado" with undo.
-  // The last payment marked: «A cero» counts down from it.
-  const [lastPaid, setLastPaid] = useState(0);
+  // The trip reaches zero here: one success tap as the mark on the card closes.
+  useEffect(() => {
+    if (!settled || settledOnOpen) return;
+    const id = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 120 + motion.standard);
+    return () => clearTimeout(id);
+  }, [settled, settledOnOpen]);
+
   const pay = (x: Transfer) => {
-    setLastPaid(x.amount);
     markPaid(x);
     if (x.from === 'tu') router.push({ pathname: '/pago', params: { para: x.to, importe: String(x.amount), grupo: 'Lisboa 2026' } });
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const celebrated = useRef(false);
-  useEffect(() => {
-    if (settled && !celebrated.current) {
-      celebrated.current = true;
-      // The success tap lands when the two halves meet, not when the screen appears.
-      const id = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), CLOSES_AT);
-      return () => clearTimeout(id);
-    }
-    if (!settled) celebrated.current = false;
-  }, [settled]);
+  const subtitle = settled ? 'Ya no queda ningún pago.' : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
 
-  const subtitle = settled ? 'Todos estáis a cero. Buen viaje.' : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
-
-  // 4.5 Resumen, from «Ver el resumen del viaje»; closing it goes back to «A cero».
+  // 4.5 Resumen, from «Ver resumen» on the «A cero» card; closing it goes back to Saldar.
   if (settled && summary) return <TripSummary expenses={expenses} payments={transfers.length} onClose={() => setSummary(false)} />;
-  // 4.4 A cero: the app's biggest moment gets the whole screen. The ring of
-  // light closes around 0,00 €, then the words and the people who made it.
-  if (settled) {
-    const share = () => Share.share({ message: `Lisboa 2026 quedó a cero: ${eurText(total)} en ${expenses.length} gastos, saldado con ${transfers.length} pagos. Hecho con Zerow.` });
-    const at = (ms: number) => (reduceMotion ? undefined : riseIn(ms, 12));
-    const close = <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />;
-    // Figma «Cero de luz»: a 256 pt square with the 216 pt ring (17 pt thick) in it.
-    const ring = (
-      <View style={styles.ringBox}>
-        <ZeroRing size={218} stroke={17}>
-          <View accessible accessibilityLabel="0,00 euros pendientes" style={{ alignItems: 'center' }}>
-            <ZeroAmount from={lastPaid} />
-            <T v="caption" color={t.inkSoft}>
-              pendientes
-            </T>
-          </View>
-        </ZeroRing>
-      </View>
-    );
-    const words = (
-      <>
-        <Animated.View entering={at(CLOSES_AT + 80)} style={{ alignItems: 'center', marginTop: 20 }}>
-          <T v="display" color={t.ink} style={styles.aCero} accessibilityRole="header">
-            A cero
-          </T>
-          <T v="body" color={t.inkSoft} style={{ marginTop: 12, textAlign: 'center' }}>
-            Lisboa 2026 quedó saldado:{'\n'}
-            {eurText(total)} entre 4, en {transfers.length} pagos.
-          </T>
-        </Animated.View>
-        {/* The people who made it, popping in one after another once the words are in. */}
-        <View style={styles.faces} importantForAccessibility="no-hide-descendants">
-          {(['tu', 'ana', 'luis', 'marta'] as PersonId[]).map((id, i) => (
-            <Animated.View key={id} entering={reduceMotion ? undefined : popIn(CLOSES_AT + 200 + i * 60)}>
-              <Avatar id={id} size={48} bg={t.disc} inset />
-            </Animated.View>
-          ))}
-        </View>
-      </>
-    );
-    const actions = (
-      <Animated.View entering={at(CLOSES_AT + 420)}>
-        <Button label="Compartir resumen" icon="share" onPress={share} />
-        <TextButton label="Ver el resumen del viaje" style={{ marginTop: 12 }} onPress={() => setSummary(true)} />
-      </Animated.View>
-    );
-    // Open iPhone Duo (Figma «Duo abierto · 4.4»): the ring on the left; the words, the people and the buttons on the right.
-    return (
-      <Spread
-        phone={
-          // A short cross-fade from the last payment instead of a hard cut.
-          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(220)} style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top, paddingBottom: insets.bottom }}>
-            <Aurora preset="zero" />
-            <View style={{ paddingHorizontal: 20 }}>{close}</View>
-            <View style={{ alignItems: 'center', paddingHorizontal: 20, marginTop: 16 }}>
-              {ring}
-              {words}
-            </View>
-            <View style={{ flex: 1 }} />
-            <View style={{ paddingHorizontal: 20 }}>{actions}</View>
-          </Animated.View>
-        }
-        left={
-          <>
-            {close}
-            <View style={{ alignItems: 'center', marginTop: 50 }}>{ring}</View>
-          </>
-        }
-        right={<View style={{ marginTop: 40 }}>{words}</View>}
-        footer={actions}
-      />
-    );
-  }
 
   // 4.1: an expense is still unreviewed, so the screen asks just that, one question, before any payment.
   if (asking)
@@ -197,8 +118,15 @@ function SettleUp() {
         </T>
 
         <View style={{ marginTop: 16, gap: 16 }}>
+          {/* 4.4 A cero, on this same page: when the last payment is marked its card steps back
+              and this one rises into the same place (no screen of its own: asked 2026-11-14). */}
+          {settled ? (
+            <Animated.View entering={rise(120, 12, reduceMotion)}>
+              <ZeroCard total={total} onSummary={() => setSummary(true)} />
+            </Animated.View>
+          ) : null}
           {pending.map((x) => (
-            <Animated.View key={transferKey(x)} entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(160)} layout={LinearTransition.duration(motion.standard)}>
+            <Animated.View key={transferKey(x)} entering={rise(0, 8, reduceMotion)} exiting={recede(reduceMotion)} layout={LinearTransition.duration(motion.standard).easing(EASE)}>
               <Card style={{ gap: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Avatar id={x.from} size={32} bg={t.disc} inset />
@@ -267,7 +195,7 @@ function SettleUp() {
             </View>
           </Tap>
           {showBalances ? (
-            <Animated.View entering={FadeInDown.duration(motion.standard)} style={{ marginTop: -8 }}>
+            <Animated.View entering={rise(0, 8, reduceMotion)} style={{ marginTop: -8 }}>
               <Card style={{ paddingVertical: 4 }}>
                 {(['tu', 'luis', 'ana', 'marta'] as PersonId[]).map((id, i) => (
                   <View key={id}>
@@ -413,41 +341,24 @@ function Fade() {
   );
 }
 
-const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
-/** Fades in while rising `distance` pt, on a strong ease-out. */
-const riseIn = (delay: number, distance: number) => () => {
-  'worklet';
-  return {
-    initialValues: { opacity: 0, transform: [{ translateY: distance }] },
-    animations: {
-      opacity: withDelay(delay, withTiming(1, { duration: 320, easing: EASE_OUT })),
-      transform: [{ translateY: withDelay(delay, withTiming(0, { duration: 420, easing: EASE_OUT })) }],
-    },
-  };
-};
-/** A face arriving: from 80 % and clear to full size, with a soft spring. */
-const popIn = (delay: number) => () => {
-  'worklet';
-  return {
-    initialValues: { opacity: 0, transform: [{ scale: 0.8 }] },
-    animations: {
-      opacity: withDelay(delay, withTiming(1, { duration: 200, easing: EASE_OUT })),
-      transform: [{ scale: withDelay(delay, withSpring(1, { damping: 13, stiffness: 220 })) }],
-    },
-  };
-};
-
-/** «0,00 € pendientes»: it starts at the last payment and rolls down to zero as the ring closes. */
-function ZeroAmount({ from }: { from: number }) {
-  const { t } = useTheme();
-  const reduce = useReducedMotion();
-  const [value, setValue] = useState(reduce ? 0 : from);
-  useEffect(() => {
-    if (reduce || !from) return;
-    const id = setTimeout(() => setValue(0), 160);
-    return () => clearTimeout(id);
-  }, [from, reduce]);
-  return <RollingMoney value={value} size={56} color={t.ink} />;
+/**
+ * 4.4 «A cero» as a card at the top of Saldar, on the brand gradient: the words, the
+ * trip's total and the way to its summary. It rises into the place of the last payment
+ * with one success tap, and stays there, so the trip reads as closed whenever you come back.
+ */
+function ZeroCard({ total, onSummary }: { total: number; onSummary: () => void }) {
+  return (
+    <LimeCard style={{ padding: 20, gap: 8 }}>
+      <T v="titleL" color={light.inkFixed} accessibilityRole="header">
+        A cero
+      </T>
+      <T v="label" color={light.inkMutedFixed}>
+        Lisboa 2026 quedó saldado:{'\n'}
+        {eurText(total)} entre 4.
+      </T>
+      <Button label="Ver el resumen del viaje" kind="onGradient" height={48} style={{ marginTop: 8 }} onPress={onSummary} />
+    </LimeCard>
+  );
 }
 
 /** «te deberán 26,73 €», «deberás 12,00 €» or «quedarás a cero», for the line under the draft. */
@@ -466,7 +377,10 @@ function AddFirst({ draft, expenses, onAdd, onSkip }: { draft: Expense; expenses
   const insets = useSafeAreaInsets();
   const now = balancesFor(expenses).tu;
   const next = balancesFor([draft, ...expenses]).tu;
-  const at = (ms: number) => FadeInDown.delay(ms).duration(motion.standard);
+  // Opening Saldar, the page slides in and the question is simply there; if «Deshacer»
+  // brings it back, the card and the line under it rise into place, 80 ms apart.
+  const reduce = useReducedMotion();
+  const at = (ms: number) => rise(ms, 8, reduce);
   return (
     // Centred on the page (asked 2026-11-13): the decision sits in the middle, lifted a little for the optical centre.
     <ScrollView style={{ backgroundColor: t.page }} contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: insets.bottom + 24 }}>
@@ -537,7 +451,9 @@ const styles = StyleSheet.create({
   balancesToggle: { height: 56, borderRadius: 28, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
   ringBox: { width: 256, height: 256, alignItems: 'center', justifyContent: 'center' },
   aCero: { fontSize: 52, lineHeight: 56, letterSpacing: -1.56 },
-  faces: { flexDirection: 'row', gap: 8, marginTop: 28 },
+  faces: { flexDirection: 'row', gap: 14, marginTop: 28 },
+  paid: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  spark: { position: 'absolute', left: 0, top: 0, width: 12, height: 12, borderRadius: 6, shadowOpacity: 0.8, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
   summary: { padding: 20, gap: 8 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, borderRadius: 15, paddingHorizontal: 12 },
   share: { flexDirection: 'row', alignItems: 'center', height: 38 },
@@ -549,13 +465,14 @@ const styles = StyleSheet.create({
 
 // On the open iPhone Duo the group stays in view in the list pane (Figma «Resumen»).
 export default function SettleUpRoute() {
-  // «A cero» (4.4) is the big moment: it takes the whole screen, as a spread, not the detail pane.
-  const { expenses, draft, paid } = useTrip();
-  const transfers = settleUp(balancesFor(expenses));
-  const settled = !draft && transfers.length > 0 && transfers.every((x) => paid.has(transferKey(x)));
+  // Nothing stages an entrance on top of the push; what changes afterwards (a payment,
+  // the balances opening, the «A cero» card) still moves. «A cero» lives on this page,
+  // so on the open iPhone Duo Saldar keeps its place in the detail pane.
   return (
-    <SummaryPanes group="lisboa" off={settled}>
-      <SettleUp />
-    </SummaryPanes>
+    <LayoutAnimationConfig skipEntering>
+      <SummaryPanes group="lisboa">
+        <SettleUp />
+      </SummaryPanes>
+    </LayoutAnimationConfig>
   );
 }

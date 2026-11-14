@@ -18,6 +18,7 @@ import { Card, Hairline, T, Tap } from '../../components/ui';
 import { balancesFor, eurText, pastGroups, people, settleUp, transferKey, usePeopleBalances, usePisoBalance, useTrip, type Expense, type GroupKind, type PersonId } from '../../data/trip';
 import { light } from '../../theme/tokens';
 
+import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { useTheme } from '../../theme/useTheme';
 
 const HEADER_H = 44;
@@ -141,8 +142,10 @@ export default function Home({ initial }: { initial?: string }) {
   // The dark fade under the status bar only appears once you scroll, so at rest
   // it doesn't dim the glow.
   const y = useSharedValue(0);
+  const minimize = useMinimizeOnScroll();
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y;
+    minimize(e.contentOffset.y, e.contentSize.height, e.layoutMeasurement.height);
   });
   const fadeStyle = useAnimatedStyle(() => ({ opacity: interpolate(y.value, [0, 60], [0, 1], Extrapolation.CLAMP) }));
 
@@ -158,13 +161,21 @@ export default function Home({ initial }: { initial?: string }) {
       </Glass>
     </Tap>
   );
+  // One microphone per screen (asked 2026-11-14): adding an expense lives on the lime button
+  // by the tab bar (the rail on the closed Duo, the capture bar in the open Duo's detail pane),
+  // so Inicio keeps the two other things you do here, side by side. The open Duo's list pane
+  // is narrower, so there they stack.
+  const tile = split ? undefined : { flex: 1 };
   const actions = (
-    <View style={[styles.actions, split && { marginTop: 16 }]}>
-      <AddExpense onPress={() => router.push('/nuevo')} />
-      <View style={{ flex: 1, gap: 12 }}>
-        <ActionRow icon="arrow-left-right" title="Saldar" sub={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'} onPress={() => router.push('/saldar')} />
-        <ActionRow icon="receipt" title="Dividir" sub="Una cuenta" onPress={() => router.push('/cuenta')} />
-      </View>
+    <View style={[styles.actions, split && styles.actionsStacked]}>
+      <ActionRow
+        icon="arrow-left-right"
+        title="Saldar"
+        sub={pendingPayments ? `${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero'}
+        onPress={() => router.push('/saldar')}
+        style={tile}
+      />
+      <ActionRow icon="receipt" title="Dividir" sub="Una cuenta" onPress={() => router.push('/cuenta')} style={tile} />
     </View>
   );
 
@@ -236,8 +247,7 @@ export default function Home({ initial }: { initial?: string }) {
         </View>
         <WalletStack cards={cards} />
 
-        {/* Quick actions, by how often you need them: add (the main one, on the brand
-            gradient) · settle (a pending task, with its count) · split a bill. */}
+        {/* Quick actions: settle (a pending task, with its count) · split a bill. */}
         {actions}
 
         <T v="section" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }} accessibilityRole="header">
@@ -245,8 +255,8 @@ export default function Home({ initial }: { initial?: string }) {
         </T>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={styles.people}>
           <Tap onPress={() => router.push({ pathname: '/invitar', params: { elegir: '1' } })} accessibilityRole="button" accessibilityLabel="Invitar a alguien" style={styles.person}>
-            {/* A solid disc, the same as the faces, with a plus instead of a face. */}
-            <View style={[styles.face, { backgroundColor: t.panelRaised }]}>
+            {/* The same translucent disc as the faces, with a plus instead of a face. */}
+            <View style={[styles.face, { backgroundColor: t.disc }]}>
               <Icon name="plus" size={22} color={t.ink} />
             </View>
             <T v="caption" color={t.inkMuted} style={styles.personName} numberOfLines={1} maxFontSizeMultiplier={1.4}>
@@ -265,7 +275,7 @@ export default function Home({ initial }: { initial?: string }) {
                 accessibilityHint="Ver lo que os debéis"
                 style={styles.person}
               >
-                <Avatar id={p.id} size={FACE} bg={t.disc} inset />
+                <Avatar id={p.id} size={FACE} bg={t.disc} portrait />
                 <T v="caption" color={t.ink} style={[styles.personName, { fontWeight: '500' }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
                   {name}
                 </T>
@@ -283,6 +293,7 @@ export default function Home({ initial }: { initial?: string }) {
           {pastGroups.map((p, i) => (
             <View key={p.id}>
               <Tap
+                highlight
                 onPress={() => router.push({ pathname: '/emoji', params: { id: p.id } })}
                 accessibilityRole="button"
                 accessibilityLabel={`${p.kind}: ${p.name}. ${p.meta}. ${eurText(p.total)}, a cero. Cambiar emoji`}
@@ -395,40 +406,11 @@ function Face({ front, seed, lively, children }: { front: boolean; seed: number;
   );
 }
 
-/**
- * Figma «Añadir gasto»: a glass card (white 7 % + blur) with the mic on a 52 pt
- * brand-gradient disc that glows softly, the title in Título S and its hint below.
- */
-function AddExpense({ onPress }: { onPress: () => void }) {
-  const { t } = useTheme();
-  // The open Duo's list pane is narrower: the label steps down so it fits whole.
-  const split = useScreen().form === 'split';
-  return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel="Añadir gasto. Dilo o escríbelo" style={{ flex: 1 }}>
-      <Card style={styles.addTile}>
-        <View style={styles.micGlow}>
-          <BrandGradient style={styles.micDisc} seed={11}>
-            <Icon name="mic" size={24} color={light.inkFixed} />
-          </BrandGradient>
-        </View>
-        <View>
-          <T v={split ? 'titleXS' : 'section'} color={t.ink} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-            Añadir gasto
-          </T>
-          <T v="caption" color={t.inkMuted} numberOfLines={1} maxFontSizeMultiplier={1.3}>
-            Dilo o escríbelo
-          </T>
-        </View>
-      </Card>
-    </Tap>
-  );
-}
-
-/** Figma «Saldar» / «Dividir»: a 60 pt glass row with a lime-tinted icon disc, title, detail and a chevron. */
-function ActionRow({ icon, title, sub, onPress }: { icon: IconName; title: string; sub: string; onPress: () => void }) {
+/** Figma «Saldar» / «Dividir»: a 60 pt glass tile with a lime-tinted icon disc, title, detail and a chevron. */
+function ActionRow({ icon, title, sub, onPress, style }: { icon: IconName; title: string; sub: string; onPress: () => void; style?: { flex: number } }) {
   const { t } = useTheme();
   return (
-    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={{ flex: 1 }}>
+    <Tap onPress={onPress} accessibilityRole="button" accessibilityLabel={`${title}. ${sub}`} style={style}>
       <Card style={styles.actionRow}>
         <View style={[styles.rowDisc, { backgroundColor: 'rgba(203,242,107,0.14)' }]}>
           <Icon name={icon} size={20} color={t.lime} />
@@ -529,11 +511,9 @@ const FACE = 56;
 const styles = StyleSheet.create({
   emoji: { fontSize: 24, lineHeight: 30 },
   tabular: { fontVariant: ['tabular-nums'] },
-  actions: { flexDirection: 'row', gap: 12, marginTop: 20, height: 132 },
-  addTile: { height: 132, borderRadius: 28, padding: 16, justifyContent: 'space-between' },
-  micGlow: { width: 52, height: 52, borderRadius: 26, shadowColor: '#B6F03A', shadowOpacity: 0.22, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  micDisc: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
-  actionRow: { flex: 1, borderRadius: 22, paddingVertical: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  actions: { flexDirection: 'row', gap: 12, marginTop: 20 },
+  actionsStacked: { flexDirection: 'column', marginTop: 16 },
+  actionRow: { height: 60, borderRadius: 22, paddingVertical: 0, paddingHorizontal: 12, flexDirection: 'row', alignItems: 'center', gap: 12 },
   rowDisc: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   bar: { height: 6, borderRadius: 3 },

@@ -15,12 +15,21 @@ export function StretchyScroll({
   children,
   contentContainerStyle,
   style,
+  onScrollY,
   ...rest
-}: ScrollViewProps & { background: ReactNode; backgroundHeight: number; children: ReactNode; style?: StyleProp<ViewStyle> }) {
+}: ScrollViewProps & {
+  background: ReactNode;
+  backgroundHeight: number;
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  /** Worklet called on every scroll with (offset, content height, visible height): the tab bar listens through it. */
+  onScrollY?: (y: number, content: number, view: number) => void;
+}) {
   const y = useSharedValue(0);
   const reduce = useReducedMotion();
   const onScroll = useAnimatedScrollHandler((e) => {
     y.value = e.contentOffset.y;
+    onScrollY?.(e.contentOffset.y, e.contentSize.height, e.layoutMeasurement.height);
   });
   const bg = useAnimatedStyle(() => {
     const pull = reduce ? 0 : Math.max(0, -y.value);

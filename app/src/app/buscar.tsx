@@ -168,7 +168,7 @@ export default function Search() {
               <Card style={{ paddingVertical: 4 }}>
                 {s.rows.map((r, i) => (
                   <View key={r.key}>
-                    <Tap onPress={r.go} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.sub}${r.right ? `. ${r.right}` : ''}`} style={styles.row}>
+                    <Tap highlight onPress={r.go} accessibilityRole="button" accessibilityLabel={`${r.title}. ${r.sub}${r.right ? `. ${r.right}` : ''}`} style={styles.row}>
                       {r.lead.avatar ? (
                         <Avatar id={r.lead.avatar} size={40} bg={t.disc} inset />
                       ) : (

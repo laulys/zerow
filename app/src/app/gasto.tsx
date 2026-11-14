@@ -6,10 +6,11 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
 import { Money } from '../components/Money';
+import { surface } from '../components/motion';
 import { Button, Card, Hairline, IconButton, T } from '../components/ui';
 import { eurText, people, useTrip, type Expense, type GroupKind, type PersonId } from '../data/trip';
 import { sheetFill } from '../theme/tokens';
@@ -165,10 +166,12 @@ function ExpenseDetail() {
 // 3.9: Figma's own alert (glass «sheet» over a 32 % black veil), not the system one. Figma's
 // 50 % drop shadow is left out: on a translucent view iOS would draw it through the glass too.
 function ConfirmDelete({ title, group, onCancel, onDelete }: { title: string; group: string; onCancel: () => void; onDelete: () => void }) {
+  const reduce = useReducedMotion();
   const { t } = useTheme();
   return (
     <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)} style={styles.veil} accessibilityViewIsModal>
-      <Animated.View entering={ZoomIn.duration(220)} style={[styles.alert, { borderColor: 'rgba(255,255,255,0.08)' }]} accessibilityRole="alert">
+      {/* The alert comes forward from just behind (0.96), never from nothing. */}
+      <Animated.View entering={surface(reduce)} style={[styles.alert, { borderColor: 'rgba(255,255,255,0.08)' }]} accessibilityRole="alert">
         <Frost fill={sheetFill} radius={28} intensity={34} />
         <T v="bodyStrong" color={t.ink} style={{ textAlign: 'center' }}>
           ¿Eliminar «{title}»?
