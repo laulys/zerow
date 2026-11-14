@@ -1,12 +1,13 @@
 import { Aurora } from '../../components/Aurora';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, LinearTransition, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSequence, withSpring, withTiming } from 'react-native-reanimated';
+import { router } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import Animated, { LayoutAnimationConfig, LinearTransition, useAnimatedScrollHandler, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useScreen } from '../../components/Screen';
 import { Avatar } from '../../components/Avatar';
+import { rise, EASE } from '../../components/motion';
+import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { Card, Hairline, T, Tap } from '../../components/ui';
 import { eurText, invite, pastGroups, people, settleUp, balancesFor, transferKey, useTrip, type PersonId } from '../../data/trip';
 import { motion } from '../../theme/tokens';
@@ -18,22 +19,6 @@ const sample = new Set(['hotel', 'taxi', 'cena', 'almuerzo']);
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 const roma = pastGroups.find((g) => g.id === 'roma')!;
 
-// The feed arrives top to bottom: each block rises 14 pt as it fades in, and the rows inside it
-// follow 35 ms apart, rising 6 pt, entering while their card is still rising (no empty card). Strong ease-out.
-const EASE = Easing.bezier(0.23, 1, 0.32, 1);
-const rise =
-  (delay: number, distance: number, duration = 460) =>
-  () => {
-    'worklet';
-    return {
-      initialValues: { opacity: 0, transform: [{ translateY: distance }] },
-      animations: {
-        opacity: withDelay(delay, withTiming(1, { duration: duration * 0.8, easing: EASE })),
-        transform: [{ translateY: withDelay(delay, withTiming(0, { duration, easing: EASE })) }],
-      },
-    };
-  };
-
 // 2.2 Actividad: what happened, newest first. "Hoy" follows what you do in the
 // app (adding the lunch, new expenses, payments, new groups); "Ayer" is the
 // trip's sample history; the last block is an older group that reached zero.
@@ -41,16 +26,12 @@ export default function Activity() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { draft, expenses, paid, pisoPaid, groups, pastEmoji } = useTrip();
+  // You open this tab many times a day, so the page itself doesn't perform: the tab
+  // cross-fades in (see the tabs layout). Only what changes moves: a new entry rises
+  // into place and the ones below make room.
   const reduce = useReducedMotion();
-  // Every time you come back to the tab the feed arrives again (the first visit already animates on mount).
-  const [run, setRun] = useState(0);
-  const visited = useRef(false);
-  useFocusEffect(
-    useCallback(() => {
-      if (visited.current) setRun((r) => r + 1);
-      visited.current = true;
-    }, []),
-  );
+  const minimize = useMinimizeOnScroll();
+  const onScroll = useAnimatedScrollHandler((e) => minimize(e.contentOffset.y, e.contentSize.height, e.layoutMeasurement.height));
   // Open iPhone Duo (Figma «Duo abierto · 2.2»): «Hoy» and «Ayer» side by side, 353 each.
   const { form } = useScreen();
   const split = form === 'split';
@@ -115,14 +96,15 @@ export default function Activity() {
   ];
 
   const section = (g: (typeof sections)[number], n: number) => (
-    <Animated.View key={`${g.label}-${run}`} entering={reduce ? undefined : rise(n * 70, 14)} style={styles.section}>
+    <View key={g.label} style={styles.section}>
       <T v="labelStrong" color={t.inkMuted}>
         {g.label}
       </T>
       <Card style={{ paddingVertical: 4 }}>
         {g.items.map((it, i) => (
-          <Animated.View key={it.key} entering={reduce ? undefined : rise(n * 70 + 50 + i * 35, 6, 380)} layout={LinearTransition.duration(motion.standard)}>
+          <Animated.View key={it.key} entering={rise(0, 8, reduce)} layout={LinearTransition.duration(motion.standard).easing(EASE)}>
             <Tap
+              highlight
               onPress={it.to ? () => router.push(it.to as never) : undefined}
               accessibilityRole="button"
               accessibilityLabel={`${it.title}. ${it.meta}${it.amount ? `. ${it.amount}` : ''}${it.tag ? `. ${it.tag}` : ''}`}
@@ -145,7 +127,7 @@ export default function Activity() {
                   {it.meta}
                 </T>
               </View>
-              {it.badge ? <Pill label={it.badge} pop={run} delay={n * 70 + 50 + i * 35 + 360} /> : null}
+              {it.badge ? <Tag label={it.badge} /> : null}
               {it.amount ? (
                 <View style={{ alignItems: 'flex-end', gap: it.tag ? 4 : 0 }}>
                   <T v="titleXS" color={t.ink}>
@@ -156,7 +138,7 @@ export default function Activity() {
                       {it.sub}
                     </T>
                   ) : null}
-                  {it.tag ? <Pill label={it.tag} pop={run} delay={n * 70 + 50 + i * 35 + 360} /> : null}
+                  {it.tag ? <Tag label={it.tag} /> : null}
                 </View>
               ) : null}
             </Tap>
@@ -164,11 +146,13 @@ export default function Activity() {
           </Animated.View>
         ))}
       </Card>
-    </Animated.View>
+    </View>
   );
 
   return (
-    <ScrollView
+    <Animated.ScrollView
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       style={[{ backgroundColor: t.page }, wide && styles.unclipped]}
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingLeft: split ? 50 : 20, paddingRight: split ? 40 : 20, paddingBottom: 140 }}
     >
@@ -177,38 +161,34 @@ export default function Activity() {
       <T v="titleL" color={t.ink} accessibilityRole="header" style={styles.title}>
         Actividad
       </T>
-      {split ? (
-        // Two columns on the open Duo: today on the left, the rest on the right.
-        <View style={styles.spread}>
-          <View style={{ flex: 1 }}>{section(sections[0], 0)}</View>
-          <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g, i) => section(g, i + 1))}</View>
-        </View>
-      ) : (
-        <View style={{ gap: 20 }}>{sections.map((g, i) => section(g, i))}</View>
-      )}
-    </ScrollView>
+      {/* On the first render nothing enters: the rows are simply there. */}
+      <LayoutAnimationConfig skipEntering>
+        {split ? (
+          // Two columns on the open Duo: today on the left, the rest on the right.
+          <View style={styles.spread}>
+            <View style={{ flex: 1 }}>{section(sections[0], 0)}</View>
+            <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g, i) => section(g, i + 1))}</View>
+          </View>
+        ) : (
+          <View style={{ gap: 20 }}>{sections.map((g, i) => section(g, i))}</View>
+        )}
+      </LayoutAnimationConfig>
+    </Animated.ScrollView>
   );
 }
 
 /**
- * Figma «Ver» / «Por revisar»: a 26 pt lime tag with dark 13 pt text. These are the
- * two things waiting on you, so once the feed has settled they give one soft nod.
+ * Figma «Ver» / «Por revisar»: a 26 pt lime tag with dark 13 pt text. It marks what's
+ * waiting on you; the colour already says so, so it doesn't move.
  */
-function Pill({ label, pop = 0, delay = 0 }: { label: string; pop?: number; delay?: number }) {
+function Tag({ label }: { label: string }) {
   const { t } = useTheme();
-  const reduce = useReducedMotion();
-  const scale = useSharedValue(1);
-  useEffect(() => {
-    if (reduce) return;
-    scale.value = withDelay(delay, withSequence(withTiming(1.08, { duration: 160, easing: EASE }), withSpring(1, { damping: 12, stiffness: 220 })));
-  }, [pop, delay, reduce, scale]);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View style={[styles.pill, { backgroundColor: t.lime }, style]}>
+    <View style={[styles.pill, { backgroundColor: t.lime }]}>
       <T v="caption" color={t.inkFixed} style={{ fontWeight: '600' }}>
         {label}
       </T>
-    </Animated.View>
+    </View>
   );
 }
 

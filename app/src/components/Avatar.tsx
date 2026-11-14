@@ -19,6 +19,7 @@ export function Avatar({
   bg,
   on = 'dark',
   inset,
+  portrait,
 }: {
   id: PersonId;
   size?: number;
@@ -27,6 +28,8 @@ export function Avatar({
   on?: AvatarOn;
   /** The face sits a little inside the disc instead of filling it, so hair and chin aren't cut (use with `t.disc`). */
   inset?: boolean;
+  /** Contact-photo framing for big faces: the head fills most of the disc, 4 pt under the top edge, with braids or hair that fall lower cut by the circle. */
+  portrait?: boolean;
 }) {
   const { t } = useTheme();
   // v3: on a lime card the face sits on pale lime with a lighter 2 pt ring (Figma «Avatar»
@@ -39,7 +42,7 @@ export function Avatar({
       accessibilityLabel={decorative ? undefined : people[id].name}
       importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}
     >
-      <Image source={people[id].avatar} style={inset ? insetFace(size) : { width: size * 1.08, height: size * 1.08, marginTop: size * 0.02 }} resizeMode="contain" />
+      <Image source={people[id].avatar} style={portrait ? portraitFace(size) : inset ? insetFace(size) : { width: size * 1.08, height: size * 1.08, marginTop: size * 0.02 }} resizeMode="contain" />
     </View>
   );
 }
@@ -104,6 +107,15 @@ export function RingAvatar({ id, size = 44, stroke = 1.5 }: { id: PersonId; size
 const insetFace = (size: number) => {
   const k = size >= 44 ? 40 / 44 : 1.02;
   return { width: size * k, height: size * k, marginTop: size >= 44 ? (size * 2) / 44 : size * 0.04 };
+};
+
+// The memoji images are heads with a lot of air around them (the head is about half the
+// image wide; hair starts 12 % down, the chin is at 80 %). Drawn at 1.2× the disc and lifted
+// so the hair sits 7 % under the top edge, the head is ~57 % of the disc wide, the way iOS
+// frames a Memoji contact photo, instead of a small head floating in the middle.
+const portraitFace = (size: number) => {
+  const s = size * 1.2;
+  return { position: 'absolute', width: s, height: s, left: (size - s) / 2, top: size * 0.07 - s * 0.12 } as const;
 };
 
 const styles = StyleSheet.create({

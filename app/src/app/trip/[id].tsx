@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, LinearTransition, ZoomOut } from 'react-native-reanimated';
+import Animated, { LayoutAnimationConfig, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../../components/Avatar';
@@ -15,6 +15,7 @@ import { Glass } from '../../components/Glass';
 import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
 import { Money, RollingAmount, RollingMoney } from '../../components/Money';
+import { EASE, recede, rise } from '../../components/motion';
 import { Button, Card, Hairline, IconButton, T, Tap, type as typeScale } from '../../components/ui';
 import { UndoNotice } from '../../components/Notice';
 import { PISO_SHARE, balancesFor, eurText, invite, people, pisoGroup, settleUp, transferKey, usePisoBalance, useTrip, type Currency, type Expense, type Group, type PersonId } from '../../data/trip';
@@ -235,7 +236,9 @@ function ListeningEmpty({ group }: { group: Group }) {
   const insets = useSafeAreaInsets();
   // 5.4: you got here from Ana's invitation, so the screen first confirms you're in.
   const joined = group.name === invite.name;
-  const at = (ms: number) => FadeInDown.delay(ms).duration(300);
+  // Rare (you just made or joined the group): the words and the examples follow the orb, 60 ms apart.
+  const reduce = useReducedMotion();
+  const at = (ms: number) => rise(ms, 8, reduce, 260);
   const tryIt = (ejemplo: string) => router.push({ pathname: '/nuevo', params: { grupo: group.id, ejemplo } });
   return (
     <View style={{ flex: 1, backgroundColor: t.page }}>
@@ -256,7 +259,7 @@ function ListeningEmpty({ group }: { group: Group }) {
           <View style={{ height: 26 }} />
           <Orb size={96} state="listening" label="Zerow te escucha" />
           <View style={{ height: 2 }} />
-          <Animated.View entering={at(150)} style={{ alignSelf: 'stretch', gap: 12 }}>
+          <Animated.View entering={at(60)} style={{ alignSelf: 'stretch', gap: 12 }}>
             <T v="titleM" color={t.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
               Cuéntame el primer gasto
             </T>
@@ -265,7 +268,7 @@ function ListeningEmpty({ group }: { group: Group }) {
             </T>
           </Animated.View>
           <View style={{ height: 4 }} />
-          <Animated.View entering={at(280)} style={{ alignItems: 'center', gap: 12 }}>
+          <Animated.View entering={at(120)} style={{ alignItems: 'center', gap: 12 }}>
             {firstExamples.map((ex) => (
               <Tap key={ex.say} onPress={() => tryIt(ex.say)} accessibilityRole="button" accessibilityLabel={`Probar: ${ex.say}`} style={styles.example}>
                 <Frost fill={t.glass} radius={22} intensity={20} />
@@ -284,6 +287,7 @@ function ListeningEmpty({ group }: { group: Group }) {
 
 function Trip() {
   const { t } = useTheme();
+  const reduce = useReducedMotion();
   const embedded = useContext(Embedded);
   const insets = useSafeAreaInsets();
   const { expenses, draft, confirmDraft, discardDraft, undoLast, paid } = useTrip();
@@ -333,134 +337,139 @@ function Trip() {
   const saldar = pendingPayments ? `Saldar · ${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero';
 
   return (
-    <View style={{ flex: 1, backgroundColor: t.page }}>
-      <Light />
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) + (notice ? 56 : 0) }}>
-        {embedded ? (
-          // In Inicio's detail pane the name sits on the navigation line (Figma «Duo abierto · 2.1»).
-          <View style={styles.nav}>
-            <View style={{ flex: 1 }}>
-              <T v="titleL" color={t.ink} numberOfLines={1}>
-                Lisboa 2026
-              </T>
-              <T v="caption" color={t.inkMuted} style={{ marginTop: 2 }}>
-                12–18 nov · 4 personas · en euros
-              </T>
-            </View>
-            <IconButton name="user-plus" label="Invitar al grupo" bg={t.glass} color={t.ink} onPress={() => router.push('/invitar')} />
-            <Button label={saldar} kind="control" height={44} leading={<Glyph name="arrowRightLeft" size={20} color={t.lime} weight={1.75} />} onPress={() => router.push('/saldar')} />
-          </View>
-        ) : (
-          <>
-            <Nav name="Lisboa 2026">
-              <Button label={saldar} kind="control" height={44} leading={<Glyph name="arrowRightLeft" size={20} color={t.lime} weight={1.75} />} onPress={() => router.push('/saldar')} />
-            </Nav>
-            <Animated.View entering={FadeInDown.duration(220)}>
-              <Heading title="Lisboa 2026" meta="12–18 nov · 4 personas · en euros" />
-            </Animated.View>
-          </>
-        )}
-
-        {/* Figma «Contenido»: 16 pt under the status line, 16 pt between blocks. */}
-        <View style={{ marginTop: embedded ? 20 : 16, gap: 16 }}>
-          {shown ? (
-            <Animated.View key={shown.id} entering={FadeInDown.delay(100).duration(280)} exiting={ZoomOut.duration(motion.standard)}>
-              <DraftCard draft={shown} onConfirm={onConfirm} onDiscard={onDiscard} />
-            </Animated.View>
-          ) : null}
-
-          {/* In Inicio's detail pane the balances and the expenses sit side by side. */}
-          <View style={embedded ? styles.sideBySide : { gap: 16 }}>
-            <Animated.View entering={FadeInDown.delay(180).duration(280)} layout={LinearTransition.duration(motion.standard)} style={embedded && { flex: 1 }}>
-              {/* Figma «Saldos»: p16 16 8, the rows 56 tall with a filete above each. */}
-              <Card style={{ paddingBottom: 8 }}>
-                <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
-                  {headline(now.tu)}
+    // A group is opened many times a day: the page slides in as iOS pushes it, and nothing
+    // inside it stages an entrance on top. What changes afterwards moves: a new expense
+    // rises into the list, the draft card steps back when you decide it, the rest make room.
+    <LayoutAnimationConfig skipEntering>
+      <View style={{ flex: 1, backgroundColor: t.page }}>
+        <Light />
+        <ScrollView contentContainerStyle={{ paddingTop: insets.top, paddingHorizontal: 20, paddingBottom: listPad(insets.bottom) + (notice ? 56 : 0) }}>
+          {embedded ? (
+            // In Inicio's detail pane the name sits on the navigation line (Figma «Duo abierto · 2.1»).
+            <View style={styles.nav}>
+              <View style={{ flex: 1 }}>
+                <T v="titleL" color={t.ink} numberOfLines={1}>
+                  Lisboa 2026
                 </T>
-                <RollingMoney value={Math.abs(now.tu)} size={embedded ? 48 : 56} color={t.ink} duration={motion.numbers} />
-                {next && shown ? (
-                  <View style={styles.preview}>
-                    <Glyph name="arrowRight" size={16} color={t.lime} weight={2} />
-                    <T v="caption" color={t.lime} style={{ fontWeight: '600' }}>
-                      {eurText(next.tu)} si sumas el {shown.title.toLowerCase()}
-                    </T>
-                  </View>
-                ) : (
-                  <T v="caption" color={t.inkMuted} style={{ marginBottom: 10 }}>
-                    {eurText(total)} en {expenses.length} gasto{expenses.length === 1 ? '' : 's'}
-                  </T>
-                )}
-                {order.map((id) => (
-                  <View key={id}>
-                    <Hairline />
-                    <Tap
-                      onPress={() => router.push(id === 'tu' ? '/saldar' : { pathname: '/persona', params: { id } })}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si sumas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}. ${id === 'tu' ? 'Ir a saldar' : `Ver lo vuestro`}`}
-                      style={styles.balRow}
-                    >
-                      <Avatar id={id} size={36} bg={t.disc} inset />
-                      <View style={{ flex: 1 }}>
-                        <T v="bodyStrong" color={t.ink}>
-                          {people[id].name}
-                        </T>
-                        <T v="caption" color={t.inkMuted}>
-                          {caption(id, now[id])}
-                        </T>
-                      </View>
-                      <Signed value={now[id]} />
-                    </Tap>
-                  </View>
-                ))}
-              </Card>
-            </Animated.View>
+                <T v="caption" color={t.inkMuted} style={{ marginTop: 2 }}>
+                  12–18 nov · 4 personas · en euros
+                </T>
+              </View>
+              <IconButton name="user-plus" label="Invitar al grupo" bg={t.glass} color={t.ink} onPress={() => router.push('/invitar')} />
+              <Button label={saldar} kind="control" height={44} leading={<Glyph name="arrowRightLeft" size={20} color={t.lime} weight={1.75} />} onPress={() => router.push('/saldar')} />
+            </View>
+          ) : (
+            <>
+              <Nav name="Lisboa 2026">
+                <Button label={saldar} kind="control" height={44} leading={<Glyph name="arrowRightLeft" size={20} color={t.lime} weight={1.75} />} onPress={() => router.push('/saldar')} />
+              </Nav>
+              <Heading title="Lisboa 2026" meta="12–18 nov · 4 personas · en euros" />
+            </>
+          )}
 
-            <Animated.View entering={FadeInDown.delay(260).duration(280)} layout={LinearTransition.duration(motion.standard)} style={embedded && { flex: 1.2 }}>
-              {embedded ? (
-                // Figma «Duo abierto · 2.1»: a compact list with its heading inside the card.
-                <Card style={{ paddingVertical: 14 }}>
-                  <T v="bodyStrong" color={t.ink}>
-                    Gastos
+          {/* Figma «Contenido»: 16 pt under the status line, 16 pt between blocks. */}
+          <View style={{ marginTop: embedded ? 20 : 16, gap: 16 }}>
+            {shown ? (
+              <Animated.View key={shown.id} entering={rise(0, 8, reduce)} exiting={recede(reduce)}>
+                <DraftCard draft={shown} onConfirm={onConfirm} onDiscard={onDiscard} />
+              </Animated.View>
+            ) : null}
+
+            {/* In Inicio's detail pane the balances and the expenses sit side by side. */}
+            <View style={embedded ? styles.sideBySide : { gap: 16 }}>
+              <Animated.View layout={LinearTransition.duration(motion.standard).easing(EASE)} style={embedded && { flex: 1 }}>
+                {/* Figma «Saldos»: p16 16 8, the rows 56 tall with a filete above each. */}
+                <Card style={{ paddingBottom: 8 }}>
+                  <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
+                    {headline(now.tu)}
                   </T>
-                  <T v="caption" color={t.inkMuted} style={{ marginBottom: 6 }}>
-                    {eurText(total)} en {expenses.length} gastos
-                  </T>
-                  {expenses.map((e) => (
-                    <Animated.View key={e.id} entering={FadeInDown.duration(motion.standard)}>
+                  <RollingMoney value={Math.abs(now.tu)} size={embedded ? 48 : 56} color={t.ink} duration={motion.numbers} />
+                  {next && shown ? (
+                    <View style={styles.preview}>
+                      <Glyph name="arrowRight" size={16} color={t.lime} weight={2} />
+                      <T v="caption" color={t.lime} style={{ fontWeight: '600' }}>
+                        {eurText(next.tu)} si sumas el {shown.title.toLowerCase()}
+                      </T>
+                    </View>
+                  ) : (
+                    <T v="caption" color={t.inkMuted} style={{ marginBottom: 10 }}>
+                      {eurText(total)} en {expenses.length} gasto{expenses.length === 1 ? '' : 's'}
+                    </T>
+                  )}
+                  {order.map((id) => (
+                    <View key={id}>
                       <Hairline />
                       <Tap
-                        onPress={() => router.push({ pathname: '/gasto', params: { grupo: 'lisboa', id: e.id } })}
+                        highlight
+                        onPress={() => router.push(id === 'tu' ? '/saldar' : { pathname: '/persona', params: { id } })}
                         accessibilityRole="button"
-                        accessibilityLabel={`${e.title}, ${eurText(e.amountEur)}. ${payerLine(e)}. Ver detalle`}
-                        style={styles.compactRow}
+                        accessibilityLabel={`${people[id].name}, ${caption(id, now[id])} ${eurText(Math.abs(now[id]))}${next ? `. Si sumas el almuerzo, ${eurText(Math.abs(next[id]))}` : ''}. ${id === 'tu' ? 'Ir a saldar' : `Ver lo vuestro`}`}
+                        style={styles.balRow}
                       >
+                        <Avatar id={id} size={36} bg={t.disc} inset />
                         <View style={{ flex: 1 }}>
-                          <T v="labelStrong" color={t.ink} numberOfLines={1}>
-                            {e.title}
+                          <T v="bodyStrong" color={t.ink}>
+                            {people[id].name}
                           </T>
-                          <T v="caption" color={t.inkMuted} numberOfLines={1}>
-                            {payerLine(e)}
+                          <T v="caption" color={t.inkMuted}>
+                            {caption(id, now[id])}
                           </T>
                         </View>
-                        <T v="bodyStrong" color={t.ink} style={{ fontVariant: ['tabular-nums'] }}>
-                          {eurText(e.amountEur)}
-                        </T>
+                        <Signed value={now[id]} />
                       </Tap>
-                    </Animated.View>
+                    </View>
                   ))}
                 </Card>
-              ) : (
-                <Expenses list={expenses} group="lisboa" flush />
-              )}
-            </Animated.View>
+              </Animated.View>
+
+              <Animated.View layout={LinearTransition.duration(motion.standard).easing(EASE)} style={embedded && { flex: 1.2 }}>
+                {embedded ? (
+                  // Figma «Duo abierto · 2.1»: a compact list with its heading inside the card.
+                  <Card style={{ paddingVertical: 14 }}>
+                    <T v="bodyStrong" color={t.ink}>
+                      Gastos
+                    </T>
+                    <T v="caption" color={t.inkMuted} style={{ marginBottom: 6 }}>
+                      {eurText(total)} en {expenses.length} gastos
+                    </T>
+                    {expenses.map((e) => (
+                      <Animated.View key={e.id} entering={rise(0, 8, reduce)}>
+                        <Hairline />
+                        <Tap
+                          highlight
+                          onPress={() => router.push({ pathname: '/gasto', params: { grupo: 'lisboa', id: e.id } })}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${e.title}, ${eurText(e.amountEur)}. ${payerLine(e)}. Ver detalle`}
+                          style={styles.compactRow}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <T v="labelStrong" color={t.ink} numberOfLines={1}>
+                              {e.title}
+                            </T>
+                            <T v="caption" color={t.inkMuted} numberOfLines={1}>
+                              {payerLine(e)}
+                            </T>
+                          </View>
+                          <T v="bodyStrong" color={t.ink} style={{ fontVariant: ['tabular-nums'] }}>
+                            {eurText(e.amountEur)}
+                          </T>
+                        </Tap>
+                      </Animated.View>
+                    ))}
+                  </Card>
+                ) : (
+                  <Expenses list={expenses} group="lisboa" flush />
+                )}
+              </Animated.View>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
 
-      <CaptureBar bottom={insets.bottom} />
+        <CaptureBar bottom={insets.bottom} />
 
-      {notice ? <UndoNotice text={`${notice.title} ${notice.kind}`} onUndo={onUndo} style={[styles.toast, { bottom: bar + BAR + 16 }]} /> : null}
-    </View>
+        {notice ? <UndoNotice text={`${notice.title} ${notice.kind}`} onUndo={onUndo} style={[styles.toast, { bottom: bar + BAR + 16 }]} /> : null}
+      </View>
+    </LayoutAnimationConfig>
   );
 }
 
@@ -480,20 +489,24 @@ function Signed({ value }: { value: number }) {
 /** Figma «Gastos»: Título S, then a card of 62 pt rows. `flush` when the parent already spaces the blocks. */
 function Expenses({ list, group, currency = 'EUR', flush }: { list: Expense[]; group: string; currency?: Currency; flush?: boolean }) {
   const { t } = useTheme();
+  const reduce = useReducedMotion();
+  // The rows that are there when the page opens just are; one added later rises into place.
   return (
-    <View style={{ marginTop: flush ? 8 : 24, gap: 12 }}>
-      <T v="section" color={t.ink} accessibilityRole="header">
-        Gastos
-      </T>
-      <Card style={{ paddingVertical: 4 }}>
-        {list.map((e, i) => (
-          <Animated.View key={e.id} entering={FadeInDown.duration(motion.standard)}>
-            {i > 0 ? <Hairline /> : null}
-            <ExpenseRow e={e} group={group} currency={currency} />
-          </Animated.View>
-        ))}
-      </Card>
-    </View>
+    <LayoutAnimationConfig skipEntering>
+      <View style={{ marginTop: flush ? 8 : 24, gap: 12 }}>
+        <T v="section" color={t.ink} accessibilityRole="header">
+          Gastos
+        </T>
+        <Card style={{ paddingVertical: 4 }}>
+          {list.map((e, i) => (
+            <Animated.View key={e.id} entering={rise(0, 8, reduce)}>
+              {i > 0 ? <Hairline /> : null}
+              <ExpenseRow e={e} group={group} currency={currency} />
+            </Animated.View>
+          ))}
+        </Card>
+      </View>
+    </LayoutAnimationConfig>
   );
 }
 
@@ -549,6 +562,7 @@ function ExpenseRow({ e, group, currency = 'EUR' }: { e: Expense; group: string;
   const aside = e.originalUsd ? `${e.originalUsd.toFixed(2).replace('.', ',')} US$` : e.note;
   return (
     <Tap
+      highlight
       onPress={() => router.push({ pathname: '/gasto', params: { grupo: group, id: e.id } })}
       accessibilityRole="button"
       accessibilityLabel={`${e.title}, ${eurText(e.amountEur, currency)}. ${line}. Ver detalle`}

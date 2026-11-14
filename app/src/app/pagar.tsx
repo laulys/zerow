@@ -110,7 +110,7 @@ export default function Pay() {
             ))
           ) : (
             <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
-              <Tap onPress={() => setChoosing(true)} accessibilityRole="button" accessibilityLabel={`Pagar con ${method.name}. Cambiar`} style={styles.row}>
+              <Tap highlight onPress={() => setChoosing(true)} accessibilityRole="button" accessibilityLabel={`Pagar con ${method.name}. Cambiar`} style={styles.row}>
                 <Lead m={method} />
                 <View style={{ flex: 1 }}>
                   <T v="bodyStrong" color={t.ink} numberOfLines={1}>

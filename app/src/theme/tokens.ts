@@ -44,6 +44,8 @@ export type Tokens = {
   faceOnCard: string;
   /** v3 translucent disc behind a memoji (white 8 %): the header face, chips, fact rows. */
   disc: string;
+  /** A list row under the finger (iOS cell highlight). */
+  pressed: string;
   /** v3 «sheet»: sheets and alerts. */
   sheet: string;
 };
@@ -77,6 +79,7 @@ export const light: Tokens = {
   hairline: 'rgba(18,18,18,0.09)',
   faceOnCard: '#EDEDE8',
   disc: 'rgba(18,18,18,0.05)',
+  pressed: 'rgba(18,18,18,0.06)',
   sheet: '#FFFFFF',
   onLimeButton: '#121212',
   mint: '#7FD8A8',
@@ -114,6 +117,7 @@ export const dark: Tokens = {
   hairline: 'rgba(255,255,255,0.09)',
   faceOnCard: '#1E1E22',
   disc: 'rgba(255,255,255,0.08)',
+  pressed: 'rgba(255,255,255,0.07)',
   sheet: '#222226',
 };
 
@@ -181,6 +185,7 @@ export const aurora: Tokens = {
   hairline: 'rgba(255,255,255,0.09)',
   faceOnCard: '#1E1E22',
   disc: 'rgba(255,255,255,0.08)',
+  pressed: 'rgba(255,255,255,0.07)',
   sheet: '#222226',
 };
 
@@ -204,6 +209,10 @@ export const radius = { s: 12, m: 16, l: 20, card: 28, xl: 32, xxl: 36 } as cons
 export const motion = {
   press: 140,
   standard: 220,
+  /** Exits are faster than entrances. */
+  exit: 160,
+  /** Tabs cross-fade: seen many times a day, so barely there. */
+  tab: 180,
   sheet: 350,
   numbers: 400,
   bigMoment: 600,

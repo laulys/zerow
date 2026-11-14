@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type PressableProps, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
@@ -50,31 +50,43 @@ export function T({ v, color, style, children, ...rest }: Omit<TextProps, 'style
 /**
  * Any tappable thing. It sinks to 0.97 and comes back on a spring (Apple's
  * interruptible press feel), not an instant jump. Still with Reduce Motion.
+ * `highlight` is for list rows: like an iOS cell, the row lights up under the
+ * finger (at once) and fades back when you let go, instead of shrinking away
+ * from the card's edges.
  */
 const APressable = Animated.createAnimatedComponent(Pressable);
 export const pressSpring = { damping: 18, stiffness: 420, mass: 0.6 } as const;
 
-export function Tap({ style, children, onPressIn, onPressOut, ...props }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+export function Tap({ style, children, onPressIn, onPressOut, highlight = false, ...props }: PressableProps & { style?: StyleProp<ViewStyle>; children: ReactNode; highlight?: boolean }) {
+  const { t } = useTheme();
   const scale = useSharedValue(1);
+  const lit = useSharedValue(0);
   const reduce = useReducedMotion();
   const anim = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const litStyle = useAnimatedStyle(() => ({ opacity: lit.value }));
   return (
     <APressable
       {...props}
       onPressIn={(e) => {
-        if (!reduce) scale.value = withSpring(0.97, pressSpring);
+        if (highlight) lit.set(withTiming(1, { duration: 60 }));
+        else if (!reduce) scale.set(withSpring(0.97, pressSpring));
         onPressIn?.(e);
       }}
       onPressOut={(e) => {
-        scale.value = withSpring(1, pressSpring);
+        if (highlight) lit.set(withTiming(0, { duration: 260, easing: Easing.out(Easing.quad) }));
+        else scale.set(withSpring(1, pressSpring));
         onPressOut?.(e);
       }}
-      style={[style, anim]}
+      style={highlight ? style : [style, anim]}
     >
+      {highlight ? <Animated.View pointerEvents="none" style={[litBox, { backgroundColor: t.pressed }, litStyle]} /> : null}
       {children}
     </APressable>
   );
 }
+
+// The highlight reaches 8 pt into the card's padding and keeps clear of the hairlines.
+const litBox = { position: 'absolute', top: 2, bottom: 2, left: -8, right: -8, borderRadius: 12 } as const;
 
 /**
  * v3 button kinds (Figma, «Botón …»):
