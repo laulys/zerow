@@ -231,14 +231,13 @@ function Demo({ play, still }: { play: boolean; still: boolean }) {
     </Animated.View>
   );
 
-  // Figma 1.2: the lockup 2 pt above the safe area, the example 54 pt under it, and the
-  // promise and the buttons at the bottom; the taller phones' extra room goes in between.
+  // Figma 1.2: the lockup 2 pt above the safe area, the promise and the buttons at the bottom,
+  // and the example centred in the room between them (a little high, on the optical centre).
   const phone = (
     <View style={[styles.wrap, { backgroundColor: t.page, paddingTop: insets.top - 2, paddingBottom: insets.bottom }]}>
       <Aurora preset="welcome" />
       {lockup}
-      <View style={{ marginTop: 54 }}>{example}</View>
-      <View style={{ flex: 1 }} />
+      <View style={styles.middle}>{example}</View>
       {message}
       {actions}
     </View>
@@ -266,6 +265,7 @@ function Demo({ play, still }: { play: boolean; still: boolean }) {
 }
 
 const styles = StyleSheet.create({
+  middle: { flex: 1, justifyContent: 'center', paddingTop: 24, paddingBottom: 48 },
   introWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   splitIntro: { flex: 1, flexDirection: 'row', paddingLeft: 50 },
   wordmark: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -0.8, color: light.inkFixed, marginTop: 4 },

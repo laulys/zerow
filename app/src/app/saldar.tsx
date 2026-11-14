@@ -1,20 +1,20 @@
 import { Spread, SummaryPanes } from '../components/Duo';
 import { Aurora } from '../components/Aurora';
-import { ZeroRing } from '../components/ZeroRing';
+import { CLOSES_AT, ZeroRing } from '../components/ZeroRing';
 import { makeImageFromView } from '@shopify/react-native-skia';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ScrollView, Share, StyleSheet, View, type ViewInstance } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, FadeOut, LinearTransition, useReducedMotion, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar, AvatarStack } from '../components/Avatar';
 import { BrandGradient } from '../components/BrandGradient';
 import { Frost } from '../components/Frost';
 import { Icon } from '../components/Icon';
-import { Money } from '../components/Money';
+import { Money, RollingMoney } from '../components/Money';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../components/ui';
 import { DraftCard } from './trip/[id]';
 import { UndoNotice } from '../components/Notice';
@@ -42,6 +42,7 @@ function SettleUp() {
   const settled = !draft && transfers.length > 0 && pending.length === 0;
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
   const [showBalances, setShowBalances] = useState(false);
+  const reduceMotion = useReducedMotion();
   const [summary, setSummary] = useState(false);
 
   const leaving = useRef(false);
@@ -67,7 +68,10 @@ function SettleUp() {
 
   // Only the person who pays gets a receipt (it's theirs to keep and share).
   // When someone pays you, it just moves to "Pagado" with undo.
+  // The last payment marked: «A cero» counts down from it.
+  const [lastPaid, setLastPaid] = useState(0);
   const pay = (x: Transfer) => {
+    setLastPaid(x.amount);
     markPaid(x);
     if (x.from === 'tu') router.push({ pathname: '/pago', params: { para: x.to, importe: String(x.amount), grupo: 'Lisboa 2026' } });
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -77,7 +81,9 @@ function SettleUp() {
   useEffect(() => {
     if (settled && !celebrated.current) {
       celebrated.current = true;
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // The success tap lands when the two halves meet, not when the screen appears.
+      const id = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), CLOSES_AT);
+      return () => clearTimeout(id);
     }
     if (!settled) celebrated.current = false;
   }, [settled]);
@@ -90,14 +96,14 @@ function SettleUp() {
   // light closes around 0,00 €, then the words and the people who made it.
   if (settled) {
     const share = () => Share.share({ message: `Lisboa 2026 quedó a cero: ${eurText(total)} en ${expenses.length} gastos, saldado con ${transfers.length} pagos. Hecho con Zerow.` });
-    const at = (ms: number) => FadeInDown.delay(ms).duration(350);
+    const at = (ms: number) => (reduceMotion ? undefined : riseIn(ms, 12));
     const close = <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />;
     // Figma «Cero de luz»: a 256 pt square with the 216 pt ring (17 pt thick) in it.
     const ring = (
       <View style={styles.ringBox}>
         <ZeroRing size={218} stroke={17}>
           <View accessible accessibilityLabel="0,00 euros pendientes" style={{ alignItems: 'center' }}>
-            <Money value={0} size={56} color={t.ink} />
+            <ZeroAmount from={lastPaid} />
             <T v="caption" color={t.inkSoft}>
               pendientes
             </T>
@@ -107,7 +113,7 @@ function SettleUp() {
     );
     const words = (
       <>
-        <Animated.View entering={at(900)} style={{ alignItems: 'center', marginTop: 20 }}>
+        <Animated.View entering={at(CLOSES_AT + 80)} style={{ alignItems: 'center', marginTop: 20 }}>
           <T v="display" color={t.ink} style={styles.aCero} accessibilityRole="header">
             A cero
           </T>
@@ -116,15 +122,18 @@ function SettleUp() {
             {eurText(total)} entre 4, en {transfers.length} pagos.
           </T>
         </Animated.View>
-        <Animated.View entering={at(1100)} style={styles.faces} importantForAccessibility="no-hide-descendants">
-          {(['tu', 'ana', 'luis', 'marta'] as PersonId[]).map((id) => (
-            <Avatar key={id} id={id} size={48} bg={t.glass} />
+        {/* The people who made it, popping in one after another once the words are in. */}
+        <View style={styles.faces} importantForAccessibility="no-hide-descendants">
+          {(['tu', 'ana', 'luis', 'marta'] as PersonId[]).map((id, i) => (
+            <Animated.View key={id} entering={reduceMotion ? undefined : popIn(CLOSES_AT + 200 + i * 60)}>
+              <Avatar id={id} size={48} bg={t.disc} inset />
+            </Animated.View>
           ))}
-        </Animated.View>
+        </View>
       </>
     );
     const actions = (
-      <Animated.View entering={at(1300)}>
+      <Animated.View entering={at(CLOSES_AT + 420)}>
         <Button label="Compartir resumen" icon="share" onPress={share} />
         <TextButton label="Ver el resumen del viaje" style={{ marginTop: 12 }} onPress={() => setSummary(true)} />
       </Animated.View>
@@ -133,7 +142,8 @@ function SettleUp() {
     return (
       <Spread
         phone={
-          <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top, paddingBottom: insets.bottom }}>
+          // A short cross-fade from the last payment instead of a hard cut.
+          <Animated.View entering={reduceMotion ? undefined : FadeIn.duration(220)} style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top, paddingBottom: insets.bottom }}>
             <Aurora preset="zero" />
             <View style={{ paddingHorizontal: 20 }}>{close}</View>
             <View style={{ alignItems: 'center', paddingHorizontal: 20, marginTop: 16 }}>
@@ -142,7 +152,7 @@ function SettleUp() {
             </View>
             <View style={{ flex: 1 }} />
             <View style={{ paddingHorizontal: 20 }}>{actions}</View>
-          </View>
+          </Animated.View>
         }
         left={
           <>
@@ -401,6 +411,43 @@ function Fade() {
       <Rect width="100%" height="100%" fill="url(#fade)" />
     </Svg>
   );
+}
+
+const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
+/** Fades in while rising `distance` pt, on a strong ease-out. */
+const riseIn = (delay: number, distance: number) => () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: distance }] },
+    animations: {
+      opacity: withDelay(delay, withTiming(1, { duration: 320, easing: EASE_OUT })),
+      transform: [{ translateY: withDelay(delay, withTiming(0, { duration: 420, easing: EASE_OUT })) }],
+    },
+  };
+};
+/** A face arriving: from 80 % and clear to full size, with a soft spring. */
+const popIn = (delay: number) => () => {
+  'worklet';
+  return {
+    initialValues: { opacity: 0, transform: [{ scale: 0.8 }] },
+    animations: {
+      opacity: withDelay(delay, withTiming(1, { duration: 200, easing: EASE_OUT })),
+      transform: [{ scale: withDelay(delay, withSpring(1, { damping: 13, stiffness: 220 })) }],
+    },
+  };
+};
+
+/** «0,00 € pendientes»: it starts at the last payment and rolls down to zero as the ring closes. */
+function ZeroAmount({ from }: { from: number }) {
+  const { t } = useTheme();
+  const reduce = useReducedMotion();
+  const [value, setValue] = useState(reduce ? 0 : from);
+  useEffect(() => {
+    if (reduce || !from) return;
+    const id = setTimeout(() => setValue(0), 160);
+    return () => clearTimeout(id);
+  }, [from, reduce]);
+  return <RollingMoney value={value} size={56} color={t.ink} />;
 }
 
 /** «te deberán 26,73 €», «deberás 12,00 €» or «quedarás a cero», for the line under the draft. */
