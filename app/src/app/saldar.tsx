@@ -8,9 +8,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ScrollView, Share, StyleSheet, View, type ViewInstance } from 'react-native';
 import Animated, { FadeIn, FadeInDown, LayoutAnimationConfig, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar, AvatarStack } from '../components/Avatar';
+import { BottomFade } from '../components/BottomFade';
 import { BrandGradient } from '../components/BrandGradient';
+import { Check } from '../components/Check';
 import { Frost } from '../components/Frost';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
@@ -336,27 +337,11 @@ function TripSummary({ expenses, payments, onClose }: { expenses: Expense[]; pay
         </Animated.View>
       </ScrollView>
       <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom }}>
-        <Fade />
+        <BottomFade style={styles.fade} />
         <Button label="Compartir imagen" icon="share" onPress={shareImage} />
         <TextButton label={copied ? 'Copiado' : 'Copiar como texto'} style={{ marginTop: 12 }} onPress={copy} />
       </View>
     </View>
-  );
-}
-
-/** Figma «Fundido»: the page fades in under the buttons at the bottom. */
-function Fade() {
-  const { t } = useTheme();
-  return (
-    <Svg pointerEvents="none" style={styles.fade} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-          <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#fade)" />
-    </Svg>
   );
 }
 
@@ -450,15 +435,6 @@ function LimeCard({ children, radius = 28, style }: { children: ReactNode; radiu
   );
 }
 
-/** The paid check, 16 pt with Figma's heavier 2.25 stroke (2.5 on the «A cero» badge). */
-function Check({ color, heavy }: { color: string; heavy?: boolean }) {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={heavy ? 3.75 : 3.375} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M20 6 9 17l-5-5" />
-    </Svg>
-  );
-}
-
 const styles = StyleSheet.create({
   lime: { borderRadius: 28, padding: 16, gap: 12 },
   glowLime: { borderRadius: 28, backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
@@ -468,15 +444,11 @@ const styles = StyleSheet.create({
   paidCard: { borderRadius: 28, paddingLeft: 16, paddingRight: 6 },
   paidRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52 },
   balancesToggle: { minHeight: 56, paddingVertical: 8, borderRadius: 28, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16 },
-  ringBox: { width: 256, height: 256, alignItems: 'center', justifyContent: 'center' },
-  aCero: { fontSize: 52, lineHeight: 56, letterSpacing: -1.56 },
-  faces: { flexDirection: 'row', gap: 14, marginTop: 28 },
-  paid: { position: 'absolute', right: -4, bottom: -4, width: 24, height: 24, borderRadius: 12, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
-  spark: { position: 'absolute', left: 0, top: 0, width: 12, height: 12, borderRadius: 6, shadowOpacity: 0.8, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
   summary: { padding: 20, gap: 8 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 30, borderRadius: 15, paddingHorizontal: 12 },
   share: { flexDirection: 'row', alignItems: 'center', minHeight: 38 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
+  // Figma «Fundido»: the page fades in under the buttons at the bottom.
+  fade: { height: 150 },
   notice: { position: 'absolute', left: 20, right: 20 },
   centred: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 64 },
   textButton: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },

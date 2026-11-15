@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 import { AvatarStack } from '../components/Avatar';
-import { useTrip, type PersonId } from '../data/trip';
+import { slug, useTrip, type PersonId } from '../data/trip';
 import { Icon } from '../components/Icon';
 import { SheetBody } from '../components/Sheet';
 import { announce } from '../components/announce';
@@ -97,14 +97,6 @@ export default function Invite() {
     </SheetBody>
   );
 }
-
-const slug = (s: string) =>
-  s
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
 
 const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

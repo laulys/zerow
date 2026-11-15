@@ -8,9 +8,9 @@ import { Avatar } from '../components/Avatar';
 import { Frost } from '../components/Frost';
 import { useScreen } from '../components/Screen';
 import { Icon, type IconName } from '../components/Icon';
+import { Tile } from '../components/Tile';
 import { Card, Hairline, T, Tap } from '../components/ui';
 import { eurText, kindEmoji, openEmoji, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, balancesFor, settledBalances, type Expense, type PersonId } from '../data/trip';
-import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const fold = (s: string) =>
@@ -126,6 +126,7 @@ export default function Search() {
           <Frost fill={t.control} radius={22} intensity={16} />
           <Icon name="search" size={20} color={t.inkSoft} />
           <TextInput
+            maxFontSizeMultiplier={2}
             value={q}
             onChangeText={setQ}
             autoFocus
@@ -174,7 +175,15 @@ export default function Search() {
                         <Avatar id={r.lead.avatar} size={40} bg={t.disc} inset />
                       ) : (
                         // Figma «Emoji»: the group's emoji on a white 8 % tile.
-                        <View style={styles.tile}>{r.lead.emoji ? <Text style={styles.emoji}>{r.lead.emoji}</Text> : <Icon name={r.lead.icon ?? 'shapes'} size={20} color={t.ink} />}</View>
+                        <Tile>
+                          {r.lead.emoji ? (
+                            <Text style={styles.emoji} maxFontSizeMultiplier={1.3}>
+                              {r.lead.emoji}
+                            </Text>
+                          ) : (
+                            <Icon name={r.lead.icon ?? 'shapes'} size={20} color={t.ink} />
+                          )}
+                        </Tile>
                       )}
                       <View style={{ flex: 1 }}>
                         <Title text={r.title} term={term} />
@@ -236,6 +245,5 @@ const styles = StyleSheet.create({
   clear: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   cancel: { height: 44, justifyContent: 'center', paddingHorizontal: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62 },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 23, lineHeight: 28 },
 });

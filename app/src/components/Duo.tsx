@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { balancesFor, eurText, people, pisoExpenses, pisoGroup, plural, settledBalances, usePisoBalance, useTrip, type Expense, type PersonId } from '../data/trip';
+import { balancesFor, eurText, people, personName, pisoExpenses, pisoGroup, plural, settledBalances, usePisoBalance, useTrip, type Expense, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 import { Aurora } from './Aurora';
 import { Avatar } from './Avatar';
@@ -16,10 +16,10 @@ import { Card, Hairline, IconButton, T } from './ui';
  * up or down, and the expenses) and the task takes the detail pane. On any
  * other screen size this is just the task.
  */
-export function SummaryPanes({ group = 'lisboa', off = false, children }: { group?: string; off?: boolean; children: ReactNode }) {
+export function SummaryPanes({ group = 'lisboa', children }: { group?: string; children: ReactNode }) {
   const { t } = useTheme();
   const { form } = useScreen();
-  if (form !== 'split' || off) return <>{children}</>;
+  if (form !== 'split') return <>{children}</>;
   return (
     <View style={[styles.row, { backgroundColor: t.page }]}>
       <Aurora height={380} strength={0.75} />
@@ -76,15 +76,15 @@ export function GroupSummary({ id }: { id: string }) {
         <T v="caption" color={t.inkMuted}>
           {Math.abs(mine) < 0.005 ? 'Estás a cero' : mine > 0 ? 'Te deben' : 'Debes'}
         </T>
-        <Money value={Math.abs(mine)} size={36} color={t.ink} centsColor={t.inkMuted} currency={currency} />
+        <Money value={Math.abs(mine)} size={36} color={t.ink} currency={currency} />
         <View style={{ marginTop: 8 }}>
           {members.map((p) => (
             <View key={p}>
-              <Hairline color={t.line} />
-              <View style={styles.line} accessible accessibilityLabel={`${p === 'tu' ? 'Tú' : people[p].name}: ${signed(bal[p] ?? 0)}`}>
+              <Hairline />
+              <View style={styles.line} accessible accessibilityLabel={`${personName(p)}: ${signed(bal[p] ?? 0)}`}>
                 <Avatar id={p} size={28} bg={t.disc} inset />
                 <T v="body" color={t.ink} style={{ flex: 1 }}>
-                  {p === 'tu' ? 'Tú' : people[p].name}
+                  {personName(p)}
                 </T>
                 <T v="bodyStrong" color={(bal[p] ?? 0) > 0.005 ? t.lime : t.ink} style={styles.tabular}>
                   {signed(bal[p] ?? 0)}
@@ -102,7 +102,7 @@ export function GroupSummary({ id }: { id: string }) {
           </T>
           {list.map((e) => (
             <View key={e.id}>
-              <Hairline color={t.line} />
+              <Hairline />
               <View style={[styles.line, { paddingVertical: 8 }]}>
                 <View style={{ flex: 1 }}>
                   <T v="label" color={t.ink} style={{ fontWeight: '600' }} numberOfLines={1}>

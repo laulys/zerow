@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, StyleSheet, useWindowDimensions, View, type GestureResponderHandlers } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
 import { aurora, gradientStops } from '../theme/tokens';
@@ -53,40 +53,46 @@ export function WalletStack({
   const x = useSharedValue(0);
   const owner = useSharedValue(0);
   const n = cards.length;
+  // What the pan responder reads: it is made once, so it gets the latest count,
+  // front card and `advance` through refs, brought up to date after every render.
   const nRef = useRef(n);
-  nRef.current = n;
   const frontRef = useRef(front);
-  frontRef.current = front;
 
   const advance = (dir: 1 | -1) => {
     if (nRef.current < 2) return;
     Haptics.selectionAsync();
-    owner.value = frontRef.current;
-    x.value = reduce ? 0 : withTiming(0, morph);
+    owner.set(frontRef.current);
+    x.set(reduce ? 0 : withTiming(0, morph));
     setFront((f) => (f + dir + nRef.current) % nRef.current);
   };
   const advanceRef = useRef(advance);
-  advanceRef.current = advance;
+  useLayoutEffect(() => {
+    nRef.current = n;
+    frontRef.current = front;
+    advanceRef.current = advance;
+  });
 
   const responder = useMemo(
     () =>
+      // PanResponder.create only keeps these handlers; they run on touches, never while rendering.
+      // eslint-disable-next-line react-hooks/refs
       PanResponder.create({
         // Only claim clearly horizontal drags, so the page still scrolls vertically.
         onMoveShouldSetPanResponderCapture: (_, g) => nRef.current > 1 && Math.abs(g.dx) > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.4,
         onPanResponderGrant: () => {
-          owner.value = frontRef.current;
+          owner.set(frontRef.current);
         },
         onPanResponderTerminationRequest: () => false,
         // The card follows the finger with resistance: it hints at the change, it doesn't leave.
         onPanResponderMove: (_, g) => {
-          x.value = g.dx * 0.35;
+          x.set(g.dx * 0.35);
         },
         onPanResponderRelease: (_, g) => {
           if (Math.abs(g.dx) > 70 || Math.abs(g.vx) > 0.6) advanceRef.current(g.dx + g.vx < 0 ? 1 : -1);
-          else x.value = withSpring(0, settle);
+          else x.set(withSpring(0, settle));
         },
         onPanResponderTerminate: () => {
-          x.value = withSpring(0, settle);
+          x.set(withSpring(0, settle));
         },
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps

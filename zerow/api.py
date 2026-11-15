@@ -9,6 +9,7 @@ The mobile app talks to these endpoints. The flow for the AI part:
       -> {"reply": "...", "drafts": [ {expense card} ]}
     POST /expenses/{id}/confirm     (the person taps ✓)
     DELETE /expenses/{id}           (or discards it)
+    POST /expenses/{id}/unconfirm   (or undoes the ✓)
 """
 
 from __future__ import annotations
@@ -116,6 +117,12 @@ def create_app(db_path: Optional[str] = None, llm_factory: Optional[Callable] = 
     def confirm_expense(expense_id: int):
         with ledger.session(db_path) as conn:
             return ledger.confirm_expense(conn, expense_id)
+
+    @app.post("/expenses/{expense_id}/unconfirm")
+    def unconfirm_expense(expense_id: int):
+        """«Deshacer» in the app: a confirmed expense becomes a draft again."""
+        with ledger.session(db_path) as conn:
+            return ledger.unconfirm_expense(conn, expense_id)
 
     @app.delete("/expenses/{expense_id}", status_code=204)
     def delete_expense(expense_id: int):

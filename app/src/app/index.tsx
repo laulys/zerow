@@ -11,7 +11,7 @@ import { Money } from '../components/Money';
 import { AvatarStack } from '../components/Avatar';
 import { Spread } from '../components/Duo';
 import { useScreen } from '../components/Screen';
-import { Button, T } from '../components/ui';
+import { Button, SmallLockup, T } from '../components/ui';
 import { aurora, font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
@@ -129,24 +129,6 @@ function HaveAccount({ color }: { color: string }) {
   return <Button label="Ya tengo cuenta" kind="text" height={48} color={color} onPress={() => router.push('/entrar')} style={{ height: 44, marginTop: 12 }} />;
 }
 
-/**
- * Figma's small lockup (1.2, 1.7): the coin cropped to its halves (23 × 40), 8 pt, then
- * «zerow» in Título M. The shared Lockup scales the mark with the type, so it can't draw this one.
- */
-function SmallLockup({ color }: { color: string }) {
-  return (
-    <View style={styles.lockup} accessible accessibilityRole="header" accessibilityLabel="Zerow">
-      <Svg width={23.2} height={40} viewBox="21 0 58 100">
-        <Path d="M47 17A26 26 0 0 0 47 69Z" fill={color} />
-        <Path d="M53 31A26 26 0 0 1 53 83Z" fill={color} />
-      </Svg>
-      <T v="titleM" color={color}>
-        zerow
-      </T>
-    </View>
-  );
-}
-
 /** Figma's lime glow under the cards on the gradient (#B6F03A 30 %, blur 56, 22 down, over black 40 %, blur 18, 8 down). */
 function LimeCard({ radius, padding, seed, children }: { radius: number; padding: number; seed: number; children: React.ReactNode }) {
   return (
@@ -190,7 +172,7 @@ function Demo({ play, still }: { play: boolean; still: boolean }) {
     <View accessible accessibilityLabel="Ejemplo: dices «Pagué la cena, 84 euros, entre 4» y en tu viaje Lisboa 2026 te deben 63 euros.">
       <Animated.View style={[styles.bubble, { backgroundColor: t.lime }, steps.bubble]}>
         <T v="body" color={t.onLime}>
-          Pagué la cena, 84 €, entre 4
+          {'Pagué la cena, 84\u00A0€, entre 4'}
         </T>
       </Animated.View>
       <Animated.View style={[{ marginTop: 12 }, steps.card]}>
@@ -272,7 +254,6 @@ const styles = StyleSheet.create({
   wrap: { flex: 1, paddingHorizontal: 20 },
   bubble: { alignSelf: 'flex-end', maxWidth: 282, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  lockup: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
   glowLime: { backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
 });

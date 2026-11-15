@@ -152,3 +152,19 @@ def test_balances_always_add_up_to_zero(db, trip):
     result = ledger.balances(db, trip["id"])
     assert round(sum(result["net"].values()), 2) == 0
     assert len(result["settle_up"]) <= len(MEMBERS) - 1
+
+
+def test_demo_trip_matches_the_app_design(tmp_path):
+    from zerow import demo
+
+    db = str(tmp_path / "demo.db")
+    trip = demo.load(db)
+    assert demo.load(db)["id"] == trip["id"]  # loading twice doesn't duplicate it
+    with ledger.session(db) as conn:
+        confirmed = ledger.list_expenses(conn, trip["id"], "confirmed")
+        drafts = ledger.list_expenses(conn, trip["id"], "draft")
+        net = ledger.balances(conn, trip["id"])["net"]
+    assert [e["trip_amount"] for e in confirmed] == [269.08, 40.36, 138.0]
+    assert [d["description"] for d in drafts] == ["Almuerzo"]
+    assert net == {"Laura": 36.23, "Ana": -81.59, "Luis": 147.13, "Marta": -101.77}
+    assert demo.load(db, reset=True)["name"] == "Lisboa 2026"

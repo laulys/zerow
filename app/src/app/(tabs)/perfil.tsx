@@ -10,10 +10,10 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { Icon } from '../../components/Icon';
 import { useScreen } from '../../components/Screen';
 import { StretchyScroll } from '../../components/StretchyScroll';
+import { Tile } from '../../components/Tile';
 import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { Card, Hairline, T, Tap } from '../../components/ui';
 import { eurText, settleUp, settledBalances, useTrip } from '../../data/trip';
-import { aurora } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 // Figma «Tarjeta de perfil» is 398 tall on a 54 pt status bar; the rest follows the device's own inset.
@@ -186,7 +186,7 @@ function Row({
   const { t } = useTheme();
   const body = (
     <View style={[styles.row, { minHeight: height }]}>
-      <View style={styles.tile}>{icon}</View>
+      <Tile>{icon}</Tile>
       <T v="body" color={danger ? t.danger : t.ink} style={{ flex: 1 }}>
         {label}
       </T>
@@ -256,5 +256,4 @@ const styles = StyleSheet.create({
   highlightIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   switch: { height: 58, justifyContent: 'center' },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
 });

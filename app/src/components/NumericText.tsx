@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import Animated, { Easing, FadeIn, FadeOut, LinearTransition, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
 
@@ -15,21 +15,19 @@ const ease = Easing.bezier(0.2, 0.9, 0.3, 1);
 export function NumericText({ text, style, countsDown = false, label }: { text: string; style: StyleProp<TextStyle>; countsDown?: boolean; label?: string }) {
   const chars = [...text];
   const n = chars.length;
-  const changeOrder = useRef(0);
-  // Stagger left to right among the cells that change in this update.
-  const prev = useRef(text);
-  const changed: number[] = [];
-  if (prev.current !== text) {
-    const old = [...prev.current];
+  // Stagger left to right among the cells that change in this update: the text
+  // shown before is kept in state and compared on the render where it changes.
+  const [seen, setSeen] = useState({ text, changed: [] as number[] });
+  if (seen.text !== text) {
+    const old = [...seen.text];
+    const changed: number[] = [];
     for (let i = 0; i < n; i++) {
       const fromRight = n - 1 - i;
       if (old[old.length - 1 - fromRight] !== chars[i]) changed.push(i);
     }
-    changeOrder.current++;
+    setSeen({ text, changed });
   }
-  useEffect(() => {
-    prev.current = text;
-  }, [text]);
+  const changed = seen.changed;
 
   return (
     <View style={styles.row} accessible accessibilityLabel={label ?? text}>
@@ -52,11 +50,10 @@ function Cell({ char, style, dir, delay }: { char: string; style: StyleProp<Text
 
   useEffect(() => {
     if (char === state.cur) return;
-    if (reduce) {
-      setState({ cur: char, old: null });
-      return;
-    }
-    setState({ cur: char, old: state.cur });
+    // The swap commits from here, with the start of the roll; set while rendering, the new digit would show before it moves.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState({ cur: char, old: reduce ? null : state.cur });
+    if (reduce) return;
     d.value = dir;
     p.value = 0;
     p.value = withDelay(delay, withTiming(1, { duration: DURATION, easing: ease }));
