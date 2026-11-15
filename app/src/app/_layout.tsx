@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { glassSheets } from '../components/Glass';
 import { ScreenProvider, useRailInset, useScreen } from '../components/Screen';
+import { watchAppState } from '../data/states';
 import { TripProvider } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
@@ -19,6 +20,9 @@ const sheet = (bg: string) =>
     sheetCornerRadius: 28,
     contentStyle: { backgroundColor: glassSheets ? 'transparent' : bg },
   }) as const;
+
+// Development only: `?estado=cargando`, `sin-grupos` or `sin-conexion` in a link show the states the API will bring.
+watchAppState();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ SpaceGrotesk_400Regular, SpaceGrotesk_500Medium });
@@ -61,6 +65,7 @@ function Screens() {
       <Stack.Screen name="emoji" options={sheet(t.surface)} />
       <Stack.Screen name="persona" options={sheet(t.surface)} />
       <Stack.Screen name="gasto" />
+      <Stack.Screen name="resumen" />
       <Stack.Screen name="buscar" options={{ animation: 'fade' }} />
       <Stack.Screen name="entrar/index" />
       <Stack.Screen name="entrar/codigo" />

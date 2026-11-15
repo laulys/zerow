@@ -19,7 +19,7 @@ import { useTheme } from '../theme/useTheme';
 import { BottomFade, Glyph } from './trip/[id]';
 
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
-const RATE = 0.8969; // USD → EUR on the day of the trip's sample expenses
+const EUR_TO_USD = 1.1149; // what one euro bought in dollars on the day of the sample expenses (300 US$ ≈ 269,08 €)
 
 // When the sample expenses were added and by whom (Figma 3.7: «13 nov · pagó Luis · lo sumó Luis»).
 // Anything else was added or confirmed by you in the app, today.
@@ -31,7 +31,7 @@ const added: Record<string, { day: string; by: PersonId }> = {
   wifi: { day: '1 nov', by: 'luis' },
 };
 
-const inGroup: Record<GroupKind, string> = { viaje: 'en el viaje', piso: 'en el piso', evento: 'en el evento', otro: 'en el grupo' };
+const inGroup: Record<GroupKind, string> = { viaje: 'del viaje', piso: 'del piso', evento: 'del evento', otro: 'del grupo' };
 
 // 3.7 Detalle del gasto: who paid, what it cost (in the original currency when it
 // wasn't euros) and how it splits, payer first. "Editar" goes back to Zerow (you say
@@ -96,10 +96,10 @@ function ExpenseDetail() {
             <>
               <Money value={e.originalUsd} size={56} color={t.ink} currency="USD" />
               <T v="labelStrong" color={t.ink} style={{ marginTop: 8 }}>
-                ≈ {eurText(e.amountEur)} {inGroup[kind]}
+                ≈ {eurText(e.amountEur)} en la moneda {inGroup[kind]}
               </T>
               <T v="caption" color={t.inkMuted}>
-                1 USD = {String(RATE).replace('.', ',')} EUR, {when.day === 'hoy' ? 'cambio de hoy' : `cambio del ${when.day}`}
+                1 € = {String(EUR_TO_USD).replace('.', ',')} US$, {when.day === 'hoy' ? 'cambio de hoy' : `cambio del ${when.day}`}
               </T>
             </>
           ) : (
@@ -109,7 +109,7 @@ function ExpenseDetail() {
                 {eurText(share, currency)} cada uno
               </T>
               <T v="caption" color={t.inkMuted}>
-                Entre {e.splitWith.length} {inGroup[kind]}
+                Entre {e.splitWith.length === 1 ? 'una persona' : `los ${e.splitWith.length}`} {inGroup[kind]}
               </T>
             </>
           )}
@@ -128,7 +128,7 @@ function ExpenseDetail() {
                   <View
                     style={styles.row}
                     accessible
-                    accessibilityLabel={`${name(p)}${p === e.payer ? `, pagó ${eurText(e.amountEur, currency)}` : ''}. Su parte: ${inSplit ? eurText(share, currency) : 'nada'}`}
+                    accessibilityLabel={`${name(p)}${p === e.payer ? `, ${p === 'tu' ? 'pagaste' : 'pagó'} ${eurText(e.amountEur, currency)}` : ''}. ${p === 'tu' ? 'Tu' : 'Su'} parte: ${inSplit ? eurText(share, currency) : 'nada'}`}
                   >
                     <Avatar id={p} size={36} bg={t.disc} inset />
                     <View style={{ flex: 1 }}>
@@ -137,7 +137,7 @@ function ExpenseDetail() {
                       </T>
                       {p === e.payer ? (
                         <T v="caption" color={t.inkMuted}>
-                          pagó {eurText(e.amountEur, currency)}
+                          {p === 'tu' ? 'pagaste' : 'pagó'} {eurText(e.amountEur, currency)}
                         </T>
                       ) : null}
                     </View>
@@ -158,7 +158,12 @@ function ExpenseDetail() {
       <View style={[styles.foot, { bottom: insets.bottom }]}>
         {/* 48 picks the 17 pt label; Figma draws this text button 44 tall. */}
         <Button label="Eliminar" kind="text" height={48} color={t.danger} onPress={() => setAsking(true)} style={{ height: 44, paddingHorizontal: 12 }} />
-        <Button label="Editar" leading={<Glyph name="pen" size={20} color={t.onAction} weight={2} />} style={{ flex: 1 }} onPress={() => router.push({ pathname: '/nuevo', params: { grupo } })} />
+        <Button
+          label="Editar"
+          leading={<Glyph name="pen" size={20} color={t.onAction} weight={2} />}
+          style={{ flex: 1 }}
+          onPress={() => router.push({ pathname: '/nuevo', params: { grupo, editar: e.id } })}
+        />
       </View>
 
       {asking ? <ConfirmDelete title={e.title} group={groupName} onCancel={() => setAsking(false)} onDelete={remove} /> : null}

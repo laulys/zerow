@@ -85,7 +85,7 @@ export default function GroupEmoji() {
         </View>
       </View>
 
-      <Tap onPress={() => input.current?.focus()} accessibilityRole="none" style={[styles.field, { backgroundColor: t.card }]}>
+      <Tap onPress={() => input.current?.focus()} accessible={false} accessibilityRole="none" style={[styles.field, { backgroundColor: t.card }]}>
         <TextInput
           ref={input}
           value={typed}

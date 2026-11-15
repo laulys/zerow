@@ -10,7 +10,7 @@ import { Money } from '../components/Money';
 import { SheetBody } from '../components/Sheet';
 import { Button, Card, T, Tap } from '../components/ui';
 import { afterSheet } from '../data/session';
-import { useTrip } from '../data/trip';
+import { useTrip, eurText, usePisoBalance } from '../data/trip';
 import { motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
@@ -19,12 +19,10 @@ type Method = { key: string; name: string; sub: string; icon?: IconName };
 // Ways to pay Ana. "Tu banco" is the open-banking flow (a provider's sandbox in
 // this demo); Revolut and PayPal appear because Ana saved her links.
 const methods: Method[] = [
-  { key: 'banco', name: 'Tu banco · ··42', sub: 'Lo apruebas en la app de tu banco', icon: 'landmark' },
+  { key: 'banco', name: 'Tu banco · acaba en 42', sub: 'Lo apruebas en la app de tu banco', icon: 'landmark' },
   { key: 'revolut', name: 'Revolut', sub: 'Ana tiene revolut.me' },
   { key: 'paypal', name: 'PayPal', sub: 'Ana tiene paypal.me' },
 ];
-
-const AMOUNT = 18.4;
 
 // 2.7 Pagar a Ana (option A): like Apple Pay. The amount, the saved way to pay
 // (tap "Cambiar" for the others) and one button. "Ya le pagué de otra forma"
@@ -32,12 +30,15 @@ const AMOUNT = 18.4;
 export default function Pay() {
   const { t } = useTheme();
   const { payPiso } = useTrip();
+  // What you owe Ana in the flat right now (fixed while the sheet is open, so it doesn't drop to zero as you pay).
+  const owed = usePisoBalance();
+  const [AMOUNT] = useState(Math.round(Math.max(0, -owed) * 100) / 100);
   const [method, setMethod] = useState(methods[0]);
   const [choosing, setChoosing] = useState(false);
   const [paying, setPaying] = useState(false);
 
   const finish = (how: string) => {
-    payPiso();
+    payPiso(AMOUNT);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     afterSheet(() => router.push({ pathname: '/pago', params: { para: 'ana', importe: String(AMOUNT), grupo: 'Piso Calle Mayor', concepto: 'Tu parte de noviembre', metodo: how } }));
   };
@@ -131,8 +132,8 @@ export default function Pay() {
         </Card>
       </Animated.View>
 
-      <Button label={paying ? `Abriendo ${method.key === 'banco' ? 'tu banco' : method.name}…` : 'Pagar 18,40 €'} icon={paying ? undefined : 'check'} onPress={pay} disabled={paying} />
-      <Button label="Ya le pagué de otra forma" kind="text" height={44} onPress={() => finish('Otra forma')} disabled={paying} />
+      <Button label={paying ? `Abriendo ${method.key === 'banco' ? 'tu banco' : method.name}…` : `Pagar ${eurText(AMOUNT)}`} icon={paying ? undefined : 'check'} onPress={pay} disabled={paying} />
+      <Button label="Ya le he pagado de otra forma" kind="text" height={44} onPress={() => finish('Otra forma')} disabled={paying} />
     </SheetBody>
   );
 }

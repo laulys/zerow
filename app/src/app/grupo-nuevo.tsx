@@ -92,7 +92,7 @@ export default function NewGroup() {
 
       {showDates ? (
         <Group label="Fechas">
-          <TextInput value={dates} onChangeText={setDates} placeholder="12 – 18 nov 2026" placeholderTextColor={t.inkMuted} style={inputStyle(t)} accessibilityLabel="Fechas" />
+          <TextInput value={dates} onChangeText={setDates} placeholder="12–18 nov 2026" placeholderTextColor={t.inkMuted} style={inputStyle(t)} accessibilityLabel="Fechas" />
         </Group>
       ) : null}
     </View>
@@ -122,6 +122,7 @@ export default function NewGroup() {
                 key={p}
                 label={p === 'tu' ? 'Laura (tú)' : people[p].name}
                 off={!on}
+                fixed={p === 'tu'}
                 onPress={() => p !== 'tu' && setWho((l) => (on ? l.filter((x) => x !== p) : everyone.filter((x) => x === p || l.includes(x))))}
                 leading={<Avatar id={p} size={32} bg={t.disc} inset />}
               />

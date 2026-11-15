@@ -12,7 +12,7 @@ import { AvatarStack } from '../components/Avatar';
 import { Spread } from '../components/Duo';
 import { useScreen } from '../components/Screen';
 import { Button, T } from '../components/ui';
-import { font, light } from '../theme/tokens';
+import { aurora, font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const COIN = 220;
@@ -60,7 +60,7 @@ function Half({ side, still }: { side: 'left' | 'right'; still: boolean }) {
   return (
     <Animated.View style={[StyleSheet.absoluteFill, style]}>
       <Svg width={COIN} height={COIN} viewBox="0 0 100 100">
-        <Path d={side === 'left' ? 'M47 17A26 26 0 0 0 47 69Z' : 'M53 31A26 26 0 0 1 53 83Z'} fill={light.inkFixed} />
+        <Path d={side === 'left' ? 'M47 17A26 26 0 0 0 47 69Z' : 'M53 31A26 26 0 0 1 53 83Z'} fill={aurora.inkFixed} />
       </Svg>
     </Animated.View>
   );
@@ -81,7 +81,7 @@ function Intro({ still, onStart }: { still: boolean; onStart: () => void }) {
     </>
   );
   // On the all-lime screen the button is the logo's black, not the cards' graphite.
-  const start = <Button label="Empezar" bg={light.inkFixed} color="#FFFFFF" onPress={onStart} />;
+  const start = <Button label="Empezar" bg={aurora.inkFixed} color="#FFFFFF" onPress={onStart} />;
 
   // Open iPhone Duo (Figma «Duo abierto · 1.1»): the coin on the left; one line about Zerow and the buttons on the right.
   if (split) {
@@ -90,14 +90,14 @@ function Intro({ still, onStart }: { still: boolean; onStart: () => void }) {
         <View style={[styles.splitIntro, { paddingTop: insets.top, paddingBottom: Math.max(insets.bottom, 16) }]}>
           <View style={[styles.introWrap, { flex: 0, width: 353 }]}>{mark}</View>
           <Animated.View entering={FadeIn.delay(still ? 0 : 950).duration(300)} style={{ width: 353, marginLeft: 71, justifyContent: 'flex-end' }}>
-            <T v="titleL" color={light.inkFixed}>
+            <T v="titleL" color={aurora.inkFixed}>
               Cuentas claras entre amigos.
             </T>
-            <T v="body" color={light.inkMutedFixed} style={{ marginTop: 8, marginBottom: 20 }}>
+            <T v="body" color={aurora.inkMutedFixed} style={{ marginTop: 8, marginBottom: 20 }}>
               Divide un viaje, el piso o una cena. Zerow lleva las cuentas hasta que estéis a cero.
             </T>
             {start}
-            <Button label="Ya tengo cuenta" kind="text" height={44} color={light.inkFixed} onPress={() => router.push('/entrar')} style={{ marginTop: 12 }} />
+            <Button label="Ya tengo cuenta" kind="text" height={44} color={aurora.inkFixed} onPress={() => router.push('/entrar')} style={{ marginTop: 12 }} />
           </Animated.View>
         </View>
       </BrandGradient>
@@ -111,14 +111,14 @@ function Intro({ still, onStart }: { still: boolean; onStart: () => void }) {
       <View style={[styles.introWrap, { paddingTop: insets.top, paddingBottom: 34 }]}>{mark}</View>
       <Animated.View entering={FadeIn.delay(still ? 0 : 950).duration(300)} style={{ paddingHorizontal: 20, paddingBottom: insets.bottom }}>
         {/* Figma breaks the line after «claras»; the wider phones would otherwise leave «amigos.» alone. */}
-        <T v="display" color={light.inkFixed} accessibilityRole="header">
+        <T v="display" color={aurora.inkFixed} accessibilityRole="header">
           {'Cuentas claras\nentre amigos.'}
         </T>
-        <T v="body" color={light.inkMutedFixed} style={{ marginTop: 12, marginBottom: 18 }}>
+        <T v="body" color={aurora.inkMutedFixed} style={{ marginTop: 12, marginBottom: 18 }}>
           Divide un viaje, el piso o una cena. Zerow lleva las cuentas hasta que estéis a cero.
         </T>
         {start}
-        <HaveAccount color={light.inkFixed} />
+        <HaveAccount color={aurora.inkFixed} />
       </Animated.View>
     </BrandGradient>
   );
@@ -197,19 +197,19 @@ function Demo({ play, still }: { play: boolean; still: boolean }) {
         <LimeCard radius={32} padding={20} seed={3}>
           <View style={styles.cardTop}>
             <View style={{ flex: 1 }}>
-              <T v="titleM" color={light.inkFixed}>
+              <T v="titleM" color={t.inkFixed}>
                 Lisboa 2026
               </T>
-              <T v="caption" color={light.inkMutedFixed} style={{ fontWeight: '500' }}>
+              <T v="caption" color={t.inkMutedFixed} style={{ fontWeight: '500' }}>
                 Acabas de sumar la cena
               </T>
             </View>
             <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={30} on="lime" />
           </View>
-          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 16, fontWeight: '500' }}>
+          <T v="label" color={t.inkMutedFixed} style={{ marginTop: 16, fontWeight: '500' }}>
             Te deben
           </T>
-          <Money value={63} size={76} color={light.inkFixed} />
+          <Money value={63} size={76} color={t.inkFixed} />
         </LimeCard>
       </Animated.View>
     </View>
@@ -220,7 +220,7 @@ function Demo({ play, still }: { play: boolean; still: boolean }) {
         Dilo en voz alta. Zerow hace las cuentas.
       </T>
       <T v="body" color={t.inkMuted} style={{ marginBottom: 22 }}>
-        Tú revisas cada gasto antes de que sume.
+        Tú revisas cada gasto antes de que cuente.
       </T>
     </Animated.View>
   );
@@ -268,11 +268,11 @@ const styles = StyleSheet.create({
   middle: { flex: 1, justifyContent: 'center', paddingTop: 24, paddingBottom: 48 },
   introWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   splitIntro: { flex: 1, flexDirection: 'row', paddingLeft: 50 },
-  wordmark: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -0.8, color: light.inkFixed, marginTop: 4 },
+  wordmark: { fontFamily: font.medium, fontSize: 40, lineHeight: 44, letterSpacing: -0.8, color: aurora.inkFixed, marginTop: 4 },
   wrap: { flex: 1, paddingHorizontal: 20 },
   bubble: { alignSelf: 'flex-end', maxWidth: 282, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   lockup: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
-  glowLime: { backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  glowLime: { backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
 });

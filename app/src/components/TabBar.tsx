@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 import { BrandGradient } from './BrandGradient';
 import { Frost } from './Frost';
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   },
   tab: { flex: 1, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', paddingTop: 1 },
   // Figma «Dictar gasto»: lime glow #B6F03A at 25 %, blur 22, 6 down.
-  capture: { width: 64, height: 64, borderRadius: 32, shadowColor: '#B6F03A', shadowOpacity: 0.25, shadowRadius: 11, shadowOffset: { width: 0, height: 6 } },
+  capture: { width: 64, height: 64, borderRadius: 32, shadowColor: aurora.glow, shadowOpacity: 0.25, shadowRadius: 11, shadowOffset: { width: 0, height: 6 } },
   captureInner: { flex: 1, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
   // The Duo's rail (Figma «Barra de pestañas (vertical)»): 58 wide, 24 from the bottom edge.
   rail: { position: 'absolute', right: 0, bottom: 24, alignItems: 'center', gap: 12 },

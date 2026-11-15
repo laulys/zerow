@@ -6,7 +6,7 @@ import type { PersonId } from './trip';
 
 export type Partial = { title?: string; amountEur?: number; originalUsd?: number; splitWith?: PersonId[] };
 
-const USD_TO_EUR = 40.36 / 45; // the rate behind the sample data ($45 ≈ 40,36 €)
+const USD_TO_EUR = 1 / 1.1149; // 1 € = 1,1149 US$ on the day of the sample data: 45 US$ ≈ 40,36 €, 300 US$ ≈ 269,08 €
 
 const names: Record<string, PersonId> = { ana: 'ana', luis: 'luis', marta: 'marta' };
 
@@ -27,7 +27,7 @@ export function interpret(text: string, previous: Partial): Partial {
     }
   }
 
-  const what = lower.match(/pagu[eé]\s+(?:el|la|los|las|un|una)?\s*([a-záéíóúñü0-9 ]+?)(?=,|\s+de todos|\s+para|\s+entre|\s+\d|$)/);
+  const what = lower.match(/pagu[eé]\s+(?:(?:el|la|los|las|un|una|unos|unas)\s+)?([a-záéíóúñü0-9 ]+?)(?=,|\s+de todos|\s+para|\s+entre|\s+\d|$)/);
   if (what && what[1].trim()) {
     const t = what[1].trim();
     out.title = t.charAt(0).toUpperCase() + t.slice(1);

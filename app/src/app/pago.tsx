@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
 import { Money } from '../components/Money';
+import { Icon } from '../components/Icon';
 import { Button, T, Tap } from '../components/ui';
 import { eurText, people, pisoGroup, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
@@ -32,7 +33,7 @@ export default function PaymentSent() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const reduce = useReducedMotion();
-  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string }>();
+  const p = useLocalSearchParams<{ para: PersonId; importe: string; grupo?: string; concepto?: string; metodo?: string }>();
   const to = (p.para ?? 'ana') as PersonId;
   const amount = Number(p.importe ?? 0);
   const group = p.grupo ?? 'Lisboa 2026';
@@ -131,7 +132,8 @@ export default function PaymentSent() {
               </View>
             ))}
             <T v="caption" color={t.inkMuted} style={{ marginTop: 10 }}>
-              Marcado como pagado por ti · {name(to)} lo confirmará
+              {/* Paid through the bank or a payment app, it says so; «de otra forma» is your word, so the other person confirms. */}
+              {p.metodo && p.metodo !== 'Otra forma' ? `Pagado con ${p.metodo === 'Tu banco' ? 'tu banco' : p.metodo}` : `Marcado como pagado por ti · ${name(to)} lo confirmará`}
             </T>
           </View>
           <Svg width="100%" height={20} viewBox="0 0 353 20" preserveAspectRatio="none">
@@ -144,10 +146,12 @@ export default function PaymentSent() {
   );
   const actions = (
     <Animated.View entering={at(1700)}>
-      <Button label="Compartir comprobante" icon="share" onPress={share} />
-      <Tap onPress={() => router.back()} accessibilityRole="button" style={styles.listo}>
+      {/* What almost everyone does next leads; sharing the receipt is the quiet text button under it. */}
+      <Button label="Listo" onPress={() => router.back()} />
+      <Tap onPress={share} accessibilityRole="button" accessibilityLabel="Compartir comprobante" style={styles.listo}>
+        <Icon name="share" size={20} color={t.ink} />
         <T v="bodyStrong" color={t.ink}>
-          Listo
+          Compartir comprobante
         </T>
       </Tap>
     </Animated.View>
@@ -201,6 +205,6 @@ const styles = StyleSheet.create({
   receipt: { backgroundColor: PAPER, paddingHorizontal: 16, paddingTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 46, paddingVertical: 8 },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
-  // «Listo»: a 44 pt text button with 17 pt type.
-  listo: { minHeight: 44, marginTop: 12, alignItems: 'center', justifyContent: 'center' },
+  // «Compartir comprobante»: a 44 pt text button with 17 pt type.
+  listo: { minHeight: 44, marginTop: 12, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
 });

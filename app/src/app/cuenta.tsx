@@ -19,13 +19,20 @@ const everyone: PersonId[] = ['tu', 'ana', 'luis', 'marta'];
 const tips = [0, 10, 15];
 const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 
+/** What was typed, the Spanish way: «1.234,50» is 1234.50 (the dot groups thousands), «84,5» and «84.5» are 84.50. */
+function parseAmount(text: string) {
+  const v = text.trim();
+  if (v.includes(',')) return parseFloat(v.replace(/\./g, '').replace(',', '.'));
+  return parseFloat(/^\d{1,3}(\.\d{3})+$/.test(v) ? v.replace(/\./g, '') : v);
+}
+
 // 2.5 Dividir una cuenta: a one-off bill with no group. The answer to "how much
 // do I put in?" is the hero; everything else is a chip you tap to change.
 export default function QuickSplit() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { addExpense } = useTrip();
-  const [title, setTitle] = useState('Cena en Casa Pepe');
+  const [title, setTitle] = useState('Cena en Chiado');
   const [editingTitle, setEditingTitle] = useState(false);
   const [amountText, setAmountText] = useState('84');
   const [editingAmount, setEditingAmount] = useState(false);
@@ -37,8 +44,8 @@ export default function QuickSplit() {
   const before = useRef('84');
   const veil = useStatusVeil();
 
-  const typed = parseFloat(amountText.replace(',', '.'));
-  const base = Math.max(0, Number.isFinite(typed) ? typed : parseFloat(before.current.replace(',', '.')) || 0);
+  const typed = parseAmount(amountText);
+  const base = Math.max(0, Number.isFinite(typed) ? typed : parseAmount(before.current) || 0);
   const total = Math.round(base * (1 + tip / 100) * 100) / 100;
   const each = who.length ? Math.round((total / who.length) * 100) / 100 : 0;
   const owedToPayer = who.includes(payer) ? total - each : total;
@@ -62,14 +69,16 @@ export default function QuickSplit() {
     setPayer(who[(i + 1) % who.length] ?? who[0]);
   };
 
+  // What you share is read by the others: there «Tú» would be them, so it carries your name.
+  const shared = (p: PersonId) => (p === 'tu' ? 'Laura' : people[p].name);
   const shareText = () =>
     `${title}: ${eurText(total, currency)}${tip ? ` con ${tip} % de propina` : ''}, entre ${who.length}.\n` +
-    who.map((p) => `${name(p)}: ${eurText(each, currency)}${p === payer ? ' (pagó)' : ''}`).join('\n') +
-    `\nPagó ${name(payer)}. Hecho con Zerow.`;
+    who.map((p) => `${shared(p)}: ${eurText(each, currency)}${p === payer ? ' (pagó)' : ''}`).join('\n') +
+    `\nPagó ${shared(payer)}. Hecho con Zerow.`;
 
   const saveToGroup = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const eur = currency === 'EUR' ? total : Math.round(total * (40.36 / 45) * 100) / 100;
+    const eur = currency === 'EUR' ? total : Math.round((total / 1.1149) * 100) / 100;
     addExpense({ id: `c${Date.now()}`, title, payer, amountEur: eur, originalUsd: currency === 'USD' ? total : undefined, splitWith: who, note: tip ? `propina ${tip} %` : undefined });
     router.dismissAll();
     router.push('/trip/lisboa');
@@ -116,9 +125,14 @@ export default function QuickSplit() {
           </T>
         </View>
 
-        <Tap onPress={() => amountRef.current?.focus()} accessibilityRole="none" style={[styles.totalField, { backgroundColor: t.fill, borderColor: editingAmount ? t.ink : 'transparent' }]}>
+        <Tap
+          onPress={() => amountRef.current?.focus()}
+          accessible={false}
+          accessibilityRole="none"
+          style={[styles.totalField, { backgroundColor: t.fill, borderColor: editingAmount ? t.ink : 'transparent' }]}
+        >
           <T v="body" color={t.inkMuted} style={{ flex: 1 }}>
-            Total de la cuenta
+            Cuenta sin propina
           </T>
           <TextInput
             ref={amountRef}
@@ -182,8 +196,8 @@ export default function QuickSplit() {
   );
   const actions = (
     <>
-      <Button label="Guardar en Lisboa 2026" kind="secondary" onPress={saveToGroup} />
-      <Button label="Compartir lo que pone cada uno" icon="share" onPress={() => Share.share({ message: shareText() })} />
+      <Button label="Compartir lo que pone cada uno" kind="secondary" icon="share" onPress={() => Share.share({ message: shareText() })} />
+      <Button label="Guardar en Lisboa 2026" onPress={saveToGroup} />
     </>
   );
   // Figma: 12 above the buttons, 12 between them, 34 under them (the home indicator).

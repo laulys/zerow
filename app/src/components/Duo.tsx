@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { type ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { balancesFor, eurText, people, pisoExpenses, pisoGroup, settledBalances, usePisoBalance, useTrip, type Expense, type PersonId } from '../data/trip';
+import { balancesFor, eurText, people, pisoExpenses, pisoGroup, plural, settledBalances, usePisoBalance, useTrip, type Expense, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 import { Aurora } from './Aurora';
 import { Avatar } from './Avatar';
@@ -49,7 +49,7 @@ export function GroupSummary({ id }: { id: string }) {
   const g = id === 'piso' ? pisoGroup : created;
   const name = g ? g.name : 'Lisboa 2026';
   const members: PersonId[] = g ? g.members : ['tu', 'luis', 'ana', 'marta'];
-  const meta = g ? [g.dates, `${g.members.length} personas`].filter(Boolean).join(' · ') : '12–18 nov · 4 personas';
+  const meta = g ? [g.dates, plural(g.members.length, 'persona')].filter(Boolean).join(' · ') : '12–18 nov · 4 personas';
   const list = id === 'piso' ? [...(groupExpenses.piso ?? []), ...pisoExpenses] : g ? (groupExpenses[g.id] ?? []) : expenses;
   const currency = g?.currency ?? 'EUR';
   // Lisboa counts the payments already marked in Saldar.

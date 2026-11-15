@@ -1,6 +1,6 @@
 import { Aurora } from '../../components/Aurora';
 import * as Haptics from 'expo-haptics';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -13,7 +13,7 @@ import { BrandGradient } from '../../components/BrandGradient';
 import { Money } from '../../components/Money';
 import { Icon } from '../../components/Icon';
 import { Button, T, Tap } from '../../components/ui';
-import { light } from '../../theme/tokens';
+import { aurora } from '../../theme/tokens';
 import { invite, people, useTrip } from '../../data/trip';
 import { useTheme } from '../../theme/useTheme';
 
@@ -36,7 +36,32 @@ const facts = ['Lo que pagaron antes no te toca', 'Verás los gastos y podrás a
 // 5.2 Te invitaron (option A): the invitation is a ticket on the brand gradient,
 // like a boarding pass. Top: the trip and who's in. A perforated line. Bottom:
 // the one thing a new member worries about — you start at 0,00 €.
-export default function Invited() {
+export default function InvitationRoute() {
+  const { code } = useLocalSearchParams<{ code: string }>();
+  return code === invite.code ? <Invited /> : <Expired />;
+}
+
+/** A link that is not a live invitation says so and gives a way on, instead of showing someone else's trip. */
+function Expired() {
+  const { t } = useTheme();
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ flex: 1, backgroundColor: t.page, paddingTop: insets.top + 120, paddingHorizontal: 20, paddingBottom: insets.bottom + 16 }}>
+      <Aurora preset="tab" />
+      <FocusStatusBar style="light" />
+      <T v="titleL" color={t.ink} accessibilityRole="header">
+        Esta invitación ya no vale
+      </T>
+      <T v="body" color={t.inkMuted} style={{ marginTop: 8 }}>
+        Pide a quien te invitó que te mande un enlace nuevo.
+      </T>
+      <View style={{ flex: 1 }} />
+      <Button label="Ir a Inicio" onPress={() => router.replace('/grupos')} />
+    </View>
+  );
+}
+
+function Invited() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const at = (ms: number) => FadeInDown.delay(ms).duration(300);
@@ -73,15 +98,15 @@ export default function Invited() {
         >
           <BrandGradient style={styles.ticket} seed={8} notch={topH ? { y: topH + 12, r: 12 } : undefined}>
             <View style={styles.top} onLayout={(e) => setTopH(e.nativeEvent.layout.height)}>
-              <T v="display" color={light.inkFixed}>
+              <T v="display" color={t.inkFixed}>
                 {invite.name}
               </T>
-              <T v="label" color={light.inkMutedFixed} style={{ fontWeight: '500' }}>
+              <T v="label" color={t.inkMutedFixed} style={{ fontWeight: '500' }}>
                 {invite.dates} · {invite.place} · en euros
               </T>
               <View style={styles.people}>
                 <AvatarStack ids={invite.inside} size={36} gap={-11} on="lime" />
-                <T v="labelStrong" color={light.inkFixed}>
+                <T v="labelStrong" color={t.inkFixed}>
                   {invite.inside.length} personas ya dentro
                 </T>
               </View>
@@ -95,17 +120,17 @@ export default function Invited() {
             </View>
 
             <View style={styles.bottom}>
-              <T v="label" color={light.inkMutedFixed} style={{ fontWeight: '500' }}>
+              <T v="label" color={t.inkMutedFixed} style={{ fontWeight: '500' }}>
                 Tú entras con
               </T>
-              <Money value={0} size={76} color={light.inkFixed} />
+              <Money value={0} size={76} color={t.inkFixed} />
               <View style={{ gap: 4, marginTop: 6 }}>
                 {facts.map((f) => (
                   <View key={f} style={styles.fact}>
                     <View style={[styles.ok, { backgroundColor: t.onLimeButton }]}>
                       <Icon name="check" size={16} color={t.lime} weight={2.5} />
                     </View>
-                    <T v="labelStrong" color={light.inkFixed} style={{ flex: 1 }}>
+                    <T v="labelStrong" color={t.inkFixed} style={{ flex: 1 }}>
                       {f}
                     </T>
                   </View>
@@ -191,7 +216,7 @@ function Fundido() {
 
 const styles = StyleSheet.create({
   from: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  glow: { shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  glow: { shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   shade: { shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   ticket: { borderRadius: 32 },
   top: { paddingTop: 24, paddingHorizontal: 24, paddingBottom: 16, gap: 4 },
