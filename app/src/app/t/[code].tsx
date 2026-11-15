@@ -6,8 +6,9 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useReducedMotion, withDelay, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, Line, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Line } from 'react-native-svg';
 import { Avatar, AvatarStack } from '../../components/Avatar';
+import { BottomFade } from '../../components/BottomFade';
 import { Spread } from '../../components/Duo';
 import { BrandGradient } from '../../components/BrandGradient';
 import { Money } from '../../components/Money';
@@ -167,7 +168,7 @@ function Invited() {
         <View style={styles.centre}>{ticket}</View>
       </ScrollView>
       <Animated.View entering={at(400)} pointerEvents="box-none" style={[styles.footer, { paddingBottom: bottom }]}>
-        <Fundido />
+        <BottomFade style={StyleSheet.absoluteFill} />
         {actions}
       </Animated.View>
     </View>
@@ -195,22 +196,6 @@ function Invited() {
       }
       footer={<Animated.View entering={at(400)}>{actions}</Animated.View>}
     />
-  );
-}
-
-/** Figma «Fundido»: page colour from clear to solid at 60 %, behind the buttons. */
-function Fundido() {
-  const { t } = useTheme();
-  return (
-    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="inviteFade" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-          <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#inviteFade)" />
-    </Svg>
   );
 }
 

@@ -29,8 +29,6 @@ export const auroraPresets = {
   group: { clip: 235, lime: [-144, -275, 614, 510, 0.34], mint: [90, -224, 485, 442, 0.26] },
   /** 3.4 dictando: the light rises from the bottom. */
   dictation: { clip: 852, lime: [-245, 552, 794, 660, 0.3], mint: [59, 618, 627, 572, 0.23] },
-  /** 4.4 a cero. */
-  zero: { clip: 595, lime: [-265, -95, 830, 690, 0.34], mint: [53, -26, 656, 598, 0.26] },
   /** 4.7–4.8 pago enviado. */
   receipt: { clip: 390, lime: [-164, -150, 650, 540, 0.27], mint: [84, -96, 513, 468, 0.2] },
   /** 5.4 te uniste, 6.5 viaje sin gastos. */

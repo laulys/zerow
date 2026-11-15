@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Aurora } from '../../components/Aurora';
 import { LIST_PANE, useScreen } from '../../components/Screen';
 import { Bone, Skeleton } from '../../components/Skeleton';
+import { Tile } from '../../components/Tile';
 import { useAppState } from '../../data/states';
 import { TripView } from '../trip/[id]';
 import { Button, Card, Hairline, T, Tap } from '../../components/ui';
@@ -22,6 +23,7 @@ import { balancesFor, eurText, pastGroups, people, plural, settledBalances, sett
 
 import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { aurora } from '../../theme/tokens';
+import { live } from '../../data/live';
 import { useTheme } from '../../theme/useTheme';
 
 const HEADER_H = 44;
@@ -37,6 +39,8 @@ const kindIcon: Record<GroupKind, IconName> = {
 // 2.1 Inicio: your groups. Lisboa is the open trip; its balance rolls when it changes.
 export default function Home({ initial }: { initial?: string }) {
   const { t } = useTheme();
+  // With an engine connected, coming back to Inicio reads the trip again.
+  useFocusEffect(useCallback(() => live.refresh(), []));
   const insets = useSafeAreaInsets();
   const { expenses, draft, groups, groupExpenses, pisoPaid, pisoPaidAmount, pastEmoji, paid } = useTrip();
   const pendingPayments = settleUp(settledBalances(expenses, paid)).length;
@@ -71,7 +75,7 @@ export default function Home({ initial }: { initial?: string }) {
           <T v="label" color={t.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
             {mineWord}
           </T>
-          <RollingMoney value={Math.abs(mine)} size={heroSize(mine)} color={t.inkFixed} centsColor={t.inkMutedFixed} />
+          <RollingMoney value={Math.abs(mine)} size={heroSize(mine)} color={t.inkFixed} />
           <View style={styles.cardFoot}>
             {draft ? (
               <ActionPill label="1 gasto por revisar" dot />
@@ -101,7 +105,7 @@ export default function Home({ initial }: { initial?: string }) {
           <T v="label" color={t.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
             {pisoWord}
           </T>
-          <RollingMoney value={Math.abs(piso)} size={heroSize(piso)} color={t.inkFixed} centsColor={t.inkMutedFixed} />
+          <RollingMoney value={Math.abs(piso)} size={heroSize(piso)} color={t.inkFixed} />
           <View style={styles.cardFoot}>
             {/* When you owe, the card says what to do about it, not just the number. */}
             {piso < -0.005 ? (
@@ -137,7 +141,7 @@ export default function Home({ initial }: { initial?: string }) {
             <T v="label" color={t.inkMutedFixed} style={{ marginTop: 'auto', fontWeight: '500' }}>
               {list.length ? (bal >= 0 ? 'Te deben' : 'Debes') : 'Saldo'}
             </T>
-            <Money value={Math.abs(bal)} size={heroSize(bal)} color={t.inkFixed} centsColor={t.inkMutedFixed} currency={g.currency} />
+            <Money value={Math.abs(bal)} size={heroSize(bal)} color={t.inkFixed} currency={g.currency} />
             <View style={styles.cardFoot}>
               <Icon name={kindIcon[g.kind]} size={16} color={t.inkMutedFixed} />
               <T v="caption" color={t.inkMutedFixed}>
@@ -321,7 +325,9 @@ export default function Home({ initial }: { initial?: string }) {
                   >
                     <View style={[styles.tile, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
                       {pastEmoji[p.id] ? (
-                        <Text style={styles.emoji}>{pastEmoji[p.id]}</Text>
+                        <Text style={styles.emoji} maxFontSizeMultiplier={1.3}>
+                          {pastEmoji[p.id]}
+                        </Text>
                       ) : (
                         <Icon name={kindIcon[p.kind === 'Piso' ? 'piso' : p.kind === 'Viaje' ? 'viaje' : p.kind === 'Regalo' ? 'evento' : 'otro']} size={20} color={t.ink} />
                       )}
@@ -344,7 +350,7 @@ export default function Home({ initial }: { initial?: string }) {
                       </T>
                     </View>
                   </Tap>
-                  {i < pastGroups.length - 1 ? <Hairline color={t.line} inset={52} /> : null}
+                  {i < pastGroups.length - 1 ? <Hairline /> : null}
                 </View>
               ))}
             </Card>
@@ -383,10 +389,6 @@ export default function Home({ initial }: { initial?: string }) {
   );
 }
 
-/**
- * Group name, dates and faces. On the card behind, only this strip shows, so it
- * carries the balance instead of the faces: both groups read without swiping.
- */
 /** 6.1 Inicio · cargando: the outline of the group in front, the two actions and the list below. */
 function HomeSkeleton() {
   const { t } = useTheme();
@@ -442,9 +444,9 @@ function NoGroups() {
       </BrandGradient>
       <Tap onPress={() => router.push('/cuenta')} accessibilityRole="button" accessibilityLabel="Dividir una cuenta ahora. Una cena o una compra, sin crear grupo" style={{ marginTop: 16 }}>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={[styles.emptyTile, { backgroundColor: t.disc }]}>
+          <Tile>
             <Icon name="receipt" size={20} color={t.ink} />
-          </View>
+          </Tile>
           <View style={{ flex: 1 }}>
             <T v="labelStrong" color={t.ink}>
               Dividir una cuenta ahora
@@ -464,13 +466,17 @@ function NoGroups() {
       >
         <Frost fill={t.glass} radius={18} intensity={20} />
         <T v="caption" color={t.ink} style={{ fontWeight: '500' }}>
-          Prueba: «cena 84 €, entre 4»
+          {'Prueba: «cena 84\u00A0€, entre 4»'}
         </T>
       </Tap>
     </>
   );
 }
 
+/**
+ * Group name, dates and faces. On the card behind, only this strip shows, so it
+ * carries the balance instead of the faces: both groups read without swiping.
+ */
 function CardTop({ title, meta, people, peek, glass }: { title: string; meta: string; people: PersonId[]; peek?: string; glass?: boolean }) {
   const { t } = useTheme();
   const split = useScreen().form === 'split';
@@ -575,7 +581,7 @@ function SpentOn({ expenses }: { expenses: Expense[] }) {
                 {r.name}
               </T>
               <T v="caption" color={t.inkMuted} style={styles.tabular}>
-                {Math.round((r.v / total) * 100)} %
+                {`${Math.round((r.v / total) * 100)}\u00A0%`}
               </T>
               <T v="titleXS" color={t.ink} style={styles.tabular}>
                 {eurText(r.v)}
@@ -627,7 +633,6 @@ const styles = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, paddingLeft: 16, paddingRight: 12, backgroundColor: 'rgba(17,17,18,0.12)' },
   pillDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: aurora.inkFixed },
   cardBody: { flex: 1, padding: 20 },
-  emptyTile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   // Figma 6.4: a glass hint at the bottom right, just above the tab bar.
   tryIt: { marginTop: 'auto', alignSelf: 'flex-end', minHeight: 36, borderRadius: 18, paddingHorizontal: 16, justifyContent: 'center' },
   // Figma «Franja»: the strip's name and balance sit 12 from the top, 16 from the sides.
@@ -675,13 +680,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  chip: {
-    alignSelf: 'flex-start',
-    marginTop: 18,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
   },
   tile: {
     width: 44,

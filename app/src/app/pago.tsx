@@ -3,16 +3,17 @@ import { Spread } from '../components/Duo';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { PixelRatio, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { Easing, FadeInDown, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
+import { BottomFade } from '../components/BottomFade';
 import { Money } from '../components/Money';
 import { Icon } from '../components/Icon';
 import { Button, T, Tap } from '../components/ui';
-import { eurText, people, pisoGroup, type PersonId } from '../data/trip';
+import { eurText, personName, pisoGroup, type PersonId } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
 
 const APath = Animated.createAnimatedComponent(Path);
@@ -23,7 +24,6 @@ const CHECK_LEN = 38;
 const RECEIPT_H = 291;
 // Figma «Papel»: white 9 % with half circles (10 pt) cut out of the bottom edge.
 const PAPER = 'rgba(255,255,255,0.09)';
-const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 
 // 4.7 Pago enviado, only when you pay: a quiet, Apple Pay-like confirmation. The lime disc
 // springs in and the check draws itself, a ring pulses out, then the receipt
@@ -40,13 +40,14 @@ export default function PaymentSent() {
   // The flat's payments are your share of the month.
   const concept = p.concepto ?? (group === pisoGroup.name ? `Tu parte de ${pisoGroup.dates}` : `Saldar ${group}`);
 
-  const when = useMemo(() => {
+  // Stamped once, when the receipt opens.
+  const [when] = useState(() => {
     const d = new Date();
     const date = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
     const time = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
     return `${date} · ${time}`;
-  }, []);
-  const ref = useMemo(() => `ZR-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${String(Math.floor(Math.random() * 9000) + 1000)}`, []);
+  });
+  const [ref] = useState(() => `ZR-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${String(Math.floor(Math.random() * 9000) + 1000)}`);
 
   const disc = useSharedValue(reduce ? 1 : 0.4);
   const discOp = useSharedValue(reduce ? 1 : 0);
@@ -72,7 +73,7 @@ export default function PaymentSent() {
   const at = (ms: number) => (reduce ? undefined : FadeInDown.delay(ms).duration(300));
 
   const rows: [string, string, PersonId?][] = [
-    ['Para', name(to), to],
+    ['Para', personName(to), to],
     ['Grupo', group],
     ['Concepto', concept],
     ['Fecha', when],
@@ -81,7 +82,7 @@ export default function PaymentSent() {
 
   const share = () =>
     Share.share({
-      message: `Pagué ${eurText(amount)} a ${name(to)} · ${group} · ${when} · Ref. ${ref}. Hecho con Zerow.`,
+      message: `Pagué ${eurText(amount)} a ${personName(to)} · ${group} · ${when} · Ref. ${ref}. Hecho con Zerow.`,
     });
 
   const paid = (
@@ -123,7 +124,7 @@ export default function PaymentSent() {
                   </T>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
                     {who ? <Avatar id={who} size={24} bg={t.disc} inset /> : null}
-                    <T v="labelStrong" color={t.ink} numberOfLines={1}>
+                    <T v="labelStrong" color={t.ink} numberOfLines={2} style={{ flexShrink: 1, textAlign: 'right' }}>
                       {v}
                     </T>
                   </View>
@@ -133,7 +134,7 @@ export default function PaymentSent() {
             ))}
             <T v="caption" color={t.inkMuted} style={{ marginTop: 10 }}>
               {/* Paid through the bank or a payment app, it says so; «de otra forma» is your word, so the other person confirms. */}
-              {p.metodo && p.metodo !== 'Otra forma' ? `Pagado con ${p.metodo === 'Tu banco' ? 'tu banco' : p.metodo}` : `Marcado como pagado por ti · ${name(to)} lo confirmará`}
+              {p.metodo && p.metodo !== 'Otra forma' ? `Pagado con ${p.metodo === 'Tu banco' ? 'tu banco' : p.metodo}` : `Marcado como pagado por ti · ${personName(to)} lo confirmará`}
             </T>
           </View>
           <Svg width="100%" height={20} viewBox="0 0 353 20" preserveAspectRatio="none">
@@ -150,7 +151,7 @@ export default function PaymentSent() {
       <Button label="Listo" onPress={() => router.back()} />
       <Tap onPress={share} accessibilityRole="button" accessibilityLabel="Compartir comprobante" style={styles.listo}>
         <Icon name="share" size={20} color={t.ink} />
-        <T v="bodyStrong" color={t.ink}>
+        <T v="bodyStrong" color={t.ink} maxFontSizeMultiplier={1.6}>
           Compartir comprobante
         </T>
       </Tap>
@@ -176,15 +177,7 @@ export default function PaymentSent() {
           </ScrollView>
           <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom }}>
             {/* Figma «Fundido»: the page fades in under the buttons. */}
-            <Svg pointerEvents="none" style={styles.fade} width="100%" height="100%">
-              <Defs>
-                <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-                  <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-                </LinearGradient>
-              </Defs>
-              <Rect width="100%" height="100%" fill="url(#fade)" />
-            </Svg>
+            <BottomFade style={styles.fade} />
             {actions}
           </View>
         </View>
@@ -204,7 +197,7 @@ const styles = StyleSheet.create({
   slot: { overflow: 'hidden', marginTop: -5 },
   receipt: { backgroundColor: PAPER, paddingHorizontal: 16, paddingTop: 8 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8, minHeight: 46, paddingVertical: 8 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 150 },
+  fade: { height: 150 },
   // «Compartir comprobante»: a 44 pt text button with 17 pt type.
   listo: { minHeight: 44, marginTop: 12, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center' },
 });

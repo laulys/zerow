@@ -1,7 +1,10 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { api, apiBase, onApiBase, type NewExpense, type RemoteExpense } from './api';
+import { live } from './live';
 
-// Sample data for the design phase. It mirrors the backend's trip, balances and
-// draft shapes (zerow/api.py) so the screens can switch to the real API later.
+// The trip the app is designed around. On its own the app runs on this sample
+// data; pointed at the engine (see `data/api.ts`), Lisboa's expenses and drafts
+// come from the API and every change is sent to it (`data/live.ts`).
 
 export type PersonId = 'tu' | 'ana' | 'luis' | 'marta';
 
@@ -12,6 +15,18 @@ export const people: Record<PersonId, { name: string; avatar: number }> = {
   marta: { name: 'Marta', avatar: require('../../assets/avatars/marta.png') },
 };
 
+/** Who did something, at the start of a line: «Tú» for you, the name for anyone else. */
+export const personName = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
+
+/** A name as part of a link or an id: lower case, no accents, hyphens between words («Piso Calle Mayor» → «piso-calle-mayor»). */
+export const slug = (s: string) =>
+  s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
 export type Expense = {
   id: string;
   title: string;
@@ -20,12 +35,14 @@ export type Expense = {
   originalUsd?: number;
   splitWith: PersonId[];
   note?: string;
+  /** Its id in the engine, when it came from there. */
+  remoteId?: number;
 };
 
 const confirmed: Expense[] = [
   { id: 'hotel', title: 'Hotel Alfama', payer: 'luis', amountEur: 269.08, originalUsd: 300, splitWith: ['tu', 'ana', 'luis', 'marta'] },
   { id: 'taxi', title: 'Taxi al hotel', payer: 'ana', amountEur: 40.36, originalUsd: 45, splitWith: ['ana', 'luis'] },
-  { id: 'cena', title: 'Cena en Bairro Alto', payer: 'tu', amountEur: 138, splitWith: ['tu', 'ana', 'luis', 'marta'], note: 'propina 15 %' },
+  { id: 'cena', title: 'Cena en Bairro Alto', payer: 'tu', amountEur: 138, splitWith: ['tu', 'ana', 'luis', 'marta'], note: 'propina 15\u00A0%' },
 ];
 
 export const lunchDraft: Expense = {
@@ -35,6 +52,57 @@ export const lunchDraft: Expense = {
   amountEur: 38,
   splitWith: ['tu', 'ana', 'luis', 'marta'],
 };
+
+const ORDER: PersonId[] = ['tu', 'ana', 'luis', 'marta'];
+/** The engine knows people by name; in the app you are «tú». */
+const REMOTE_NAME: Record<PersonId, string> = { tu: 'Laura', ana: 'Ana', luis: 'Luis', marta: 'Marta' };
+const personFor = (name: string): PersonId => ORDER.find((p) => REMOTE_NAME[p] === name) ?? 'tu';
+
+/**
+ * An expense from the engine in the app's shape. The sample trip's own expenses
+ * keep their ids and notes (matched by name, once each), so the screens written
+ * around them still recognise them; anything else gets an id from the engine's.
+ */
+function fromRemote(r: RemoteExpense, taken: Set<string>): Expense {
+  const known = [...confirmed, lunchDraft].find((e) => e.title === r.description && !taken.has(e.id));
+  const id = known ? known.id : `r${r.id}`;
+  taken.add(id);
+  const among = Object.keys(r.shares).map(personFor);
+  return {
+    id,
+    remoteId: r.id,
+    title: r.description,
+    payer: personFor(r.paid_by),
+    amountEur: r.trip_amount,
+    originalUsd: r.currency === 'USD' ? r.amount : undefined,
+    splitWith: ORDER.filter((p) => among.includes(p)),
+    note: known?.note,
+  };
+}
+
+const toRemote = (e: Expense): NewExpense => ({
+  description: e.title,
+  amount: e.originalUsd ?? e.amountEur,
+  currency: e.originalUsd ? 'USD' : 'EUR',
+  paid_by: REMOTE_NAME[e.payer],
+  split_between: e.splitWith.map((p) => REMOTE_NAME[p]),
+});
+
+/** Sends an expense the app counts as confirmed: confirms the engine's draft, or adds it if the engine doesn't have it. */
+const sendConfirmed = (e: Expense) =>
+  live.push(async (trip) => {
+    const id = live.idOf(e);
+    if (id != null) await api.confirm(id);
+    else live.remember(e.id, (await api.add(trip, toRemote(e))).id);
+  });
+
+const sendRemoved = (e: Expense) =>
+  live.push(async () => {
+    const id = live.idOf(e);
+    if (id == null) return;
+    await api.remove(id);
+    live.forget(id);
+  });
 
 /** Net balance per person: what they paid minus their share. Sums to zero. */
 export function balancesFor(expenses: Expense[]): Record<PersonId, number> {
@@ -111,7 +179,6 @@ export const pisoExpenses: Expense[] = [
   { id: 'luz', title: 'Luz y agua de noviembre', payer: 'ana', amountEur: 55.2, splitWith: ['tu', 'ana', 'luis'] },
   { id: 'wifi', title: 'Internet de noviembre', payer: 'luis', amountEur: 30, splitWith: ['ana', 'luis'] },
 ];
-export const PISO_SHARE = 18.4;
 
 /** Emoji for the open groups (settled ones keep theirs in `pastEmoji`). */
 export const openEmoji: Record<string, string> = { lisboa: '🇵🇹', piso: '🔑' };
@@ -124,7 +191,6 @@ export const pastGroups = [
   { id: 'regalo', kind: 'Regalo', name: 'Regalo de Marta', people: 3, meta: 'Feb 2025 · entre 3', total: 96, suggestions: ['🎁', '🎂', '🎉', '💐', '🎈', '🥳', '💝', '🍰'] },
   { id: 'navidad', kind: 'Una cuenta', name: 'Cena de Navidad', people: 6, meta: 'Dic 2024 · 6 personas', total: 245.6, suggestions: ['🎄', '🍽️', '🍷', '🥂', '🎅', '⭐️', '🦃', '🎁'] },
 ] as const;
-export type PastGroupId = (typeof pastGroups)[number]['id'];
 
 export type GroupKind = 'viaje' | 'piso' | 'evento' | 'otro';
 
@@ -163,6 +229,11 @@ type TripState = {
   setPastEmoji: (id: string, emoji: string | null) => void;
   markPaid: (t: Transfer) => void;
   unmarkPaid: (t: Transfer) => void;
+  /**
+   * Says something to the engine's agent about Lisboa. It answers and may propose an
+   * expense, which comes back as a draft. `null` when the app runs on sample data.
+   */
+  ask: ((message: string) => Promise<{ reply: string; draft: Expense | null }>) | null;
 };
 
 const TripContext = createContext<TripState | null>(null);
@@ -178,6 +249,25 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupExpenses, setGroupExpenses] = useState<Record<string, Expense[]>>({ piso: pisoExpenses });
 
+  // With an engine to talk to, Lisboa is whatever the engine says: the list and the
+  // draft are replaced each time the trip is read. Without one, the sample trip.
+  const connected = !!useSyncExternalStore(onApiBase, apiBase);
+  useEffect(
+    () =>
+      live.start((trip) => {
+        setLastSaved(null);
+        if (!trip) {
+          setExpenses(confirmed);
+          setDraft(lunchDraft);
+          return;
+        }
+        const taken = new Set<string>();
+        setExpenses([...trip.expenses].reverse().map((r) => fromRemote(r, taken)));
+        setDraft(trip.drafts.length ? fromRemote(trip.drafts[0], taken) : null);
+      }),
+    [],
+  );
+
   const value = useMemo<TripState>(
     () => ({
       groups,
@@ -185,18 +275,13 @@ export function TripProvider({ children }: { children: ReactNode }) {
       addToGroup: (groupId, e) => setGroupExpenses((all) => ({ ...all, [groupId]: [e, ...(all[groupId] ?? [])] })),
       removeExpense: (groupId, id) => {
         if (groupId === 'lisboa') {
+          const gone = expenses.find((e) => e.id === id);
+          if (gone) sendRemoved(gone);
           setExpenses((list) => list.filter((e) => e.id !== id));
         } else setGroupExpenses((all) => ({ ...all, [groupId]: (all[groupId] ?? []).filter((e) => e.id !== id) }));
       },
       createGroup: (g) => {
-        const slug =
-          g.name
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/^-|-$/g, '') || 'grupo';
-        const made = { ...g, id: `${slug}-${Date.now().toString(36).slice(-4)}` };
+        const made = { ...g, id: `${slug(g.name) || 'grupo'}-${Date.now().toString(36).slice(-4)}` };
         setGroups((list) => [made, ...list]);
         return made;
       },
@@ -224,22 +309,40 @@ export function TripProvider({ children }: { children: ReactNode }) {
       addExpense: (e) => {
         setExpenses((list) => [e, ...list]);
         setLastSaved(e);
+        sendConfirmed(e);
       },
       confirmDraft: () => {
         if (!draft) return;
         setExpenses((list) => [draft, ...list]);
         setLastSaved(draft);
         setDraft(null);
+        sendConfirmed(draft);
       },
-      discardDraft: () => setDraft(null),
+      discardDraft: () => {
+        if (draft) sendRemoved(draft);
+        setDraft(null);
+      },
       undoLast: () => {
         if (!lastSaved) return;
         setExpenses((list) => list.filter((e) => e.id !== lastSaved.id));
         setDraft(lastSaved);
         setLastSaved(null);
+        const undone = lastSaved;
+        live.push(async () => {
+          const id = live.idOf(undone);
+          if (id != null) await api.unconfirm(id);
+        });
       },
+      ask: connected
+        ? async (message) => {
+            const answer = await live.ask(message);
+            const proposed = answer.drafts[answer.drafts.length - 1];
+            // A card proposed in the chat is new: it never takes the id of one of the sample expenses.
+            return { reply: answer.reply, draft: proposed ? fromRemote(proposed, new Set([...confirmed, lunchDraft].map((e) => e.id))) : null };
+          }
+        : null,
     }),
-    [groups, groupExpenses, expenses, draft, lastSaved, paid, pisoPaid, pisoPaidAmount, pastEmoji],
+    [groups, groupExpenses, expenses, draft, lastSaved, paid, pisoPaid, pisoPaidAmount, pastEmoji, connected],
   );
 
   return <TripContext.Provider value={value}>{children}</TripContext.Provider>;
@@ -258,7 +361,8 @@ export function formatEur(n: number, currency: Currency = 'EUR'): { whole: strin
   const [w, c] = fixed.split('.');
   // Always group thousands (4.812,30 €), as in the designs; es-ES skips it for 4 digits.
   const whole = w.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return { whole, cents: `,${c} ${currency === 'EUR' ? '€' : 'US$'}` };
+  // A non-breaking space before the currency, so an amount never breaks across two lines.
+  return { whole, cents: `,${c}\u00A0${currency === 'EUR' ? '€' : 'US$'}` };
 }
 
 export function eurText(n: number, currency: Currency = 'EUR'): string {

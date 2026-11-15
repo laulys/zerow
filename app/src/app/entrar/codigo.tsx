@@ -51,7 +51,7 @@ export default function Code() {
       return enterApp();
     }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    shake.value = withSequence(withTiming(-8, { duration: 50 }), withTiming(8, { duration: 50 }), withTiming(-5, { duration: 50 }), withTiming(0, { duration: 50 }));
+    shake.set(withSequence(withTiming(-8, { duration: 50 }), withTiming(8, { duration: 50 }), withTiming(-5, { duration: 50 }), withTiming(0, { duration: 50 })));
     setWrong(true);
     announce('Ese código no es correcto. Revísalo o pide otro.');
     setTriesLeft((n) => n - 1);
@@ -122,6 +122,7 @@ export default function Code() {
           </Animated.View>
         </Tap>
         <TextInput
+          maxFontSizeMultiplier={2}
           ref={input}
           value={code}
           onChangeText={onChange}

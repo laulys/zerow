@@ -36,12 +36,17 @@ export const type = StyleSheet.create({
   mini: { fontSize: 11, lineHeight: 14, fontWeight: '600' },
 });
 
-/** Emphasis inside SF Pro text (replaces switching to Space Grotesk Medium). */
-export const strong = { fontWeight: '600' } as const;
+/**
+ * How far each style grows with the system text size. Titles are already large,
+ * so they stop early (as iOS's own large titles do); what you read goes up to
+ * double, which is where the layouts still hold on the narrowest iPhone.
+ * A `maxFontSizeMultiplier` on the text itself wins.
+ */
+const GROWTH: Record<keyof typeof type, number> = { display: 1.3, titleL: 1.3, titleM: 1.6, section: 1.6, titleXS: 1.6, body: 2, bodyStrong: 2, label: 2, labelStrong: 2, caption: 2, mini: 1.3 };
 
 export function T({ v, color, style, children, ...rest }: Omit<TextProps, 'style'> & { v: keyof typeof type; color: string; style?: StyleProp<TextStyle>; children: ReactNode }) {
   return (
-    <Text style={[type[v], { color }, style]} {...rest}>
+    <Text style={[type[v], { color }, style]} maxFontSizeMultiplier={GROWTH[v]} {...rest}>
       {children}
     </Text>
   );
@@ -168,7 +173,13 @@ export function Button({
       {leading}
       {icon ? <Icon name={icon} size={20} color={iconColor ?? fg} /> : null}
       {/* Figma: text buttons («Ya le pagué de otra forma», «Recordárselo») are 17 pt even at 44 tall. */}
-      <T v={height >= 48 || kind === 'text' ? 'bodyStrong' : 'labelStrong'} color={fg} style={{ flexShrink: 1, textAlign: 'center' }}>
+      {/* A button's label grows less than running text: it has to stay a button. */}
+      <T
+        v={height >= 48 || kind === 'text' ? 'bodyStrong' : 'labelStrong'}
+        color={fg}
+        style={{ flexShrink: 1, textAlign: 'center' }}
+        maxFontSizeMultiplier={height >= 48 || kind === 'text' ? 1.6 : 1.4}
+      >
         {label}
       </T>
     </Tap>
@@ -218,11 +229,31 @@ export function Lockup({ color, size = 32 }: { color: string; size?: number }) {
 }
 
 /**
+ * Figma's small lockup (1.2, 1.7): the coin cropped to its halves (23 × 40), 8 pt, then
+ * «zerow» in Título M. `Lockup` scales the mark with the type, so it can't draw this one.
+ */
+export function SmallLockup({ color }: { color: string }) {
+  return (
+    <View style={smallLockup} accessible accessibilityRole="header" accessibilityLabel="Zerow">
+      <Svg width={23.2} height={40} viewBox="21 0 58 100">
+        <Path d="M47 17A26 26 0 0 0 47 69Z" fill={color} />
+        <Path d="M53 31A26 26 0 0 1 53 83Z" fill={color} />
+      </Svg>
+      <T v="titleM" color={color}>
+        zerow
+      </T>
+    </View>
+  );
+}
+
+const smallLockup = { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' } as const;
+
+/**
  * v3 Aurora cards: translucent white (7 %) so the page and its glow show
  * through, radius 28, no border and no sheen. Pass `bg` only for the cards that
  * are not the standard surface (a lime one, a raised one).
  */
-export function Card({ children, style, bg }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg?: string; sheen?: boolean }) {
+export function Card({ children, style, bg }: { children: ReactNode; style?: StyleProp<ViewStyle>; bg?: string }) {
   const { t } = useTheme();
   const fill = !bg || bg === t.surface || bg === t.panel ? t.card : bg;
   // Translucent cards blur what's behind them (the aurora, content scrolling under).
@@ -236,11 +267,8 @@ export function Card({ children, style, bg }: { children: ReactNode; style?: Sty
   );
 }
 
-/**
- * v3 «Filete»: a 1 pt white 9 % line across the card's inner width (Figma draws
- * no inset). `color` and `inset` are kept for older callers and ignored.
- */
-export function Hairline(_: { color?: string; inset?: number }) {
+/** v3 «Filete»: a 1 pt white 9 % line across the card's inner width (Figma draws no inset). */
+export function Hairline() {
   const { t } = useTheme();
   return <View style={{ height: 1, backgroundColor: t.hairline }} />;
 }
@@ -252,7 +280,6 @@ export function Chip({
   onPress,
   icon,
   leading,
-  dashed,
   off,
   fixed,
 }: {
@@ -261,7 +288,6 @@ export function Chip({
   onPress?: () => void;
   icon?: IconName;
   leading?: ReactNode;
-  dashed?: boolean;
   /** A person you can leave out: the chip is a checkbox, `off` when they're not included. */
   off?: boolean;
   /** Always included (you): shown like the others, but it can't be changed. */
@@ -333,19 +359,6 @@ export function Segmented<K extends string>({ options, value, onChange }: { opti
           </Tap>
         );
       })}
-    </View>
-  );
-}
-
-/** Labelled text field. The label stays visible above the input. */
-export function Field({ label, children }: { label: string; children: ReactNode }) {
-  const { t } = useTheme();
-  return (
-    <View style={{ marginTop: 20 }}>
-      <T v="labelStrong" color={t.ink} style={{ marginBottom: 8 }}>
-        {label}
-      </T>
-      {children}
     </View>
   );
 }

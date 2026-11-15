@@ -15,6 +15,11 @@ export function enterApp() {
 
 // The onboarding ends on «Crear mi primer grupo»: you sign in first (a group is shared, so it needs an account) and land on the new group.
 let newGroupNext = false;
+/** Leaving the sign-in screen without signing in drops that plan: next time you sign in you land on Inicio. */
+export function forgetNewGroup() {
+  newGroupNext = false;
+}
+
 export function signInThenNewGroup() {
   newGroupNext = true;
   router.push('/entrar');

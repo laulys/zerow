@@ -4,15 +4,18 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Keyboard, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance, type TextInputInstance } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { Aurora } from '../components/Aurora';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomFade } from '../components/BottomFade';
 import { BrandGradient } from '../components/BrandGradient';
 import { Frost } from '../components/Frost';
 import { EASE, recede, surface } from '../components/motion';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
 import { Orb } from '../components/Orb';
+import { Sparkle } from '../components/Sparkle';
+import { Check } from '../components/Check';
 import { announce } from '../components/announce';
 import { Button, Card, Chip, IconButton, T, Tap, type } from '../components/ui';
 import { interpret, missing, type Partial } from '../data/interpret';
@@ -61,7 +64,7 @@ const nowIs = (n: number) => (n > 0 ? `Te deben ${eurText(n)}` : n < 0 ? `Debes 
 function NewExpense() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
-  const { expenses, addExpense, removeExpense, groups, groupExpenses, addToGroup } = useTrip();
+  const { expenses, addExpense, removeExpense, groups, groupExpenses, addToGroup, ask } = useTrip();
   const params = useLocalSearchParams<{ grupo?: string; ejemplo?: string; editar?: string }>();
   const options = [{ id: 'lisboa', name: 'Lisboa 2026', people: 4 }, { id: 'piso', name: 'Piso Calle Mayor', people: 3 }, ...groups.map((g) => ({ id: g.id, name: g.name, people: g.members.length }))];
   const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
@@ -154,6 +157,24 @@ function NewExpense() {
     setDraft(null);
     setSaved(false);
     say('me', body);
+    // Connected to the engine, a new expense in Lisboa goes to the real agent: it answers and may
+    // propose the card. (Editing stays local: you say what changes and the card is rebuilt here.)
+    if (ask && groupId === 'lisboa' && !editing) {
+      setPreparing(true);
+      setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
+      ask(meant ?? body)
+        .then(({ reply, draft: proposed }) => {
+          setPreparing(false);
+          if (proposed) setDraft(proposed);
+          const said = say('zerow', reply);
+          if (proposed) standing.current = said;
+        })
+        .catch(() => {
+          setPreparing(false);
+          say('zerow', 'Ahora no puedo hablar con Zerow. Inténtalo de nuevo en un momento.');
+        });
+      return;
+    }
     const next = understand(meant ?? body, partial, groupId);
     setPartial(next);
     const gap = missing(next);
@@ -239,7 +260,7 @@ function NewExpense() {
   const split = (e: Expense) => {
     const who = e.payer === 'tu' ? 'Pagaste tú' : `Pagó ${people[e.payer].name}`;
     const among = e.splitWith.length === members.length ? String(members.length) : nameList(e.splitWith);
-    const usd = e.originalUsd ? ` · ${e.originalUsd.toFixed(2).replace('.', ',')} US$` : '';
+    const usd = e.originalUsd ? ` · ${e.originalUsd.toFixed(2).replace('.', ',')}\u00A0US$` : '';
     return `${who} · ${eurText(e.amountEur / e.splitWith.length)} cada uno, entre ${among}${usd}`;
   };
 
@@ -421,15 +442,7 @@ function NewExpense() {
           <View style={{ paddingHorizontal: 20, paddingBottom: keyboard ? 8 : Math.max(insets.bottom - 12, 12) }}>
             {chat ? (
               // Figma «Fundido»: the conversation fades into the page under the bar.
-              <Svg pointerEvents="none" style={styles.fade} width="100%" height="100%">
-                <Defs>
-                  <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-                    <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-                    <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-                  </LinearGradient>
-                </Defs>
-                <Rect width="100%" height="100%" fill="url(#fade)" />
-              </Svg>
+              <BottomFade style={styles.fade} />
             ) : null}
             {saved && draft ? (
               <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(120)} style={styles.notice}>
@@ -448,6 +461,7 @@ function NewExpense() {
             <View style={[styles.bar, typing && styles.barTyping]}>
               <Frost fill={t.glass} radius={typing ? 28 : 30} intensity={20} />
               <TextInput
+                maxFontSizeMultiplier={2}
                 ref={input}
                 value={text}
                 onChangeText={setText}
@@ -537,7 +551,6 @@ function NewExpense() {
   );
 }
 
-/** «Por ejemplo» and the example chips (3.4, 3.4b). Tapping one sends it. */
 /** The pill's chevron turns towards the menu instead of flipping. */
 function Turn({ open, children }: { open: boolean; children: ReactNode }) {
   const reduce = useReducedMotion();
@@ -549,6 +562,7 @@ function Turn({ open, children }: { open: boolean; children: ReactNode }) {
   return <Animated.View style={style}>{children}</Animated.View>;
 }
 
+/** «Por ejemplo» and the example chips (3.4, 3.4b). Tapping one sends it. */
 function Examples({ onPick, style }: { onPick: (example: string) => void; style?: object }) {
   const { t } = useTheme();
   return (
@@ -593,24 +607,6 @@ function Skel({ w, h, r }: { w?: number; h: number; r: number }) {
   return <View style={{ width: w, flex: w ? undefined : 1, height: h, borderRadius: r, backgroundColor: 'rgba(255,255,255,0.08)' }} />;
 }
 
-/** Figma «Destello»: the four-point star of «Por revisar». */
-function Sparkle({ color }: { color: string }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 14 14">
-      <Path d="M7 0 L8.58 5.42 L14 7 L8.58 8.58 L7 14 L5.42 8.58 L0 7 L5.42 5.42 Z" fill={color} />
-    </Svg>
-  );
-}
-
-/** The check of «Sumado por ti», 16 pt with Figma's heavier 2.25 stroke. */
-function Check({ color }: { color: string }) {
-  return (
-    <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3.375} strokeLinecap="round" strokeLinejoin="round">
-      <Path d="M20 6 9 17l-5-5" />
-    </Svg>
-  );
-}
-
 /** Lucide arrow-up at 20 pt with a 2 pt stroke (the send button, 3.4b). */
 function ArrowUp({ color }: { color: string }) {
   return (
@@ -625,7 +621,7 @@ const styles = StyleSheet.create({
   liveWords: { flexDirection: 'row', flexWrap: 'wrap' },
   header: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingTop: 16 },
   titleRow: { height: 44, justifyContent: 'center' },
-  picker: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 44, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12 },
+  picker: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, borderRadius: 22, borderWidth: 1, paddingLeft: 16, paddingRight: 12 },
   // iOS-style menu: 280 wide under the pill, glass with a white 8 % edge and a soft shadow.
   menu: {
     position: 'absolute',
@@ -655,7 +651,7 @@ const styles = StyleSheet.create({
   draft: { borderRadius: 28, padding: 16, gap: 12 },
   glowLime: { borderRadius: 28, backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { borderRadius: 28, backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 126 },
+  fade: { height: 126 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 48, borderRadius: 24, paddingLeft: 16, paddingRight: 4, marginBottom: 16 },
   // A lime text button, like the notice on Lisboa (3.2): no pill squeezed into the 48 pt notice.
   undo: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 44, paddingHorizontal: 12 },
@@ -705,7 +701,7 @@ function LiveWord({ word, shown, last, delay }: { word: string; shown: boolean; 
   }, [shown, reduce, p, delay]);
   const style = useAnimatedStyle(() => ({ opacity: p.value, transform: [{ translateY: 2 + (1 - p.value) * 6 }] })); // +2: titleL's own nudge
   return (
-    <Animated.Text style={[type.titleL, { color: t.ink }, style]} importantForAccessibility="no">
+    <Animated.Text style={[type.titleL, { color: t.ink }, style]} maxFontSizeMultiplier={1.3} importantForAccessibility="no">
       {word}
       {last ? '' : ' '}
     </Animated.Text>

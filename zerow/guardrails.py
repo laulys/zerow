@@ -35,7 +35,7 @@ def ambiguous_pesos(tool_name: str, args: dict, user_text: str) -> Optional[str]
     if re.search(r"\bpesos?\b", user_text, re.IGNORECASE) and not PESO_COUNTRY_HINTS.search(user_text):
         return (
             "The user said 'pesos' without saying which country. Don't convert yet: "
-            "share the other results and ask which pesos they mean "
+            "give the amounts you already have, each one once and in its own currency, and ask which pesos they mean "
             "(Mexican MXN, Colombian COP, Argentine ARS, Chilean CLP...)."
         )
     return None

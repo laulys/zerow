@@ -19,13 +19,14 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import { Aurora } from '../components/Aurora';
 import { Avatar, AvatarStack } from '../components/Avatar';
+import { BottomFade } from '../components/BottomFade';
 import { BrandGradient } from '../components/BrandGradient';
 import { Icon } from '../components/Icon';
 import { Money, RollingMoney } from '../components/Money';
 import { Orb } from '../components/Orb';
+import { Sparkle } from '../components/Sparkle';
 import { useScreen } from '../components/Screen';
 import { Button, Card, Hairline, T, Tap } from '../components/ui';
 import { Fact } from '../components/Fact';
@@ -91,33 +92,12 @@ function LimeCard({ radius, padding, seed, children }: { radius: number; padding
   );
 }
 
-/** Figma «Destello»: a four-point star, inner radius 32 %. */
-function Sparkle({ size, color }: { size: number; color: string }) {
-  const c = size / 2;
-  const i = c * 0.32 * Math.SQRT1_2;
-  const d = `M${c} 0L${c + i} ${c - i}L${size} ${c}L${c + i} ${c + i}L${c} ${size}L${c - i} ${c + i}L0 ${c}L${c - i} ${c - i}Z`;
-  return (
-    <Svg width={size} height={size} accessibilityElementsHidden>
-      <Path d={d} fill={color} />
-    </Svg>
-  );
-}
-
 /** Figma «Fundido» (1.3): the page fades in under the button (clear → page at 60 %), 170 pt tall from the bottom edge. */
 function Fade() {
-  const { t } = useTheme();
   const insets = useSafeAreaInsets();
   return (
     <View pointerEvents="none" style={[styles.fade, { bottom: -insets.bottom }]}>
-      <Svg width="100%" height="100%">
-        <Defs>
-          <LinearGradient id="fundido" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-            <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-          </LinearGradient>
-        </Defs>
-        <Rect width="100%" height="100%" fill="url(#fundido)" />
-      </Svg>
+      <BottomFade style={StyleSheet.absoluteFill} />
     </View>
   );
 }
@@ -233,7 +213,7 @@ function TellIt({ onNext }: { onNext: () => void }) {
       <Animated.View entering={reduce ? undefined : arrive(CHAT.card)}>
         <LimeCard radius={28} padding={16} seed={9}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Sparkle size={14} color={t.inkFixed} />
+            <Sparkle color={t.inkFixed} />
             <T v="caption" color={t.inkMutedFixed} style={{ fontWeight: '600' }}>
               Por revisar · aún no cuenta
             </T>
@@ -246,7 +226,7 @@ function TellIt({ onNext }: { onNext: () => void }) {
             <Money value={45} size={36} color={t.inkFixed} currency="USD" />
           </View>
           <T v="label" color={t.inkMutedFixed} style={{ marginTop: 12, fontWeight: '500' }}>
-            Pagaste tú · 20,18 € cada uno, entre 2
+            {'Pagaste tú · 20,18\u00A0€ cada uno, entre 2'}
           </T>
         </LimeCard>
       </Animated.View>
@@ -284,7 +264,7 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
       <Animated.View entering={at(150)}>
         {/* Figma breaks the question in three lines by hand. */}
         <T v="titleL" color={t.ink} style={{ marginTop: 24 }} accessibilityRole="header">
-          {'¿Pagaste el taxi\nal aeropuerto, 45 US$,\npara Ana y para ti?'}
+          {'¿Pagaste el taxi\nal aeropuerto, 45\u00A0US$,\npara Ana y para ti?'}
         </T>
         <T v="body" color={t.inkMuted} style={{ marginTop: 12 }}>
           Nada cuenta hasta que respondes.
@@ -299,7 +279,7 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
         <Hairline />
         <Fact label="Entre" value="Ana y tú" faces={['ana', 'tu']} />
         <Hairline />
-        <Fact label="A cada uno" value="20,18 €" amount />
+        <Fact label="A cada uno" value={'20,18\u00A0€'} amount />
       </Card>
     </Animated.View>
   );

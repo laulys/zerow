@@ -7,17 +7,17 @@ import { FocusStatusBar } from '../../components/FocusStatusBar';
 import { useScreen } from '../../components/Screen';
 import { StatusVeil } from '../../components/StatusVeil';
 import { Avatar } from '../../components/Avatar';
+import { Tile } from '../../components/Tile';
 import { rise, EASE } from '../../components/motion';
 import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { Card, Hairline, T, Tap } from '../../components/ui';
-import { eurText, invite, pastGroups, people, plural, transferKey, useTrip, type Expense, type PersonId } from '../../data/trip';
-import { aurora, motion } from '../../theme/tokens';
+import { eurText, invite, pastGroups, people, personName, plural, transferKey, useTrip, type Expense, type PersonId } from '../../data/trip';
+import { motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 type Item = { key: string; who?: PersonId; emoji?: string; title: string; meta: string; amount?: string; sub?: string; to?: string; badge?: string; tag?: string };
 
 const sample = new Set(['hotel', 'taxi', 'cena', 'almuerzo']);
-const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 const roma = pastGroups.find((g) => g.id === 'roma')!;
 
 // 2.2 Actividad: what happened, newest first. "Hoy" follows what you do in the
@@ -62,7 +62,7 @@ export default function Activity() {
     today.push({
       key: `${transferKey(x)}-${i}`,
       who: x.from,
-      title: x.from === 'tu' ? `Pagaste a ${name(x.to)}` : x.to === 'tu' ? `${name(x.from)} te pagó` : `${name(x.from)} pagó a ${name(x.to)}`,
+      title: x.from === 'tu' ? `Pagaste a ${personName(x.to)}` : x.to === 'tu' ? `${personName(x.from)} te pagó` : `${personName(x.from)} pagó a ${personName(x.to)}`,
       meta: 'Lisboa 2026 · ahora',
       amount: eurText(x.amount),
       to: '/saldar',
@@ -74,7 +74,7 @@ export default function Activity() {
       // Whatever you dictate or save is summed by you, whoever paid it.
       who: 'tu',
       title: `Sumaste «${e.title}»`,
-      meta: `Lisboa 2026 · ${e.payer === 'tu' ? 'pagaste tú' : `pagó ${name(e.payer)}`} · ahora`,
+      meta: `Lisboa 2026 · ${e.payer === 'tu' ? 'pagaste tú' : `pagó ${personName(e.payer)}`} · ahora`,
       amount: eurText(e.amountEur),
       to: '/trip/lisboa',
     });
@@ -90,7 +90,7 @@ export default function Activity() {
         key: gid + e.id,
         who: 'tu',
         title: `Sumaste «${e.title}»`,
-        meta: `${gname} · ${e.payer === 'tu' ? 'pagaste tú' : `pagó ${name(e.payer)}`} · ahora`,
+        meta: `${gname} · ${e.payer === 'tu' ? 'pagaste tú' : `pagó ${personName(e.payer)}`} · ahora`,
         amount: eurText(e.amountEur),
         to: `/trip/${gid}`,
       });
@@ -103,8 +103,8 @@ export default function Activity() {
   today.push({ key: 'cena', who: 'tu', title: 'Sumaste la cena', meta: 'Lisboa 2026 · 00:12 · con propina', amount: eurText(138), to: '/trip/lisboa' });
 
   const yesterday: Item[] = [
-    { key: 'hotel', who: 'luis', title: 'Luis añadió el hotel', meta: 'Hotel Alfama · 18:30', amount: eurText(269.08), sub: '300,00 US$', to: '/trip/lisboa' },
-    { key: 'taxi', who: 'ana', title: 'Ana añadió el taxi', meta: 'Taxi al hotel · 16:10', amount: eurText(40.36), sub: '45,00 US$', to: '/trip/lisboa' },
+    { key: 'hotel', who: 'luis', title: 'Luis añadió el hotel', meta: 'Hotel Alfama · 18:30', amount: eurText(269.08), sub: '300,00\u00A0US$', to: '/trip/lisboa' },
+    { key: 'taxi', who: 'ana', title: 'Ana añadió el taxi', meta: 'Taxi al hotel · 16:10', amount: eurText(40.36), sub: '45,00\u00A0US$', to: '/trip/lisboa' },
     { key: 'marta', who: 'marta', title: 'Marta se unió al viaje', meta: 'Por invitación de Ana · 11:02', to: '/trip/lisboa' },
   ];
 
@@ -116,7 +116,7 @@ export default function Activity() {
     { label: 'Marzo de 2025', items: older },
   ];
 
-  const section = (g: (typeof sections)[number], n: number) => (
+  const section = (g: (typeof sections)[number]) => (
     <View key={g.label} style={styles.section}>
       <T v="labelStrong" color={t.inkMuted}>
         {g.label}
@@ -135,9 +135,11 @@ export default function Activity() {
                 <Avatar id={it.who} size={40} bg={t.disc} inset />
               ) : (
                 // Figma «Emoji»: the group's emoji on a white 8 % tile.
-                <View style={styles.tile}>
-                  <Text style={styles.emoji}>{it.emoji}</Text>
-                </View>
+                <Tile>
+                  <Text style={styles.emoji} maxFontSizeMultiplier={1.3}>
+                    {it.emoji}
+                  </Text>
+                </Tile>
               )}
               <View style={{ flex: 1 }}>
                 {/* The title wraps (Figma lets it take two lines); the detail line ends in «…». */}
@@ -188,11 +190,11 @@ export default function Activity() {
           {split ? (
             // Two columns on the open Duo: today on the left, the rest on the right.
             <View style={styles.spread}>
-              <View style={{ flex: 1 }}>{section(sections[0], 0)}</View>
-              <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g, i) => section(g, i + 1))}</View>
+              <View style={{ flex: 1 }}>{section(sections[0])}</View>
+              <View style={{ flex: 1, gap: 20 }}>{sections.slice(1).map((g) => section(g))}</View>
             </View>
           ) : (
-            <View style={{ gap: 20 }}>{sections.map((g, i) => section(g, i))}</View>
+            <View style={{ gap: 20 }}>{sections.map((g) => section(g))}</View>
           )}
         </LayoutAnimationConfig>
       </Animated.ScrollView>
@@ -220,7 +222,6 @@ const styles = StyleSheet.create({
   title: { marginBottom: 20 },
   section: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 23, lineHeight: 28 },
   unclipped: { overflow: 'visible' },
   spread: { flexDirection: 'row', alignItems: 'flex-start', gap: 71 },

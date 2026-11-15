@@ -2,9 +2,9 @@ import { useSyncExternalStore } from 'react';
 import { Linking } from 'react-native';
 
 /**
- * The states the API will bring: loading (6.1, 6.2), no groups yet (6.4) and no
- * connection (6.7). The app still runs on sample data, so today there is nothing
- * to load and no connection to lose. Until the data layer sets them, a link with
+ * Loading (6.1, 6.2), no groups yet (6.4) and no connection (6.7). When the app
+ * talks to the engine the data layer sets loading and offline for real (see
+ * `data/trip.tsx`). On sample data there is nothing to load, so a link with
  * `?estado=cargando`, `?estado=sin-grupos` or `?estado=sin-conexion` shows each
  * one, and `?estado=normal` goes back. Development only, like `?device=`.
  */
@@ -35,6 +35,13 @@ function subscribe(listener: () => void) {
   return () => {
     listeners.delete(listener);
   };
+}
+
+/** Set by the data layer when the app talks to the engine: loading until the trip arrives, offline when it can't be reached. */
+export function setAppState(next: AppState) {
+  if (next === current) return;
+  current = next;
+  listeners.forEach((l) => l());
 }
 
 export function useAppState(): AppState {

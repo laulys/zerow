@@ -162,3 +162,14 @@ def test_numbers_from_user_only_checks_its_tools():
     assert check("trip_balances", {}, "") is None
     assert check("propose_expense", {"amount": 45.0, "tip_percent": 0}, "paid 45") is None
     assert check("propose_expense", {"amount": 46}, "paid 45") is not None
+
+
+def test_a_confirmation_can_be_undone(client, trip):
+    expense = client.post(f"/trips/{trip['id']}/expenses", json={"description": "Dinner", "amount": 90, "paid_by": "Laura"}).json()
+    assert client.get(f"/trips/{trip['id']}/balances").json()["total_spent"] == 90
+
+    undone = client.post(f"/expenses/{expense['id']}/unconfirm")
+    assert undone.status_code == 200 and undone.json()["status"] == "draft"
+    body = client.get(f"/trips/{trip['id']}").json()
+    assert body["balances"]["total_spent"] == 0 and [d["id"] for d in body["drafts"]] == [expense["id"]]
+    assert client.post("/expenses/9999/unconfirm").status_code == 404
