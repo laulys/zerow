@@ -164,7 +164,9 @@ function NewExpense() {
     setTimeout(() => {
       const e: Expense = {
         id: editing ? editing.id : `n${Date.now()}`,
-        title: next.title!,
+        // Editing «Cena en Bairro Alto» by saying «la cena, 150 euros» keeps its full name (and its note).
+        title: editing && editing.title.toLowerCase().includes(next.title!.toLowerCase()) ? editing.title : next.title!,
+        note: editing?.note,
         payer: next.payer && members.includes(next.payer) ? next.payer : 'tu',
         amountEur: next.amountEur!,
         originalUsd: next.originalUsd,

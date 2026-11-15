@@ -178,7 +178,7 @@ function SettleUp() {
               <View style={[styles.paidCard, { paddingVertical: done.length === 1 ? 2 : 4 }]}>
                 <Frost fill={done.length === 1 ? t.glass : t.card} radius={28} intensity={done.length === 1 ? 20 : 28} />
                 {done.map((x, i) => (
-                  <Animated.View key={transferKey(x)} entering={FadeIn.duration(motion.standard)}>
+                  <Animated.View key={`${transferKey(x)}-${i}`} entering={FadeIn.duration(motion.standard)}>
                     <View style={styles.paidRow}>
                       <Check color={t.lime} />
                       <T v="label" color={t.inkSoft} style={{ flex: 1 }}>

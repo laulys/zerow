@@ -1,16 +1,44 @@
-# 💸 Bill Buddy
+# Zerow
 
-A chat assistant that splits restaurant bills, calculates tips and converts currencies, built on a **tool-calling agent loop written from scratch** (no `create_agent`, no `AgentExecutor`).
+**Split a trip with friends by saying what you paid.** Zerow (zero + owe) is an iPhone app for shared expenses: you say or type *"I paid the taxi, 45 dollars, for Ana and me"*, it proposes an expense card, a person confirms it, and at the end it works out who pays whom until everyone is at zero.
 
-Ask in plain language, in English or Spanish. Bill Buddy picks the right tools, chains them (tip → split → convert) and does every calculation in code with exact cents.
+This repository has both halves:
 
-It also powers a **group-trip expense backend** ([Trip mode](#trip-mode-the-backend-for-a-group-trip-app)): tell it *"I paid the taxi, 45 dollars, for Ana and me"* and it proposes an expense card that a person confirms, then works out who owes whom.
+- **The app** ([`app/`](app)): Expo / React Native, designed in Figma first. A working prototype of every screen and flow.
+- **The engine** ([`zerow/`](zerow)): a tool-calling AI agent **written from scratch** in Python (no `create_agent`, no `AgentExecutor`), a trip ledger and an API, with 110 tests.
 
-> 🇪🇸 [Resumen en español abajo](#-resumen-en-español)
+> 🇪🇸 [Resumen en español abajo](#-resumen-en-español) · The project started as *Bill Buddy*, which is still the repository's name.
 
-![Demo: Bill Buddy splits a bill with tip, asks which pesos, then converts to Colombian pesos](docs/demo.gif)
+| Say it, check it, add it | Settle up until everyone is at zero | Pay and keep the receipt |
+|---|---|---|
+| ![Dictating an expense: Zerow asks how much it was, then proposes a card to confirm](docs/zerow-nuevo-gasto.gif) | ![Marking three payments as paid until the trip reads «A cero»](docs/zerow-saldar.gif) | ![Paying Ana and the receipt sliding out](docs/zerow-pago.gif) |
 
-## What it can do
+Full-length videos: [new expense](docs/video/03-nuevo-gasto.mp4) · [settling up](docs/video/01-saldar-hasta-a-cero.mp4) · [paying](docs/video/02-pagar-a-ana-y-recibo.mp4) · [first run](docs/video/04-primera-vez.mp4).
+
+## The idea
+
+- **The AI is the input method, not the decision-maker.** It turns a sentence into a draft card. Nothing counts until a person confirms it, and it never invents an amount: if you didn't say how much, it asks.
+- **One question at a time.** No forms. The screen you open most (the trip) shows what you're owed, the expense waiting for review and the list.
+- **Settling is a checklist.** Zerow works out the fewest payments; you tick them off and the trip ends "a cero".
+
+## The app
+
+Built with Expo SDK 58, expo-router, Reanimated and Skia. The interface is in Spanish.
+
+- **Design system "Aurora":** a graphite page with the brand's lime and mint as ambient light, translucent cards, and lime kept for the one action that is yours. Space Grotesk for amounts and titles, SF Pro for everything you read.
+- **Motion that follows iOS:** pages push and sheets rise; screens you open many times a day don't perform, only what changes moves.
+- **Accessibility:** VoiceOver labels and announcements, text that grows with Dynamic Type, Reduce Motion and Reduce Transparency respected.
+- **Three layouts:** iPhone, and the closed and open states of a folding phone.
+
+```bash
+cd app
+npm install
+npx expo start        # then press i for the iOS simulator
+```
+
+**What is real and what is not, today.** The app is a working prototype on sample data: every flow can be walked through, but it does not talk to the engine yet. Its "agent" is a small local stand-in ([`interpret.ts`](app/src/data/interpret.ts)) that mirrors the real one, dictation is simulated, and nothing is saved between launches. The data shapes match the API below so the switch is a matter of replacing that layer.
+
+## The engine: what the agent can do
 
 Real output, running locally with Ollama (`qwen3:8b`):
 
@@ -35,9 +63,13 @@ You: Convert 50 euros to Mexican pesos and 50 euros to Colombian pesos
 | `split_itemized` | Everyone pays what they ordered, plus an equal part of shared items, plus tax and tip **in proportion to what they consumed** |
 | `convert_currency` | Today's exchange rate for 160+ currencies (USD, EUR, MXN, COP, ARS, CLP...) |
 
+![Terminal demo: the agent splits a bill with tip, asks which pesos, then converts to Colombian pesos](docs/demo.gif)
+
+*Recorded when the project was still called Bill Buddy.*
+
 ## The agent loop, from scratch
 
-Frameworks hide the most important part of an agent. [`bill_buddy/agent.py`](bill_buddy/agent.py) writes it out in about 60 lines:
+Frameworks hide the most important part of an agent. [`zerow/agent.py`](zerow/agent.py) writes it out in about 60 lines:
 
 ```mermaid
 flowchart TD
@@ -68,11 +100,11 @@ for _ in range(self.max_steps):
 
 ### Guardrails: rules in code, not just in the prompt
 
-The prompt says *"if the user only says 'pesos', ask which country"*. In testing, `qwen3:8b` ignored that and assumed Mexican pesos every time. So the rule is now checked **in code** ([`guardrails.py`](bill_buddy/guardrails.py)) before `convert_currency` runs: an ambiguous peso conversion is blocked, and the model is told to ask. That's what the demo GIF shows. Guardrails work the same with any model, big or small.
+The prompt says *"if the user only says 'pesos', ask which country"*. In testing, `qwen3:8b` ignored that and assumed Mexican pesos every time. So the rule is now checked **in code** ([`guardrails.py`](zerow/guardrails.py)) before `convert_currency` runs: an ambiguous peso conversion is blocked, and the model is told to ask. That's what the terminal demo below shows. Guardrails work the same with any model, big or small.
 
 ## Trip mode: the backend for a group-trip app
 
-The chat is fun, but the real use case is a trip with friends: lots of small expenses, two currencies, and a messy "who owes whom" at the end. Trip mode is the backend for a mobile app (Expo app coming next) where **the agent is the input method**:
+The chat is fun, but the real use case is a trip with friends: lots of small expenses, two currencies, and a messy "who owes whom" at the end. Trip mode is the backend for the app above, where **the agent is the input method**:
 
 ```text
 "I paid the taxi, 45 dollars, for Ana and me"
@@ -92,7 +124,7 @@ The chat is fun, but the real use case is a trip with friends: lots of small exp
 - **Numbers come from people.** A guardrail blocks any amount or tip the user never said. In testing, *"Paid lunch"* made the model invent "25 EUR + 10% tip". Now it asks *"How much was lunch?"*.
 - **Fresh data every time.** Expenses change in the app between messages, so the agent must re-read balances for every question instead of answering from memory (the model did that in testing).
 - **USD and EUR.** Each trip has a main currency. An expense in the other currency keeps its original amount, the exchange rate of that day, and the converted amount.
-- **Settle-up in at most n−1 transfers.** It uses the greedy "biggest debtor pays biggest creditor" method ([`settle.py`](bill_buddy/settle.py)). The true minimum number of transfers is NP-hard in general. Tested on random trips: every balance always reaches zero.
+- **Settle-up in at most n−1 transfers.** It uses the greedy "biggest debtor pays biggest creditor" method ([`settle.py`](zerow/settle.py)). The true minimum number of transfers is NP-hard in general. Tested on random trips: every balance always reaches zero.
 
 | Endpoint | What it does |
 |---|---|
@@ -104,11 +136,11 @@ The chat is fun, but the real use case is a trip with friends: lots of small exp
 | `GET /trips/{id}/balances` | Net balance per person and the transfers that settle the trip |
 
 ```bash
-uvicorn bill_buddy.api:app --reload
+uvicorn zerow.api:app --reload
 # open http://localhost:8000/docs to try every endpoint in the browser
 ```
 
-Data lives in a local SQLite file (`BILL_BUDDY_DB`, default `bill_buddy.db`).
+Data lives in a local SQLite file (`ZEROW_DB`, default `zerow.db`).
 
 ## Getting started
 
@@ -126,10 +158,10 @@ cp .env.example .env                      # works as-is with Ollama
 ```
 
 ```bash
-python -m bill_buddy                                           # chat
-python -m bill_buddy "How much should I tip on \$60 at 20%?"   # one question
-python -m bill_buddy --quiet "Split 100 between 3"             # hide the tool calls
-uvicorn bill_buddy.api:app --reload                            # trip-mode API on :8000
+python -m zerow                                           # chat in the terminal
+python -m zerow "How much should I tip on \$60 at 20%?"   # one question
+python -m zerow --quiet "Split 100 between 3"             # hide the tool calls
+uvicorn zerow.api:app --reload                            # trip-mode API on :8000
 ```
 
 **Other providers:** set `LLM_PROVIDER=openai` and `OPENAI_API_KEY` in `.env` to use OpenAI. For IBM watsonx, run `pip install langchain-ibm` and fill in the `WATSONX_*` values.
@@ -154,7 +186,7 @@ GitHub Actions runs them on every push.
 
 This project started as the guided lab *"Build Interactive LLM Agents with Tools"* from IBM Skills Network, which builds a calculator and tip agent by hand. I kept the from-scratch approach and fixed its limits:
 
-| In the lab | In Bill Buddy |
+| In the lab | In Zerow |
 |---|---|
 | Runs only `tool_calls[0]` | Runs every tool call in a reply (parallel calls) |
 | One round only: can't chain "tip, then split" | Loops until the answer is ready, up to `max_steps` |
@@ -182,16 +214,15 @@ Based on the IBM Skills Network guided project *Build Interactive LLM Agents wit
 
 ## 🇪🇸 Resumen en español
 
-**Bill Buddy** es un asistente para dividir cuentas entre amigos: calcula propinas, reparte el total en partes iguales o según lo que pidió cada uno, y convierte monedas con el tipo de cambio del día. Le escribes en español o inglés y él usa herramientas de Python para hacer cada cálculo con exactitud de centavos.
+**Zerow** (de *zero* + *owe*) es una app para repartir los gastos de un viaje entre amigos. En vez de rellenar formularios, dices o escribes lo que pagaste —*«pagué el taxi, 45 dólares, para Ana y para mí»*— y Zerow propone una tarjeta que una persona confirma. Al final calcula quién paga a quién hasta que todos quedáis a cero.
 
-**Qué demuestra este proyecto:**
-- Un **ciclo de agente programado desde cero**, sin `create_agent`, para entender qué hacen los frameworks por dentro.
-- Llamadas a varias herramientas en cadena y en paralelo, con manejo de errores y límite de pasos.
-- **Guardrails**: reglas importantes verificadas en código. Por ejemplo, si dices solo "pesos", te pregunta de qué país.
-- Dinero con `Decimal`: las partes siempre suman el total exacto.
-- **Modo viaje:** el backend de una app para gastos de viaje en grupo. Le dices *"pagué el taxi, 45 dólares, para Ana y para mí"* y el agente propone una tarjeta que una persona confirma. Al final calcula quién le debe a quién con pocas transferencias (como máximo, una menos que el número de personas). La IA nunca guarda nada sin tu confirmación ni inventa montos.
+**Qué hay en este repositorio:**
+- **La app** (`app/`): Expo / React Native, diseñada antes en Figma. Es un prototipo funcional con datos de ejemplo: se pueden recorrer todos los flujos, pero aún no está conectada al motor y el dictado es simulado.
+- **El motor** (`zerow/`): un **agente programado desde cero**, sin `create_agent`, que llama a herramientas de Python para cada cálculo; el libro de gastos de un viaje y una API.
+- **Guardrails**: las reglas importantes se comprueban en código. La IA nunca guarda nada sin tu confirmación ni se inventa un importe.
+- Dinero con `Decimal`: las partes siempre suman el total exacto, y el viaje se salda con, como máximo, una transferencia menos que personas.
 - 110 tests automatizados con un LLM simulado, e integración continua con GitHub Actions.
 
-**Cómo usarlo:** sigue los pasos de [Getting started](#getting-started). Funciona gratis en tu computadora con Ollama.
+**Cómo probarlo:** la app, con los pasos de [The app](#the-app); el motor, con [Getting started](#getting-started) (funciona gratis en tu ordenador con Ollama).
 
-Basado en el laboratorio guiado de IBM Skills Network, reimplementado y ampliado como proyecto independiente.
+El motor nació del laboratorio guiado de IBM Skills Network, reimplementado y ampliado como proyecto independiente.

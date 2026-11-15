@@ -10,7 +10,7 @@ ios
 
 ## Stack
 
-Expo (React Native) app talking to the existing Python backend in this repo (FastAPI + SQLite, `bill_buddy/api.py`). Design happens in Figma first, then Expo.
+Expo (React Native) app talking to the existing Python backend in this repo (FastAPI + SQLite, `zerow/api.py`). Design happens in Figma first, then Expo.
 
 ## Users
 
@@ -41,7 +41,7 @@ The AI is the input method, not the decision-maker. It proposes draft expense ca
 
 ## Brand Commitments
 
-- Name: **Zerow** (zero + owe), confirmed by the user. "Bill Buddy" stays as the repository/project name.
+- Name: **Zerow** (zero + owe), confirmed by the user. The project was first called Bill Buddy; the GitHub repository still has that name.
 - Logo (confirmed): two offset halves of a coin, in black, which slide together into a zero when the trip settles. Brand moments (app icon, welcome, the AI draft card, settled state, shared summary) use a grainy lime-and-mint flowing gradient; everyday screens stay on flat surfaces. The draft card keeping the gradient is a deliberate choice by the user (reviewed after the Nov 2026 audit), not an oversight.
 - Avatars: in the designs, original 3D sticker-style avatars; in the app, each person picks a photo, their own Memoji or initials.
 - Personality (confirmed by the user): **warm, playful, trustworthy**. Like an organized friend: fun in the details, serious about money.

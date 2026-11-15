@@ -1,8 +1,8 @@
-"""Command-line chat with Bill Buddy.
+"""Command-line chat with Zerow.
 
-    python -m bill_buddy                                         # chat
-    python -m bill_buddy "How much should I tip on $60 at 20%?"  # one question
-    python -m bill_buddy --quiet "..."                           # hide the tool calls
+    python -m zerow                                         # chat
+    python -m zerow "How much should I tip on $60 at 20%?"  # one question
+    python -m zerow --quiet "..."                           # hide the tool calls
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ except ImportError:  # not available on Windows
 
 from dotenv import load_dotenv
 
-from .agent import BillBuddyAgent
+from .agent import ZerowAgent
 from .llm import ConfigError, get_llm
 
 
@@ -51,7 +51,7 @@ def model_error_hint(exc: Exception) -> str:
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
-        prog="python -m bill_buddy",
+        prog="python -m zerow",
         description="Split bills, calculate tips and convert currencies by chatting.",
     )
     parser.add_argument("question", nargs="*", help="ask one question and exit")
@@ -60,7 +60,7 @@ def main(argv=None) -> int:
 
     load_dotenv()
     try:
-        agent = BillBuddyAgent(get_llm(), on_step=None if args.quiet else print_step)
+        agent = ZerowAgent(get_llm(), on_step=None if args.quiet else print_step)
     except ConfigError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 1
@@ -79,7 +79,7 @@ def main(argv=None) -> int:
         print(for_terminal(answer))
         return 0
 
-    print("💸 Bill Buddy · split bills, tips and currencies (type 'exit' to quit)\n")
+    print("💸 Zerow · split bills, tips and currencies (type 'exit' to quit)\n")
     while True:
         try:
             question = input("You: ").strip()
@@ -91,7 +91,7 @@ def main(argv=None) -> int:
         if question:
             answer = safe_ask(question)
             if answer is not None:
-                print(f"\nBill Buddy: {for_terminal(answer)}\n")
+                print(f"\nZerow: {for_terminal(answer)}\n")
 
 
 if __name__ == "__main__":

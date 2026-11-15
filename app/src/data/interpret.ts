@@ -1,6 +1,6 @@
 import type { PersonId } from './trip';
 
-// A small local stand-in for the AI agent (bill_buddy/trip_agent.py) while the app
+// A small local stand-in for the AI agent (zerow/trip_agent.py) while the app
 // isn't connected to the API. It follows the same rule as the real agent:
 // it never invents an amount; if the message has none, it asks.
 

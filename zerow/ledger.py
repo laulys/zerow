@@ -71,7 +71,7 @@ class NotFound(LedgerError):
 
 
 def default_db_path() -> str:
-    return os.getenv("BILL_BUDDY_DB", "bill_buddy.db")
+    return os.getenv("ZEROW_DB", "zerow.db")
 
 
 @contextmanager

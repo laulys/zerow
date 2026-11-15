@@ -18,10 +18,10 @@ from typing import List, Optional
 from langchain_core.tools import tool
 
 from . import ledger, money
-from .agent import BillBuddyAgent, StepCallback
+from .agent import ZerowAgent, StepCallback
 from .guardrails import numbers_from_user
 
-TRIP_PROMPT = """You are Bill Buddy, the assistant inside a group-trip expense app.
+TRIP_PROMPT = """You are Zerow, the assistant inside a group-trip expense app.
 Trip: "{name}". Main currency: {currency}. Members: {members}.
 The person chatting with you is {user}.
 
@@ -50,7 +50,7 @@ def build_trip_agent(
     user: str,
     db_path: Optional[str] = None,
     on_step: Optional[StepCallback] = None,
-) -> BillBuddyAgent:
+) -> ZerowAgent:
     """Create an agent for one trip and one member. Its `drafts` list collects proposals."""
     with ledger.session(db_path) as conn:
         trip = ledger.get_trip(conn, trip_id)
@@ -113,7 +113,7 @@ def build_trip_agent(
     prompt = TRIP_PROMPT.format(
         name=trip["name"], currency=trip["currency"], members=", ".join(trip["members"]), user=user
     )
-    agent = BillBuddyAgent(
+    agent = ZerowAgent(
         llm,
         tools=[propose_expense, trip_balances, list_trip_expenses],
         system_prompt=prompt,

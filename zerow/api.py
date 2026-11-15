@@ -1,6 +1,6 @@
 """HTTP API for the trip app (FastAPI).
 
-    uvicorn bill_buddy.api:app --reload
+    uvicorn zerow.api:app --reload
     open http://localhost:8000/docs     # interactive docs: try every endpoint
 
 The mobile app talks to these endpoints. The flow for the AI part:
@@ -54,7 +54,7 @@ def create_app(db_path: Optional[str] = None, llm_factory: Optional[Callable] = 
     """Build the API. Tests pass a temporary database and a fake LLM."""
     load_dotenv()
     app = FastAPI(
-        title="Bill Buddy API",
+        title="Zerow API",
         version=__version__,
         description="Group-trip expenses with an AI assistant that proposes expenses for you to confirm.",
     )

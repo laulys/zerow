@@ -4,8 +4,8 @@ import random
 
 import pytest
 
-from bill_buddy import currency, ledger
-from bill_buddy.settle import net_balances, settle_up
+from zerow import currency, ledger
+from zerow.settle import net_balances, settle_up
 
 MEMBERS = ["Laura", "Ana", "Luis", "Marta"]
 

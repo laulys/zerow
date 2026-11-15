@@ -1,7 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 
 // Sample data for the design phase. It mirrors the backend's trip, balances and
-// draft shapes (bill_buddy/api.py) so the screens can switch to the real API later.
+// draft shapes (zerow/api.py) so the screens can switch to the real API later.
 
 export type PersonId = 'tu' | 'ana' | 'luis' | 'marta';
 
@@ -51,7 +51,7 @@ export function balancesFor(expenses: Expense[]): Record<PersonId, number> {
 export type Transfer = { from: PersonId; to: PersonId; amount: number };
 
 /**
- * Greedy settle-up, same as bill_buddy/settle.py: the person owed the most is paid
+ * Greedy settle-up, same as zerow/settle.py: the person owed the most is paid
  * by the person who owes the most. At most (people − 1) transfers. Works in cents.
  */
 export function settleUp(balances: Record<PersonId, number>): Transfer[] {

@@ -5,9 +5,9 @@ from fastapi.testclient import TestClient
 from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage
 
-from bill_buddy import currency
-from bill_buddy.api import create_app
-from bill_buddy.guardrails import numbers_from_user, numbers_in
+from zerow import currency
+from zerow.api import create_app
+from zerow.guardrails import numbers_from_user, numbers_in
 
 
 class ScriptedModel(GenericFakeChatModel):
