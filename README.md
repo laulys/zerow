@@ -7,7 +7,7 @@ This repository has both halves:
 - **The app** ([`app/`](app)): Expo / React Native, designed in Figma first. A working prototype of every screen and flow.
 - **The engine** ([`zerow/`](zerow)): a tool-calling AI agent **written from scratch** in Python (no `create_agent`, no `AgentExecutor`), a trip ledger and an API, with 110 tests.
 
-> 🇪🇸 [Resumen en español abajo](#-resumen-en-español) · The project started as *Bill Buddy*, which is still the repository's name.
+> 🇪🇸 [Resumen en español abajo](#-resumen-en-español) · The project started under the name *Bill Buddy*.
 
 | Say it, check it, add it | Settle up until everyone is at zero | Pay and keep the receipt |
 |---|---|---|
@@ -64,8 +64,6 @@ You: Convert 50 euros to Mexican pesos and 50 euros to Colombian pesos
 | `convert_currency` | Today's exchange rate for 160+ currencies (USD, EUR, MXN, COP, ARS, CLP...) |
 
 ![Terminal demo: the agent splits a bill with tip, asks which pesos, then converts to Colombian pesos](docs/demo.gif)
-
-*Recorded when the project was still called Bill Buddy.*
 
 ## The agent loop, from scratch
 
@@ -149,8 +147,8 @@ Data lives in a local SQLite file (`ZEROW_DB`, default `zerow.db`).
 ```bash
 ollama pull qwen3:8b                      # a local model with tool calling (~5 GB)
 
-git clone https://github.com/laulys/bill-buddy.git
-cd bill-buddy
+git clone https://github.com/laulys/zerow.git
+cd zerow
 python3 -m venv .venv
 source .venv/bin/activate                 # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
@@ -205,6 +203,10 @@ This project started as the guided lab *"Build Interactive LLM Agents with Tools
 - **Money needs `Decimal`** and a deliberate way to hand out leftover cents.
 - **Design the AI's permissions like a product feature.** Drafts plus human confirmation turn a risky "AI handles your money" into a safe "AI fills the form for you".
 - **Give the model ready-made facts.** When the balances tool returned raw numbers, the model summarized the transfers wrong. Returning ready-made sentences ("Marta pays Luis 97.27 EUR") fixed it.
+
+## License
+
+[MIT](LICENSE).
 
 ## Credits
 
