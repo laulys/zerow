@@ -3,9 +3,9 @@
 import pytest
 import requests
 
-from bill_buddy import currency
-from bill_buddy.guardrails import ambiguous_pesos
-from bill_buddy.money import MoneyError
+from zerow import currency
+from zerow.guardrails import ambiguous_pesos
+from zerow.money import MoneyError
 
 FAKE_USD = {
     "result": "success",

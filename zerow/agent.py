@@ -30,7 +30,7 @@ from pydantic import ValidationError
 from .guardrails import DEFAULT_GUARDRAILS, Guardrail
 from .tools import ALL_TOOLS
 
-SYSTEM_PROMPT = """You are Bill Buddy, a friendly assistant that helps friends split bills,
+SYSTEM_PROMPT = """You are Zerow, a friendly assistant that helps friends split bills,
 calculate tips and convert currencies.
 
 Rules:
@@ -56,7 +56,7 @@ def message_text(message) -> str:
     return "".join(b.get("text", "") if isinstance(b, dict) else str(b) for b in content)
 
 
-class BillBuddyAgent:
+class ZerowAgent:
     def __init__(
         self,
         llm,
