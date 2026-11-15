@@ -1,10 +1,10 @@
 import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { api, apiBase, onApiBase, type NewExpense, type RemoteExpense } from './api';
+import { api, apiBase, onApiBase, type NewExpense, type RemoteExpense, type RemotePayment } from './api';
 import { live } from './live';
 
 // The trip the app is designed around. On its own the app runs on this sample
-// data; pointed at the engine (see `data/api.ts`), Lisboa's expenses and drafts
-// come from the API and every change is sent to it (`data/live.ts`).
+// data; pointed at the engine (see `data/api.ts`), Lisboa's expenses, drafts and
+// payments come from the API and every change is sent to it (`data/live.ts`).
 
 export type PersonId = 'tu' | 'ana' | 'luis' | 'marta';
 
@@ -94,6 +94,22 @@ const sendConfirmed = (e: Expense) =>
     const id = live.idOf(e);
     if (id != null) await api.confirm(id);
     else live.remember(e.id, (await api.add(trip, toRemote(e))).id);
+  });
+
+/** A payment marked in Saldar. `id` is the app's own; `remoteId` the engine's, once it has one. */
+export type Payment = Transfer & { id: string; remoteId?: number };
+
+let paymentCount = 0;
+const newPaymentId = () => `p${Date.now().toString(36)}${paymentCount++}`;
+
+/**
+ * The engine's payments in the app's shape. One the app already shows keeps its
+ * own id, so its row in «Pagado» doesn't appear again when the trip is read.
+ */
+const paymentsFromRemote = (remote: RemotePayment[], shown: Payment[]): Payment[] =>
+  remote.map((r) => {
+    const local = shown.find((p) => live.idOf(p, 'payment') === r.id);
+    return { id: local?.id ?? `rp${r.id}`, remoteId: r.id, from: personFor(r.from), to: personFor(r.to), amount: r.amount };
   });
 
 const sendRemoved = (e: Expense) =>
@@ -218,7 +234,7 @@ type TripState = {
   lastSaved: Expense | null;
   addExpense: (e: Expense) => void;
   /** The payments already made in Lisboa, as records: they stay when the ledger changes and what is left is worked out again. */
-  paid: Transfer[];
+  paid: Payment[];
   /** Your share in Piso Calle Mayor (sample group without its own ledger yet). */
   pisoPaid: boolean;
   /** What you have paid Ana in Piso so far. */
@@ -228,7 +244,7 @@ type TripState = {
   pastEmoji: Record<string, string>;
   setPastEmoji: (id: string, emoji: string | null) => void;
   markPaid: (t: Transfer) => void;
-  unmarkPaid: (t: Transfer) => void;
+  unmarkPaid: (p: Payment) => void;
   /**
    * Says something to the engine's agent about Lisboa. It answers and may propose an
    * expense, which comes back as a draft. `null` when the app runs on sample data.
@@ -242,7 +258,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>(confirmed);
   const [draft, setDraft] = useState<Expense | null>(lunchDraft);
   const [lastSaved, setLastSaved] = useState<Expense | null>(null);
-  const [paid, setPaid] = useState<Transfer[]>([]);
+  const [paid, setPaid] = useState<Payment[]>([]);
   const [pisoPaidAmount, setPisoPaidAmount] = useState(0);
   const pisoPaid = pisoPaidAmount > 0;
   const [pastEmoji, setPastEmojiState] = useState<Record<string, string>>({ roma: '🇮🇹', malasana: '🏠', regalo: '🎁', navidad: '🎄' });
@@ -259,11 +275,13 @@ export function TripProvider({ children }: { children: ReactNode }) {
         if (!trip) {
           setExpenses(confirmed);
           setDraft(lunchDraft);
+          setPaid([]);
           return;
         }
         const taken = new Set<string>();
         setExpenses([...trip.expenses].reverse().map((r) => fromRemote(r, taken)));
         setDraft(trip.drafts.length ? fromRemote(trip.drafts[0], taken) : null);
+        setPaid((shown) => paymentsFromRemote(trip.payments ?? [], shown));
       }),
     [],
   );
@@ -300,12 +318,23 @@ export function TripProvider({ children }: { children: ReactNode }) {
           else delete next[id];
           return next;
         }),
-      markPaid: (t) => setPaid((l) => [...l, t]),
-      unmarkPaid: (t) =>
-        setPaid((l) => {
-          const i = l.findIndex((x) => x.from === t.from && x.to === t.to && x.amount === t.amount);
-          return i < 0 ? l : [...l.slice(0, i), ...l.slice(i + 1)];
-        }),
+      markPaid: (t) => {
+        const made: Payment = { ...t, id: newPaymentId() };
+        setPaid((l) => [...l, made]);
+        live.push(async (trip) => {
+          const sent = await api.pay(trip, { from: REMOTE_NAME[t.from], to: REMOTE_NAME[t.to], amount: t.amount });
+          live.remember(made.id, sent.id);
+        });
+      },
+      unmarkPaid: (p) => {
+        setPaid((l) => l.filter((x) => x.id !== p.id));
+        live.push(async () => {
+          const id = live.idOf(p, 'payment');
+          if (id == null) return;
+          await api.unpay(id);
+          live.forget(id, 'payment');
+        });
+      },
       addExpense: (e) => {
         setExpenses((list) => [e, ...list]);
         setLastSaved(e);

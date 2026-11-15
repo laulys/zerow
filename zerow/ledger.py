@@ -4,6 +4,10 @@ Key design rule: the AI can only create DRAFT expenses. A person confirms
 them in the app. Balances only count confirmed expenses, so the AI can
 never change who owes what on its own.
 
+Payments («Marcar como pagado» in Saldar) are recorded by people too: each one
+moves the person who paid and the person paid toward zero, so what is left to
+settle is worked out again from the expenses and the payments together.
+
 Money is stored in whole cents. Each expense keeps its original amount and
 currency, plus the exchange rate and the amount in the trip's currency at
 the moment it was recorded ("$45 (≈ 41.20 €)").
@@ -58,6 +62,14 @@ CREATE TABLE IF NOT EXISTS shares (
     member_id INTEGER NOT NULL REFERENCES members(id),
     cents INTEGER NOT NULL,
     PRIMARY KEY (expense_id, member_id)
+);
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY,
+    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    from_member INTEGER NOT NULL REFERENCES members(id),
+    to_member INTEGER NOT NULL REFERENCES members(id),
+    amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
+    created_at TEXT NOT NULL
 );
 """
 
@@ -273,10 +285,65 @@ def delete_expense(conn: sqlite3.Connection, expense_id: int) -> None:
     conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))
 
 
+# ---------------------------------------------------------------- payments
+
+def add_payment(conn: sqlite3.Connection, trip_id: int, paid_from: str, paid_to: str, amount) -> Dict:
+    """Record that one member paid another (a settle-up step done outside the app)."""
+    trip = get_trip(conn, trip_id)
+    frm = resolve_member(trip["members"], paid_from)
+    to = resolve_member(trip["members"], paid_to)
+    if frm == to:
+        raise LedgerError("A payment goes from one member to another.")
+    try:
+        value = to_decimal(amount)
+    except MoneyError as exc:
+        raise LedgerError(str(exc)) from exc
+    cents = to_cents(round_cents(value))
+    if cents <= 0:
+        raise LedgerError("The amount must be greater than zero.")
+    ids = _member_ids(conn, trip_id)
+    payment_id = conn.execute(
+        "INSERT INTO payments (trip_id, from_member, to_member, amount_cents, created_at) VALUES (?, ?, ?, ?, ?)",
+        (trip_id, ids[frm], ids[to], cents, _now()),
+    ).lastrowid
+    return get_payment(conn, payment_id)
+
+
+def get_payment(conn: sqlite3.Connection, payment_id: int) -> Dict:
+    row = conn.execute(
+        """SELECT p.id, p.trip_id, f.name AS frm, t.name AS too, p.amount_cents, p.created_at
+           FROM payments p JOIN members f ON f.id = p.from_member JOIN members t ON t.id = p.to_member
+           WHERE p.id = ?""",
+        (payment_id,),
+    ).fetchone()
+    if row is None:
+        raise NotFound(f"Payment {payment_id} not found.")
+    return {
+        "id": row["id"],
+        "trip_id": row["trip_id"],
+        "from": row["frm"],
+        "to": row["too"],
+        "amount": from_cents(row["amount_cents"]),
+        "created_at": row["created_at"],
+    }
+
+
+def list_payments(conn: sqlite3.Connection, trip_id: int) -> List[Dict]:
+    get_trip(conn, trip_id)  # 404 if the trip doesn't exist
+    ids = [r["id"] for r in conn.execute("SELECT id FROM payments WHERE trip_id = ? ORDER BY id", (trip_id,))]
+    return [get_payment(conn, i) for i in ids]
+
+
+def delete_payment(conn: sqlite3.Connection, payment_id: int) -> None:
+    """«Deshacer» on a payment: it stops counting."""
+    get_payment(conn, payment_id)
+    conn.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
+
+
 # ---------------------------------------------------------------- balances
 
 def balances(conn: sqlite3.Connection, trip_id: int) -> Dict:
-    """Net balance per member and the transfers to settle up (confirmed expenses only)."""
+    """Net balance per member and the transfers still to settle up (confirmed expenses, minus payments made)."""
     trip = get_trip(conn, trip_id)
     rows = conn.execute(
         """SELECT e.id, m.name AS payer, e.trip_amount_cents FROM expenses e
@@ -293,6 +360,15 @@ def balances(conn: sqlite3.Connection, trip_id: int) -> Dict:
         expenses.append((row["payer"], row["trip_amount_cents"], {s["name"]: s["cents"] for s in shares}))
 
     net = net_balances(trip["members"], expenses)
+    # A payment brings the one who paid up and the one paid down, both toward zero.
+    for payment in conn.execute(
+        """SELECT f.name AS frm, t.name AS too, p.amount_cents FROM payments p
+           JOIN members f ON f.id = p.from_member JOIN members t ON t.id = p.to_member
+           WHERE p.trip_id = ?""",
+        (trip_id,),
+    ):
+        net[payment["frm"]] += payment["amount_cents"]
+        net[payment["too"]] -= payment["amount_cents"]
     transfers = settle_up(net)
     return {
         "currency": trip["currency"],

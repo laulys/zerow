@@ -19,6 +19,9 @@ export type RemoteExpense = {
   created_at: string;
 };
 
+/** A settle-up payment marked as made («Marcar como pagado» in Saldar). */
+export type RemotePayment = { id: number; from: string; to: string; amount: number; created_at: string };
+
 export type RemoteTrip = {
   id: number;
   name: string;
@@ -26,6 +29,8 @@ export type RemoteTrip = {
   members: string[];
   expenses: RemoteExpense[];
   drafts: RemoteExpense[];
+  /** Missing on an engine from before payments were stored. */
+  payments?: RemotePayment[];
 };
 
 export type NewExpense = { description: string; amount: number; currency: 'EUR' | 'USD'; paid_by: string; split_between?: string[] };
@@ -91,6 +96,8 @@ export const api = {
   confirm: (id: number) => call<RemoteExpense>(`/expenses/${id}/confirm`, { method: 'POST' }),
   unconfirm: (id: number) => call<RemoteExpense>(`/expenses/${id}/unconfirm`, { method: 'POST' }),
   remove: (id: number) => call<void>(`/expenses/${id}`, { method: 'DELETE' }),
+  pay: (tripId: number, p: { from: string; to: string; amount: number }) => call<RemotePayment>(`/trips/${tripId}/payments`, { method: 'POST', body: p }),
+  unpay: (id: number) => call<void>(`/payments/${id}`, { method: 'DELETE' }),
   /** The agent runs a local model, so an answer can take a while. */
   chat: (tripId: number, user: string, message: string) => call<{ reply: string; drafts: RemoteExpense[] }>(`/trips/${tripId}/chat`, { method: 'POST', body: { user, message } }, 90000),
 };
