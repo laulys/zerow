@@ -1,0 +1,532 @@
+/* Zerow · «Nuevo gasto». The app's v3 «Aurora» look: a graphite page with the
+   brand's lime and mint as ambient light at the top, translucent cards, soft
+   glass controls, Space Grotesk for titles and amounts and the system font
+   for everything you read. Inside the phone 1px is 1pt, so every size here is
+   the app's own. All rules sit under .zg so the demo can share a page. */
+
+/* Space Grotesk (SIL Open Font License, fonts/OFL.txt), the two weights the app ships */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/SpaceGrotesk_400Regular.ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-weight: 500;
+  font-display: block;
+  src: url('./fonts/SpaceGrotesk_500Medium.ttf') format('truetype');
+}
+
+.zg {
+  /* v3 / Color */
+  --zg-page: #18181b;
+  --zg-ink: #f4f4f0;
+  --zg-ink-muted: #a6a6a1;
+  --zg-ink-soft: #c9c9c4;
+  --zg-lime: #cbf26b;
+  --zg-mint: #7fd8a8;
+  --zg-on-lime: #111112;
+  --zg-on-lime-muted: #34401a;
+  --zg-raised: #2e2e34;
+  --zg-glass: rgba(255, 255, 255, 0.12);
+  --zg-control: rgba(255, 255, 255, 0.14);
+  --zg-control-stroke: rgba(255, 255, 255, 0.18);
+  --zg-glow: #b6f03a;
+  --zg-display: 'Space Grotesk', ui-rounded, system-ui, sans-serif;
+  /* UIKit-quick: off the tap fast, long soft settle */
+  --zg-ui: cubic-bezier(0.3, 0.75, 0.1, 1);
+
+  & .ss-stage {
+    overflow: hidden;
+    border-radius: 14px;
+    background: #0e0e10;
+  }
+
+  /* The kit's finger is tuned for light screens; on graphite it is a light dot */
+  .ss-cursor[data-style='touch'] .ss-cursor__dot {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .ss-cursor[data-style='touch'][data-pressed='true'] .ss-cursor__dot {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  /* The stage borrows a breath of the app's light, so the phone sits in it */
+  .zg-wash {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(75% 42% at 38% 0%, rgba(203, 242, 107, 0.09), transparent 72%),
+      radial-gradient(60% 36% at 78% 2%, rgba(127, 216, 168, 0.07), transparent 72%);
+  }
+
+  /* The whole phone: 340 wide is 715 tall, one 30px gutter all round */
+  .zg-phone {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+  }
+
+  /* The page, with the «task» aurora measured in the app (two eased ellipses
+     that end about 180pt down). It runs under the status bar */
+  .ss-phone__screen {
+    background:
+      radial-gradient(296px 240px at 169px -60px, rgba(203, 242, 107, 0.2) 0%, rgba(203, 242, 107, 0.176) 12%, rgba(203, 242, 107, 0.142) 25%, rgba(203, 242, 107, 0.1) 40%, rgba(203, 242, 107, 0.058) 55%, rgba(203, 242, 107, 0.03) 70%, rgba(203, 242, 107, 0.012) 85%, rgba(203, 242, 107, 0) 100%),
+      radial-gradient(233px 208px at 332px -44px, rgba(127, 216, 168, 0.16) 0%, rgba(127, 216, 168, 0.14) 12%, rgba(127, 216, 168, 0.114) 25%, rgba(127, 216, 168, 0.08) 40%, rgba(127, 216, 168, 0.046) 55%, rgba(127, 216, 168, 0.024) 70%, rgba(127, 216, 168, 0.01) 85%, rgba(127, 216, 168, 0) 100%),
+      var(--zg-page);
+  }
+
+  .ss-phone__content {
+    display: flex;
+    flex-direction: column;
+    color: var(--zg-ink);
+    font-size: 17px;
+    line-height: 24px;
+  }
+
+  /* ---- Header: the round close, the small centred title, the group under it ---- */
+  .zg-head {
+    display: flex;
+    flex: none;
+    align-items: flex-start;
+    padding: 0 20px;
+  }
+
+  .zg-close {
+    display: grid;
+    flex: none;
+    place-items: center;
+    box-sizing: border-box;
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--zg-control-stroke);
+    border-radius: 50%;
+    background: var(--zg-control);
+    color: var(--zg-ink);
+  }
+
+  .zg-head__mid {
+    display: grid;
+    flex: 1;
+    justify-items: center;
+    gap: 12px;
+  }
+
+  .zg-head__end {
+    flex: none;
+    width: 44px;
+  }
+
+  /* v3/Título S */
+  .zg-title {
+    display: grid;
+    align-items: center;
+    height: 44px;
+    font-family: var(--zg-display);
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 25px;
+    letter-spacing: -0.2px;
+  }
+
+  .zg-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: 44px;
+    padding: 0 12px 0 16px;
+    border: 1px solid var(--zg-control-stroke);
+    border-radius: 22px;
+    background: var(--zg-control);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 21px;
+  }
+
+  .zg-pill svg {
+    flex: none;
+    color: var(--zg-ink-soft);
+  }
+
+  /* ---- The conversation ---- */
+  .zg-body {
+    position: relative;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  /* The empty state sits where the conversation will start. It is out of the
+     flow, so the first message lands at the top without anything closing up */
+  .zg-empty {
+    position: absolute;
+    top: 28px;
+    right: 20px;
+    left: 20px;
+    display: grid;
+    justify-items: start;
+    gap: 12px;
+    /* A layer it keeps, so its words rest exactly as they moved */
+    will-change: transform;
+    transition: opacity 0.35s ease 0.1s, transform 0.5s var(--zg-ui) 0.1s;
+  }
+
+  .zg-empty[data-hide] {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.16s ease, transform 0.2s ease;
+  }
+
+  .zg-hint {
+    color: var(--zg-ink-muted);
+    font-size: 15px;
+    line-height: 21px;
+  }
+
+  .zg-eg {
+    color: var(--zg-ink-muted);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+  }
+
+  .zg-chip {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 22px;
+    background: var(--zg-glass);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 21px;
+  }
+
+  /* The kit's bubbles in Zerow's colors. Their shape is the kit's, scaled by
+     its own size token so a one-line bubble is the app's 44pt pill; the words
+     inside are set at the app's body size (.zg-msg) */
+  .zg-thread {
+    --ss-thread-size: 20.75px;
+    --ss-me: var(--zg-lime);
+    --ss-me-text: var(--zg-on-lime);
+    --ss-them: var(--zg-raised);
+    --ss-them-text: var(--zg-ink);
+    flex: 1;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 20px 20px 0;
+  }
+
+  /* One 12pt rhythm between every turn, as the app's list has */
+  .zg-thread > .ss-bubble-row {
+    margin-top: 0;
+  }
+
+  .zg-msg {
+    display: block;
+    margin: 1.5px 0;
+    font-size: 17px;
+    line-height: 24px;
+    letter-spacing: 0;
+  }
+
+  .zg-speaker {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    color: var(--zg-ink-muted);
+    font-size: 13px;
+    line-height: 18px;
+    letter-spacing: 0;
+    animation: zg-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .zg-orb {
+    flex: none;
+  }
+
+  .zg-orb__front {
+    fill: var(--zg-lime);
+  }
+
+  .zg-orb__back {
+    fill: var(--zg-ink);
+  }
+
+  /* The loop's exit: the conversation leaves as one, last arrival first */
+  .zg-leaving > * {
+    opacity: 0;
+    transition: opacity 0.26s ease calc(var(--zg-out, 0) * 55ms);
+  }
+
+  /* ---- The draft: the one thing on the brand gradient ---- */
+  .zg-card {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 28px;
+    background:
+      radial-gradient(58% 90% at 100% 34%, rgba(127, 216, 168, 0.78) 0%, rgba(127, 216, 168, 0) 70%),
+      radial-gradient(46% 80% at 0% 62%, rgba(127, 216, 168, 0.72) 0%, rgba(127, 216, 168, 0) 72%),
+      radial-gradient(50% 70% at 42% 0%, rgba(182, 238, 122, 0.9) 0%, rgba(182, 238, 122, 0) 70%),
+      radial-gradient(52% 70% at 46% 112%, rgba(239, 251, 210, 0.42) 0%, rgba(239, 251, 210, 0) 70%),
+      var(--zg-lime);
+    /* Figma's two shadows: a wide lime glow and a tight dark one */
+    box-shadow:
+      0 22px 56px rgba(182, 240, 58, 0.3),
+      0 8px 18px rgba(0, 0, 0, 0.4);
+    color: var(--zg-on-lime);
+    letter-spacing: 0;
+  }
+
+  .zg-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--zg-on-lime-muted);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 18px;
+  }
+
+  /* The status mark: an open ring while the draft waits, a solid check once it counts */
+  .zg-status .ss-check__ring {
+    stroke: var(--zg-on-lime-muted);
+  }
+
+  .zg-status .ss-check__fill {
+    fill: var(--zg-on-lime);
+  }
+
+  .zg-status .ss-check__tick {
+    stroke: var(--zg-lime);
+  }
+
+  .zg-what {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  /* v3/Título M */
+  .zg-name {
+    font-family: var(--zg-display);
+    font-size: 22px;
+    font-weight: 500;
+    line-height: 27px;
+    letter-spacing: -0.22px;
+  }
+
+  /* v3/Importe: the figure, then its cents at 45 % and 62 % */
+  .zg-amount {
+    display: inline-flex;
+    flex: none;
+    align-items: baseline;
+    font-family: var(--zg-display);
+    font-size: 36px;
+    font-weight: 400;
+    line-height: 36px;
+    letter-spacing: -0.72px;
+  }
+
+  .zg-cents {
+    margin-left: 1px;
+    font-size: 16.2px;
+    letter-spacing: -0.32px;
+    opacity: 0.62;
+  }
+
+  .zg-split {
+    color: var(--zg-on-lime-muted);
+    font-size: 15px;
+    font-weight: 500;
+    line-height: 21px;
+  }
+
+  .zg-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .zg-btn {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-sizing: border-box;
+    height: 48px;
+    padding: 0 24px;
+    border-radius: 24px;
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 24px;
+    white-space: nowrap;
+    transition: scale 0.14s ease;
+  }
+
+  .zg-btn--soft {
+    background: rgba(17, 17, 18, 0.12);
+    color: var(--zg-on-lime);
+  }
+
+  .zg-btn--dark {
+    flex: 1;
+    background: #25252a;
+    color: #fff;
+  }
+
+  .zg-btn--dark svg {
+    flex: none;
+    color: var(--zg-lime);
+  }
+
+  .zg-btn[data-pressed] {
+    scale: 0.97;
+  }
+
+  .zg-undo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: max-content;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 24px;
+  }
+
+  .zg-undo svg {
+    flex: none;
+  }
+
+  /* ---- The composer: glass, the field, the keyboard glyph, the lime mic ---- */
+  .zg-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    box-sizing: border-box;
+    height: 60px;
+    margin: 0 20px 22px;
+    padding: 0 6px 0 20px;
+    border-radius: 30px;
+    background: var(--zg-glass);
+  }
+
+  .zg-input {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    height: 48px;
+    margin-right: 12px;
+    font-size: 17px;
+    line-height: 24px;
+  }
+
+  .zg-draft {
+    position: relative;
+    color: var(--zg-ink);
+    white-space: nowrap;
+  }
+
+  /* In an empty field the caret hangs just before the text's origin, so it
+     never sits on the placeholder's first letter and the words start where
+     the placeholder did */
+  .zg-draft:not([data-has]) > .zg-caret {
+    position: absolute;
+    top: 50%;
+    left: -5px;
+    margin: -10.5px 0 0;
+  }
+
+  .zg-caret {
+    display: inline-block;
+    width: 2px;
+    height: 21px;
+    margin-left: 1px;
+    border-radius: 1px;
+    background: var(--zg-lime);
+    vertical-align: -4px;
+  }
+
+  .zg-ph {
+    position: absolute;
+    left: 0;
+    color: var(--zg-ink-soft);
+    white-space: nowrap;
+    pointer-events: none;
+    /* Comes back once the sent words have lifted clear of the field */
+    transition: opacity 0.2s ease 0.3s;
+  }
+
+  .zg-ph[data-hide] {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  .zg-keys {
+    display: grid;
+    flex: none;
+    place-items: center;
+    margin-right: 12px;
+    color: var(--zg-ink-soft);
+    transition: opacity 0.2s ease;
+  }
+
+  .zg-keys[data-hide] {
+    opacity: 0;
+  }
+
+  .zg-mic {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(165deg, #dcf893 0%, var(--zg-lime) 48%, #b6ee7a 100%);
+    box-shadow: 0 5px 14px rgba(182, 240, 58, 0.22);
+    color: var(--zg-on-lime);
+    transition: scale 0.14s ease;
+  }
+
+  .zg-mic[data-pressed] {
+    scale: 0.92;
+  }
+
+  .zg-mic > svg {
+    grid-area: 1 / 1;
+    transition: opacity 0.18s ease, transform 0.3s var(--zg-ui);
+  }
+
+  .zg-mic__send,
+  .zg-mic[data-send] > .zg-mic__mic {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  .zg-mic[data-send] > .zg-mic__send {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes zg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zg .zg-speaker {
+    animation: none;
+  }
+}
