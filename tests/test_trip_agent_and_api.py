@@ -173,3 +173,31 @@ def test_a_confirmation_can_be_undone(client, trip):
     body = client.get(f"/trips/{trip['id']}").json()
     assert body["balances"]["total_spent"] == 0 and [d["id"] for d in body["drafts"]] == [expense["id"]]
     assert client.post("/expenses/9999/unconfirm").status_code == 404
+
+
+def test_payments_settle_up_and_can_be_undone(client, trip):
+    client.post(f"/trips/{trip['id']}/expenses", json={"description": "Dinner", "amount": 90, "paid_by": "Laura",
+                                                       "split_between": ["Laura", "Ana", "Luis"]})
+    before = client.get(f"/trips/{trip['id']}").json()
+    assert before["payments"] == []
+    assert [(t["from"], t["to"], t["amount"]) for t in before["balances"]["settle_up"]] == [("Luis", "Laura", 30.0), ("Ana", "Laura", 30.0)]
+
+    paid = client.post(f"/trips/{trip['id']}/payments", json={"from": "Ana", "to": "Laura", "amount": 30})
+    assert paid.status_code == 201 and paid.json()["from"] == "Ana" and paid.json()["amount"] == 30.0
+    after = client.get(f"/trips/{trip['id']}").json()
+    assert [p["id"] for p in after["payments"]] == [paid.json()["id"]]
+    assert after["balances"]["net"] == {"Laura": 30.0, "Ana": 0.0, "Luis": -30.0, "Marta": 0.0}
+    assert after["balances"]["total_spent"] == 90  # a payment is not spending
+    assert [(t["from"], t["to"]) for t in after["balances"]["settle_up"]] == [("Luis", "Laura")]
+
+    assert client.delete(f"/payments/{paid.json()['id']}").status_code == 204
+    assert len(client.get(f"/trips/{trip['id']}/balances").json()["settle_up"]) == 2
+    assert client.delete(f"/payments/{paid.json()['id']}").status_code == 404
+
+
+def test_payments_are_checked(client, trip):
+    url = f"/trips/{trip['id']}/payments"
+    assert client.post(url, json={"from": "Ana", "to": "Ana", "amount": 5}).status_code == 400
+    assert client.post(url, json={"from": "Ana", "to": "Pepe", "amount": 5}).status_code == 400
+    assert client.post(url, json={"from": "Ana", "to": "Laura", "amount": 0}).status_code == 422
+    assert client.post("/trips/9999/payments", json={"from": "Ana", "to": "Laura", "amount": 5}).status_code == 404

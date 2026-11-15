@@ -80,7 +80,7 @@ Código: github.com/laulys/zerow
 
 ## Qué haría después
 
-Probarlo con un grupo real durante un viaje, añadir el reconocimiento de voz de verdad (hoy el dictado es una simulación) y guardar los pagos de Saldar en el servidor.
+Probarlo con un grupo real durante un viaje, añadir el reconocimiento de voz de verdad (hoy el dictado es una simulación) y cuentas de usuario de verdad.
 
 ---
 

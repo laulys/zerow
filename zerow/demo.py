@@ -44,6 +44,7 @@ def load(db_path: Optional[str] = None, reset: bool = False) -> dict:
         for trip in existing:
             for expense in ledger.list_expenses(conn, trip["id"]):
                 ledger.delete_expense(conn, expense["id"])
+            conn.execute("DELETE FROM payments WHERE trip_id = ?", (trip["id"],))
             conn.execute("DELETE FROM members WHERE trip_id = ?", (trip["id"],))
             conn.execute("DELETE FROM trips WHERE id = ?", (trip["id"],))
 
