@@ -5,8 +5,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
+import { BottomFade } from '../components/BottomFade';
 import { Icon, type IconName } from '../components/Icon';
 import { announce } from '../components/announce';
 import { useStatusVeil } from '../components/StatusVeil';
@@ -75,6 +75,7 @@ export default function NewGroup() {
 
       <Group label="Nombre">
         <TextInput
+          maxFontSizeMultiplier={2}
           value={name}
           onChangeText={setName}
           placeholder={k.placeholder}
@@ -92,7 +93,7 @@ export default function NewGroup() {
 
       {showDates ? (
         <Group label="Fechas">
-          <TextInput value={dates} onChangeText={setDates} placeholder="12–18 nov 2026" placeholderTextColor={t.inkMuted} style={inputStyle(t)} accessibilityLabel="Fechas" />
+          <TextInput maxFontSizeMultiplier={2} value={dates} onChangeText={setDates} placeholder="12–18 nov 2026" placeholderTextColor={t.inkMuted} style={inputStyle(t)} accessibilityLabel="Fechas" />
         </Group>
       ) : null}
     </View>
@@ -151,7 +152,7 @@ export default function NewGroup() {
             </ScrollView>
             {veil.veil}
             <View pointerEvents="box-none" style={[styles.footer, { paddingBottom: bottom }]}>
-              <Fundido />
+              <BottomFade style={StyleSheet.absoluteFill} />
               {action}
             </View>
           </View>
@@ -174,22 +175,6 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
       </T>
       {children}
     </View>
-  );
-}
-
-/** Figma «Fundido»: page colour from clear to solid at 60 %, behind the button. */
-function Fundido() {
-  const { t } = useTheme();
-  return (
-    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="grupoFade" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-          <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#grupoFade)" />
-    </Svg>
   );
 }
 

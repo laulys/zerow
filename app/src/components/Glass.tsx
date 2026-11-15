@@ -9,8 +9,6 @@ const liquid = isLiquidGlassAvailable();
 /** iOS 26: sheets get the system's Liquid Glass when their background is clear. */
 export const glassSheets = liquid;
 
-export { useReduceTransparency } from './Frost';
-
 /** iOS "Increase Contrast" (darker system colours): glass turns solid with a visible edge. */
 function useIncreaseContrast() {
   const [on, setOn] = useState(false);

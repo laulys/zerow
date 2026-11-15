@@ -2,18 +2,20 @@ import { payerLine } from '../../components/Duo';
 import { useScreen } from '../../components/Screen';
 import { Aurora, type AuroraPreset } from '../../components/Aurora';
 import * as Haptics from 'expo-haptics';
-import { router, useLocalSearchParams } from 'expo-router';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { LayoutAnimationConfig, LinearTransition, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
+import Svg, { Path, Rect } from 'react-native-svg';
 import { Avatar } from '../../components/Avatar';
 import { BrandGradient } from '../../components/BrandGradient';
 import { Frost } from '../../components/Frost';
 import { Glass } from '../../components/Glass';
 import { Icon } from '../../components/Icon';
 import { Orb } from '../../components/Orb';
+import { Sparkle } from '../../components/Sparkle';
+import { BottomFade } from '../../components/BottomFade';
 import { Money, RollingAmount, RollingMoney } from '../../components/Money';
 import { EASE, recede, rise } from '../../components/motion';
 import { undoWindow, useScreenReader } from '../../components/announce';
@@ -40,6 +42,7 @@ import {
 } from '../../data/trip';
 import { useAppState } from '../../data/states';
 import { aurora, motion } from '../../theme/tokens';
+import { live } from '../../data/live';
 import { useTheme } from '../../theme/useTheme';
 
 const order: PersonId[] = ['tu', 'luis', 'ana', 'marta'];
@@ -95,31 +98,6 @@ export function Glyph({ name, size, color, weight }: { name: keyof typeof glyphs
         <Path key={d} d={d} />
       ))}
       {name === 'mic' ? <Rect x={9} y={2} width={6} height={13} rx={3} /> : null}
-    </Svg>
-  );
-}
-
-/** Figma «Destello»: the four-point star that marks what Zerow prepared. */
-function Sparkle({ color }: { color: string }) {
-  return (
-    <Svg width={14} height={14} viewBox="0 0 14 14">
-      <Path d="M7 0 L8.584 5.416 L14 7 L8.584 8.584 L7 14 L5.416 8.584 L0 7 L5.416 5.416 Z" fill={color} />
-    </Svg>
-  );
-}
-
-/** Figma «Fundido»: the page colour rising from clear, so content scrolls away under the bottom controls. */
-export function BottomFade({ height }: { height: number }) {
-  const { t } = useTheme();
-  return (
-    <Svg pointerEvents="none" style={[styles.fade, { height }]} width="100%" height={height}>
-      <Defs>
-        <LinearGradient id="bottomFade" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-          <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height={height} fill="url(#bottomFade)" />
     </Svg>
   );
 }
@@ -287,7 +265,7 @@ function EmptyGroup({ group, mine: fixed, note, action }: { group: Group; mine?:
           <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
             {headline(mine)}
           </T>
-          <RollingMoney value={Math.abs(mine)} size={56} color={t.ink} currency={group.currency} duration={motion.numbers} />
+          <RollingMoney value={Math.abs(mine)} size={56} color={t.ink} currency={group.currency} />
           <T v="labelStrong" color={t.ink}>
             {eurText(
               list.reduce((a, e) => a + e.amountEur, 0),
@@ -312,9 +290,9 @@ function EmptyGroup({ group, mine: fixed, note, action }: { group: Group; mine?:
 
 // The spoken form goes to Zerow; the chip shows Figma's shorter one.
 const firstExamples = [
-  { show: '«Pagué el hotel, 300 €, entre todos»', say: 'Pagué el hotel, 300 euros, entre todos' },
+  { show: '«Pagué el hotel, 300\u00A0€, entre todos»', say: 'Pagué el hotel, 300 euros, entre todos' },
   { show: '«Taxi, 45 dólares, para Ana y para mí»', say: 'Pagué el taxi, 45 dólares, para Ana y para mí' },
-  { show: '«Pagué la cena, 84 €, entre todos»', say: 'Pagué la cena, 84 euros, entre todos' },
+  { show: '«Pagué la cena, 84\u00A0€, entre todos»', say: 'Pagué la cena, 84 euros, entre todos' },
 ];
 
 // 6.5 Viaje sin gastos (and 5.4, just joined): an empty group is an invitation to
@@ -377,6 +355,8 @@ function ListeningEmpty({ group }: { group: Group }) {
 
 function Trip() {
   const { t } = useTheme();
+  // Other people add expenses too: with an engine connected, the trip is read again each time you come back to it.
+  useFocusEffect(useCallback(() => live.refresh(), []));
   const reduce = useReducedMotion();
   const embedded = useContext(Embedded);
   const insets = useSafeAreaInsets();
@@ -478,7 +458,7 @@ function Trip() {
                   <T v="label" color={t.inkMuted} style={{ fontWeight: '500' }}>
                     {headline(now.tu)}
                   </T>
-                  <RollingMoney value={Math.abs(now.tu)} size={embedded ? 48 : 56} color={t.ink} duration={motion.numbers} />
+                  <RollingMoney value={Math.abs(now.tu)} size={embedded ? 48 : 56} color={t.ink} />
                   {next && shown ? (
                     <View style={styles.preview}>
                       <Glyph name="arrowRight" size={16} color={t.lime} weight={2} />
@@ -655,7 +635,7 @@ function ExpenseRow({ e, group, currency = 'EUR' }: { e: Expense; group: string;
   const { t } = useTheme();
   const line = splitLine(e);
   // The second line on the right: the original dollars, or the note («propina 15 %»).
-  const aside = e.originalUsd ? `${e.originalUsd.toFixed(2).replace('.', ',')} US$` : e.note;
+  const aside = e.originalUsd ? `${e.originalUsd.toFixed(2).replace('.', ',')}\u00A0US$` : e.note;
   return (
     <Tap
       highlight
@@ -731,7 +711,6 @@ const styles = StyleSheet.create({
   draft: { borderRadius: 28, padding: 16, gap: 12 },
   draftTitle: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, minHeight: 36 },
   expRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62, paddingVertical: 8 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   toast: { position: 'absolute', left: 20, right: 20 },
   captureWrap: { position: 'absolute', left: 20, right: 20, height: BAR, borderRadius: 30 },
   capture: { flex: 1, borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 6, gap: 12 },

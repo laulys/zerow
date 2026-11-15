@@ -8,6 +8,7 @@ import { PayPalTile, RevolutTile } from '../components/BrandMarks';
 import { Icon, type IconName } from '../components/Icon';
 import { Money } from '../components/Money';
 import { SheetBody } from '../components/Sheet';
+import { Tile } from '../components/Tile';
 import { Button, Card, T, Tap } from '../components/ui';
 import { afterSheet } from '../data/session';
 import { useTrip, eurText, usePisoBalance } from '../data/trip';
@@ -23,6 +24,19 @@ const methods: Method[] = [
   { key: 'revolut', name: 'Revolut', sub: 'Ana tiene revolut.me' },
   { key: 'paypal', name: 'PayPal', sub: 'Ana tiene paypal.me' },
 ];
+
+/** What leads a method's row: the brand's tile, or the bank icon on the white 8 % tile. */
+function Lead({ m, ink }: { m: Method; ink: string }) {
+  return m.key === 'revolut' ? (
+    <RevolutTile />
+  ) : m.key === 'paypal' ? (
+    <PayPalTile />
+  ) : (
+    <Tile>
+      <Icon name={m.icon ?? 'landmark'} size={20} color={ink} />
+    </Tile>
+  );
+}
 
 // 2.7 Pagar a Ana (option A): like Apple Pay. The amount, the saved way to pay
 // (tap "Cambiar" for the others) and one button. "Ya le pagué de otra forma"
@@ -51,17 +65,6 @@ export default function Pay() {
     // payment link and comes back here when it's done.
     setTimeout(() => finish(method.key === 'banco' ? 'Tu banco' : method.name), 1100);
   };
-
-  const Lead = ({ m }: { m: Method }) =>
-    m.key === 'revolut' ? (
-      <RevolutTile />
-    ) : m.key === 'paypal' ? (
-      <PayPalTile />
-    ) : (
-      <View style={[styles.tile, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
-        <Icon name={m.icon ?? 'landmark'} size={20} color={t.ink} />
-      </View>
-    );
 
   return (
     // Figma 2.7: who and why, the amount (Importe L), the saved way to pay in a list card, the button and a text button.
@@ -96,7 +99,7 @@ export default function Pay() {
                   accessibilityLabel={`${m.name}. ${m.sub}`}
                   style={[styles.row, i > 0 && { borderTopWidth: 1, borderTopColor: t.hairline }]}
                 >
-                  <Lead m={m} />
+                  <Lead m={m} ink={t.ink} />
                   <View style={{ flex: 1 }}>
                     <T v="bodyStrong" color={t.ink}>
                       {m.name}
@@ -112,12 +115,12 @@ export default function Pay() {
           ) : (
             <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
               <Tap highlight onPress={() => setChoosing(true)} accessibilityRole="button" accessibilityLabel={`Pagar con ${method.name}. Cambiar`} style={styles.row}>
-                <Lead m={method} />
+                <Lead m={method} ink={t.ink} />
                 <View style={{ flex: 1 }}>
-                  <T v="bodyStrong" color={t.ink} numberOfLines={1}>
+                  <T v="bodyStrong" color={t.ink} numberOfLines={2}>
                     {method.name}
                   </T>
-                  <T v="caption" color={t.inkMuted} numberOfLines={1}>
+                  <T v="caption" color={t.inkMuted} numberOfLines={2}>
                     {method.sub}
                   </T>
                 </View>
@@ -143,5 +146,4 @@ const styles = StyleSheet.create({
   box: { paddingTop: 4, paddingBottom: 4, paddingLeft: 16, paddingRight: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, minHeight: 66 },
   change: { minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' },
-  tile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

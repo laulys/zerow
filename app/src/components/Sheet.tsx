@@ -1,10 +1,10 @@
 import { Fragment, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 import { glassSheets } from './Glass';
 import { Icon, type IconName } from './Icon';
+import { Tile } from './Tile';
 import { Card, Hairline, T, Tap } from './ui';
 
 /**
@@ -43,7 +43,17 @@ export function SheetList({ rows }: { rows: SheetRowItem[] }) {
       {rows.map((r, i) => {
         const body = (
           <View style={styles.row}>
-            {r.lead ?? <View style={styles.tile}>{r.emoji ? <Text style={styles.emoji}>{r.emoji}</Text> : r.icon ? <Icon name={r.icon} size={20} color={t.ink} /> : null}</View>}
+            {r.lead ?? (
+              <Tile>
+                {r.emoji ? (
+                  <Text style={styles.emoji} maxFontSizeMultiplier={1.3}>
+                    {r.emoji}
+                  </Text>
+                ) : r.icon ? (
+                  <Icon name={r.icon} size={20} color={t.ink} />
+                ) : null}
+              </Tile>
+            )}
             <View style={{ flex: 1 }}>
               <T v="bodyStrong" color={t.ink} numberOfLines={1}>
                 {r.title}
@@ -77,6 +87,5 @@ export function SheetList({ rows }: { rows: SheetRowItem[] }) {
 const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingTop: 26, gap: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 12 },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 22, lineHeight: 28 },
 });

@@ -261,6 +261,13 @@ def confirm_expense(conn: sqlite3.Connection, expense_id: int) -> Dict:
     return get_expense(conn, expense_id)
 
 
+def unconfirm_expense(conn: sqlite3.Connection, expense_id: int) -> Dict:
+    """Undo a confirmation: the expense goes back to being a draft and stops counting."""
+    get_expense(conn, expense_id)
+    conn.execute("UPDATE expenses SET status = 'draft' WHERE id = ?", (expense_id,))
+    return get_expense(conn, expense_id)
+
+
 def delete_expense(conn: sqlite3.Connection, expense_id: int) -> None:
     get_expense(conn, expense_id)
     conn.execute("DELETE FROM expenses WHERE id = ?", (expense_id,))

@@ -5,19 +5,18 @@ import { router } from 'expo-router';
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Share, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Avatar } from '../components/Avatar';
+import { BottomFade } from '../components/BottomFade';
 import { Icon } from '../components/Icon';
 import { RollingMoney } from '../components/Money';
 import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Chip, IconButton, T, Tap } from '../components/ui';
-import { eurText, people, useTrip, type Currency, type PersonId } from '../data/trip';
-import { font, motion } from '../theme/tokens';
+import { eurText, people, personName, useTrip, type Currency, type PersonId } from '../data/trip';
+import { font } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const everyone: PersonId[] = ['tu', 'ana', 'luis', 'marta'];
 const tips = [0, 10, 15];
-const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 
 /** What was typed, the Spanish way: «1.234,50» is 1234.50 (the dot groups thousands), «84,5» and «84.5» are 84.50. */
 function parseAmount(text: string) {
@@ -41,11 +40,12 @@ export default function QuickSplit() {
   const [currency, setCurrency] = useState<Currency>('EUR');
   const [who, setWho] = useState<PersonId[]>(everyone);
   const amountRef = useRef<TextInputInstance>(null);
-  const before = useRef('84');
+  // The amount as it was before the field took focus: shown while it is empty, restored if nothing is typed.
+  const [before, setBefore] = useState('84');
   const veil = useStatusVeil();
 
   const typed = parseAmount(amountText);
-  const base = Math.max(0, Number.isFinite(typed) ? typed : parseAmount(before.current) || 0);
+  const base = Math.max(0, Number.isFinite(typed) ? typed : parseAmount(before) || 0);
   const total = Math.round(base * (1 + tip / 100) * 100) / 100;
   const each = who.length ? Math.round((total / who.length) * 100) / 100 : 0;
   const owedToPayer = who.includes(payer) ? total - each : total;
@@ -54,8 +54,8 @@ export default function QuickSplit() {
     payer === 'tu'
       ? `Pagaste tú · te deben ${eurText(owedToPayer, currency)}`
       : who.includes('tu')
-        ? `Pagó ${name(payer)} · le debes ${eurText(each, currency)}`
-        : `Pagó ${name(payer)} · a ti no te toca`;
+        ? `Pagó ${personName(payer)} · le debes ${eurText(each, currency)}`
+        : `Pagó ${personName(payer)} · a ti no te toca`;
 
   const toggle = (p: PersonId) => {
     Haptics.selectionAsync();
@@ -72,14 +72,14 @@ export default function QuickSplit() {
   // What you share is read by the others: there «Tú» would be them, so it carries your name.
   const shared = (p: PersonId) => (p === 'tu' ? 'Laura' : people[p].name);
   const shareText = () =>
-    `${title}: ${eurText(total, currency)}${tip ? ` con ${tip} % de propina` : ''}, entre ${who.length}.\n` +
+    `${title}: ${eurText(total, currency)}${tip ? ` con ${tip}\u00A0% de propina` : ''}, entre ${who.length}.\n` +
     who.map((p) => `${shared(p)}: ${eurText(each, currency)}${p === payer ? ' (pagó)' : ''}`).join('\n') +
     `\nPagó ${shared(payer)}. Hecho con Zerow.`;
 
   const saveToGroup = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     const eur = currency === 'EUR' ? total : Math.round((total / 1.1149) * 100) / 100;
-    addExpense({ id: `c${Date.now()}`, title, payer, amountEur: eur, originalUsd: currency === 'USD' ? total : undefined, splitWith: who, note: tip ? `propina ${tip} %` : undefined });
+    addExpense({ id: `c${Date.now()}`, title, payer, amountEur: eur, originalUsd: currency === 'USD' ? total : undefined, splitWith: who, note: tip ? `propina ${tip}\u00A0%` : undefined });
     router.dismissAll();
     router.push('/trip/lisboa');
   };
@@ -100,6 +100,7 @@ export default function QuickSplit() {
       <View style={{ marginTop: 20, gap: 8 }}>
         {editingTitle ? (
           <TextInput
+            maxFontSizeMultiplier={2}
             value={title}
             onChangeText={setTitle}
             autoFocus
@@ -119,7 +120,7 @@ export default function QuickSplit() {
         )}
 
         <View style={styles.each} accessible accessibilityLabel={`${eurText(each, currency)} cada uno`}>
-          <RollingMoney value={each} size={each >= 1000 ? 56 : 76} color={t.ink} duration={motion.standard} currency={currency} />
+          <RollingMoney value={each} size={each >= 1000 ? 56 : 76} color={t.ink} currency={currency} />
           <T v="label" color={t.inkMuted}>
             cada uno
           </T>
@@ -135,18 +136,19 @@ export default function QuickSplit() {
             Cuenta sin propina
           </T>
           <TextInput
+            maxFontSizeMultiplier={2}
             ref={amountRef}
             value={editingAmount ? amountText : eurText(base, currency)}
-            placeholder={eurText(base, currency).replace(/ (€|US\$)$/, '')}
+            placeholder={eurText(base, currency).replace(/\s(€|US\$)$/, '')}
             placeholderTextColor={t.inkMuted}
             onChangeText={(v) => setAmountText(v.replace(/[^0-9.,]/g, ''))}
             onFocus={() => {
-              before.current = amountText;
+              setBefore(amountText);
               setAmountText('');
               setEditingAmount(true);
             }}
             onBlur={() => {
-              if (!amountText.trim()) setAmountText(before.current);
+              if (!amountText.trim()) setAmountText(before);
               setEditingAmount(false);
             }}
             keyboardType="decimal-pad"
@@ -162,7 +164,7 @@ export default function QuickSplit() {
           <Icon name="pen" size={20} color={t.inkSoft} weight={1.75} />
         </Tap>
         <T v="caption" color={t.inkMuted} style={{ marginTop: 12 }}>
-          {tip ? `+ ${tip} % de propina = ${eurText(total, currency)} · ` : ''}entre {who.length}
+          {tip ? `+ ${tip}\u00A0% de propina = ${eurText(total, currency)} · ` : ''}entre {who.length}
         </T>
 
         <View style={[styles.pill, { backgroundColor: t.lime }]} accessibilityLiveRegion="polite">
@@ -180,7 +182,7 @@ export default function QuickSplit() {
       </T>
       <View style={styles.wrap}>
         {everyone.map((p) => (
-          <Chip key={p} label={name(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} bg={t.disc} inset />} />
+          <Chip key={p} label={personName(p)} off={!who.includes(p)} onPress={() => toggle(p)} leading={<Avatar id={p} size={32} bg={t.disc} inset />} />
         ))}
       </View>
 
@@ -188,8 +190,8 @@ export default function QuickSplit() {
         Ajustes
       </T>
       <View style={styles.wrap}>
-        <Chip label={tip ? `Propina ${tip} %` : 'Sin propina'} onPress={() => setTip(tips[(tips.indexOf(tip) + 1) % tips.length])} />
-        <Chip label={payer === 'tu' ? 'Pagaste tú' : `Pagó ${name(payer)}`} onPress={nextPayer} />
+        <Chip label={tip ? `Propina ${tip}\u00A0%` : 'Sin propina'} onPress={() => setTip(tips[(tips.indexOf(tip) + 1) % tips.length])} />
+        <Chip label={payer === 'tu' ? 'Pagaste tú' : `Pagó ${personName(payer)}`} onPress={nextPayer} />
         <Chip label={currency === 'EUR' ? 'En euros' : 'En dólares'} onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))} />
       </View>
     </View>
@@ -221,7 +223,7 @@ export default function QuickSplit() {
             {veil.veil}
             {/* Figma «Fundido»: the page rises from clear behind the buttons, so the list scrolls away under them. */}
             <View pointerEvents="box-none" style={[styles.footer, { minHeight: footer, paddingBottom: bottom }]} onLayout={(e) => setFooterH(e.nativeEvent.layout.height)}>
-              <Fundido />
+              <BottomFade style={StyleSheet.absoluteFill} />
               {actions}
             </View>
           </View>
@@ -231,22 +233,6 @@ export default function QuickSplit() {
       right={<View style={{ marginTop: 40 }}>{choices}</View>}
       footer={<View style={{ gap: 12 }}>{actions}</View>}
     />
-  );
-}
-
-/** Figma «Fundido»: page colour from clear to solid at 60 %. */
-function Fundido() {
-  const { t } = useTheme();
-  return (
-    <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <LinearGradient id="cuentaFade" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-          <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-        </LinearGradient>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#cuentaFade)" />
-    </Svg>
   );
 }
 

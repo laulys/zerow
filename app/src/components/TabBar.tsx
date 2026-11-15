@@ -3,10 +3,10 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, type SharedValue } from 'react-native-reanimated';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
+import { BottomFade } from './BottomFade';
 import { BrandGradient } from './BrandGradient';
 import { Frost } from './Frost';
 import { Glass } from './Glass';
@@ -88,16 +88,7 @@ export function TabBar({ state, navigateToTab }: BottomTabBarProps) {
       {/* Lists end in a fade above the floating bar instead of running under its labels. */}
       {/* Figma «Fundido»: 110 pt, page colour from clear to solid at 60 %. */}
       <View pointerEvents="none" style={[styles.fade, { height: 110 }]}>
-        <Svg width="100%" height="100%">
-          <Defs>
-            <LinearGradient id="tabfade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={t.page} stopOpacity={0} />
-              <Stop offset="0.6" stopColor={t.page} stopOpacity={1} />
-              <Stop offset="1" stopColor={t.page} stopOpacity={1} />
-            </LinearGradient>
-          </Defs>
-          <Rect width="100%" height="100%" fill="url(#tabfade)" />
-        </Svg>
+        <BottomFade style={StyleSheet.absoluteFill} />
       </View>
       <Animated.View style={[styles.row, { bottom, transformOrigin: 'bottom' }, shrink]} pointerEvents="box-none">
         {/* Figma «Barra de pestañas»: white 12 % over a blur, the chosen tab white 16 %, light icons and labels. */}
