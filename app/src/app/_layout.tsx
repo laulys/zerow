@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { glassSheets } from '../components/Glass';
 import { ScreenProvider, useRailInset, useScreen } from '../components/Screen';
+import { watchApiBase } from '../data/api';
 import { watchAppState } from '../data/states';
 import { TripProvider } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
@@ -23,6 +24,8 @@ const sheet = (bg: string) =>
 
 // Development only: `?estado=cargando`, `sin-grupos` or `sin-conexion` in a link show the states the API will bring.
 watchAppState();
+// Development only: `?api=http://localhost:8000` points the app at an engine, `?api=off` goes back to sample data.
+watchApiBase();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ SpaceGrotesk_400Regular, SpaceGrotesk_500Medium });

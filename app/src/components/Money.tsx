@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Text, View, type TextStyle } from 'react-native';
+import { useState } from 'react';
+import { Text, View, type TextStyle } from 'react-native';
 import { eurText, formatEur, type Currency } from '../data/trip';
 import { font } from '../theme/tokens';
 import { NumericText } from './NumericText';
 
-/** Giant numeral with smaller, dimmer cents: "36,23 €". */
 /** Text at 28 pt and up is display type: cap its growth at 1.15x so the layout holds at the largest sizes. */
 export const displayCap = (size: number) => (size >= 28 ? 1.15 : undefined);
 
-export function Money({ value, size = 64, color, currency = 'EUR' }: { value: number; size?: number; color: string; centsColor?: string; currency?: Currency }) {
+/** Giant numeral with smaller, dimmer cents: "36,23 €". */
+export function Money({ value, size = 64, color, currency = 'EUR' }: { value: number; size?: number; color: string; currency?: Currency }) {
   const { whole, cents } = formatEur(value, currency);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
@@ -25,10 +25,7 @@ export function Money({ value, size = 64, color, currency = 'EUR' }: { value: nu
 
 /** Cents are 45 % of the figure (v3 "Importe" styles). */
 const CENTS = 0.45;
-/**
- * v3: the cents are the figure's own colour at 62 %, 1 pt after it. `centsColor`
- * is kept in the props for callers but no longer used.
- */
+/** v3: the cents are the figure's own colour at 62 %, 1 pt after it. */
 const centsStyle = (color: string): TextStyle => ({ color, opacity: 0.62, marginLeft: 1 });
 
 // Amounts are Space Grotesk Regular; tracking tightens with size (−3 % at 56 and up, −2 % at 36 and under).
@@ -42,67 +39,22 @@ const numStyle = (size: number): TextStyle => ({
   fontVariant: ['tabular-nums'],
 });
 
-const easeOutQuart = (x: number) => 1 - Math.pow(1 - x, 4);
-
 /**
- * A number that rolls to its new value instead of jumping (the reel's first tip).
- * Respects Reduce Motion: it then swaps instantly.
+ * Whether the amount on screen just went down: true on the render where `value`
+ * is lower than the one shown before, which is when the digits read it.
  */
-export function useRollingNumber(target: number, duration = 400, from?: number): number {
-  const [shown, setShown] = useState(from ?? target);
-  const startRef = useRef(from ?? target);
-  useEffect(() => {
-    let raf = 0;
-    let cancelled = false;
-    AccessibilityInfo.isReduceMotionEnabled().then((reduce) => {
-      if (cancelled) return;
-      if (reduce) {
-        setShown(target);
-        startRef.current = target;
-        return;
-      }
-      const start = startRef.current;
-      const t0 = Date.now();
-      const tick = () => {
-        const k = Math.min(1, (Date.now() - t0) / duration);
-        const v = start + (target - start) * easeOutQuart(k);
-        setShown(v);
-        if (k < 1) raf = requestAnimationFrame(tick);
-        else startRef.current = target;
-      };
-      raf = requestAnimationFrame(tick);
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(raf);
-    };
-  }, [target, duration]);
-  return Math.round(shown * 100) / 100;
+function useCountsDown(value: number, currency: Currency): boolean {
+  const [seen, setSeen] = useState({ value, currency, down: false });
+  if (!Object.is(seen.value, value) || seen.currency !== currency) setSeen({ value, currency, down: value < seen.value });
+  return seen.down;
 }
 
 /**
  * Money that changes on screen (the cards, a group's balance): the digits that
  * change roll like SwiftUI's numericText, up or down with the value.
  */
-export function RollingMoney({
-  value,
-  size = 64,
-  color,
-  currency = 'EUR',
-}: {
-  value: number;
-  size?: number;
-  color: string;
-  centsColor?: string;
-  duration?: number;
-  from?: number;
-  currency?: Currency;
-}) {
-  const last = useRef(value);
-  const down = value < last.current;
-  useEffect(() => {
-    last.current = value;
-  }, [value]);
+export function RollingMoney({ value, size = 64, color, currency = 'EUR' }: { value: number; size?: number; color: string; currency?: Currency }) {
+  const down = useCountsDown(value, currency);
   const { whole, cents } = formatEur(value, currency);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'baseline' }} accessible accessibilityLabel={eurText(value, currency)}>
@@ -114,10 +66,6 @@ export function RollingMoney({
 
 /** A small amount (a row's balance) with the same numeric transition. */
 export function RollingAmount({ value, style, currency = 'EUR' }: { value: number; style: TextStyle | TextStyle[]; currency?: Currency }) {
-  const last = useRef(value);
-  const down = value < last.current;
-  useEffect(() => {
-    last.current = value;
-  }, [value]);
+  const down = useCountsDown(value, currency);
   return <NumericText text={eurText(value, currency)} countsDown={down} style={style} />;
 }

@@ -1,18 +1,17 @@
 import { Aurora } from '../../components/Aurora';
 import { router } from 'expo-router';
 import { FocusStatusBar } from '../../components/FocusStatusBar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { BrandGradient } from '../../components/BrandGradient';
 import { AppleMark, GoogleMark } from '../../components/Icon';
 import { useScreen } from '../../components/Screen';
 import { rise } from '../../components/motion';
 import { useAnnounce } from '../../components/announce';
-import { Button, IconButton, Lockup, T, Tap, inputStyle } from '../../components/ui';
-import { enterApp } from '../../data/session';
+import { Button, IconButton, Lockup, SmallLockup, T, Tap, inputStyle } from '../../components/ui';
+import { enterApp, forgetNewGroup } from '../../data/session';
 import { useTheme } from '../../theme/useTheme';
 
 const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
@@ -25,6 +24,8 @@ export default function SignIn() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
+  // Going back from here without signing in forgets the «open Nuevo grupo afterwards» plan of the onboarding.
+  useEffect(() => forgetNewGroup, []);
   const [tried, setTried] = useState(false);
   const [focused, setFocused] = useState(false);
   const bad = tried && !looksLikeEmail(email);
@@ -79,6 +80,7 @@ export default function SignIn() {
           Correo
         </T>
         <TextInput
+          maxFontSizeMultiplier={2}
           value={email}
           onChangeText={setEmail}
           onSubmitEditing={send}
@@ -154,27 +156,8 @@ export default function SignIn() {
   );
 }
 
-/**
- * Figma's small lockup: the coin cropped to its halves (23 × 40), 8 pt, then «zerow»
- * in Título M. The shared Lockup scales the mark with the type, so it can't draw this one.
- */
-function SmallLockup({ color }: { color: string }) {
-  return (
-    <View style={styles.lockup} accessible accessibilityRole="header" accessibilityLabel="Zerow">
-      <Svg width={23.2} height={40} viewBox="21 0 58 100">
-        <Path d="M47 17A26 26 0 0 0 47 69Z" fill={color} />
-        <Path d="M53 31A26 26 0 0 1 53 83Z" fill={color} />
-      </Svg>
-      <T v="titleM" color={color}>
-        zerow
-      </T>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   hello: { marginTop: 22, marginBottom: 4 },
-  lockup: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
   field: { borderWidth: 1.5, borderColor: 'transparent' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16, height: 18 },
   rule: { flex: 1, height: 1 },

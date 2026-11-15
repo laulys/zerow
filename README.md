@@ -5,7 +5,7 @@
 This repository has both halves:
 
 - **The app** ([`app/`](app)): Expo / React Native, designed in Figma first. A working prototype of every screen and flow.
-- **The engine** ([`zerow/`](zerow)): a tool-calling AI agent **written from scratch** in Python (no `create_agent`, no `AgentExecutor`), a trip ledger and an API, with 110 tests.
+- **The engine** ([`zerow/`](zerow)): a tool-calling AI agent **written from scratch** in Python (no `create_agent`, no `AgentExecutor`), a trip ledger and an API, with 112 tests.
 
 > 🇪🇸 [Resumen en español abajo](#-resumen-en-español) · The project started under the name *Bill Buddy*.
 
@@ -34,7 +34,23 @@ npm install
 npx expo start        # then press i for the iOS simulator
 ```
 
-**What is real and what is not, today.** The app is a working prototype on sample data: every flow can be walked through, but it does not talk to the engine yet. Its "agent" is a small local stand-in ([`interpret.ts`](app/src/data/interpret.ts)) that mirrors the real one, dictation is simulated, and nothing is saved between launches. The data shapes match the API below so the switch is a matter of replacing that layer.
+### Connecting the app to the engine
+
+Out of the box the app runs on a built-in sample trip, so it works with nothing else installed. Point it at the engine and the Lisboa trip becomes real:
+
+```bash
+# in the repository root
+python -m zerow.demo                      # loads the sample trip "Lisboa 2026" into the database
+uvicorn zerow.api:app --reload            # the API on http://localhost:8000
+
+# in app/
+cp .env.example .env                      # EXPO_PUBLIC_ZEROW_API=http://localhost:8000
+npx expo start
+```
+
+**What is real once connected.** The trip's expenses and the draft waiting for review come from the API. "Sí, sumarlo", "No es así", "Deshacer", deleting an expense and saving a bill call it. In "Nuevo gasto" your sentence goes to the agent, which answers and proposes the card. While the trip loads you see its outline; if the engine can't be reached the trip says so, keeps working on what it has and sends your changes when the connection comes back.
+
+**What is still a prototype.** Payments marked in "Saldar" live only in the app, the flat and the groups you create are sample data, dictation is simulated (you type or tap an example), and there are no accounts: everyone is "Laura".
 
 ## The engine: what the agent can do
 
@@ -129,9 +145,11 @@ The chat is fun, but the real use case is a trip with friends: lots of small exp
 | `POST /trips/{id}/chat` | Talk to the agent → `reply` + new `drafts` + the tool `steps` |
 | `POST /trips/{id}/expenses` | Manual entry (the classic form), confirmed right away |
 | `POST /expenses/{id}/confirm` · `DELETE /expenses/{id}` | Accept or discard a card |
+| `POST /expenses/{id}/unconfirm` | Undo a confirmation: the expense is a draft again |
 | `GET /trips/{id}/balances` | Net balance per person and the transfers that settle the trip |
 
 ```bash
+python -m zerow.demo             # optional: load the sample trip the app is designed around
 uvicorn zerow.api:app --reload
 # open http://localhost:8000/docs to try every endpoint in the browser
 ```
@@ -169,7 +187,7 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-110 tests, with no API key, no Ollama and no internet needed:
+112 tests, with no API key, no Ollama and no internet needed:
 - **Money:** rounding, splits that never lose a cent, proportional tax and tip.
 - **Currency:** a fake HTTP API, caching, network errors.
 - **Guardrails:** 8 phrasings of "pesos", and amounts or tips the user never said.
@@ -217,11 +235,11 @@ Based on the IBM Skills Network guided project *Build Interactive LLM Agents wit
 **Zerow** (de *zero* + *owe*) es una app para repartir los gastos de un viaje entre amigos. En vez de rellenar formularios, dices o escribes lo que pagaste —*«pagué el taxi, 45 dólares, para Ana y para mí»*— y Zerow propone una tarjeta que una persona confirma. Al final calcula quién paga a quién hasta que todos quedáis a cero.
 
 **Qué hay en este repositorio:**
-- **La app** (`app/`): Expo / React Native, diseñada antes en Figma. Es un prototipo funcional con datos de ejemplo: se pueden recorrer todos los flujos, pero aún no está conectada al motor y el dictado es simulado.
+- **La app** (`app/`): Expo / React Native, diseñada antes en Figma. Funciona sola con datos de ejemplo y, si le indicas dónde está el motor, el viaje de Lisboa pasa a ser real: los gastos, los borradores y las respuestas del agente vienen de la API. Los pagos de Saldar y el dictado siguen siendo de prototipo.
 - **El motor** (`zerow/`): un **agente programado desde cero**, sin `create_agent`, que llama a herramientas de Python para cada cálculo; el libro de gastos de un viaje y una API.
 - **Guardrails**: las reglas importantes se comprueban en código. La IA nunca guarda nada sin tu confirmación ni se inventa un importe.
 - Dinero con `Decimal`: las partes siempre suman el total exacto, y el viaje se salda con, como máximo, una transferencia menos que personas.
-- 110 tests automatizados con un LLM simulado, e integración continua con GitHub Actions.
+- 112 tests automatizados con un LLM simulado, e integración continua con GitHub Actions.
 
 **Cómo probarlo:** la app, con los pasos de [The app](#the-app); el motor, con [Getting started](#getting-started) (funciona gratis en tu ordenador con Ollama).
 

@@ -5,6 +5,7 @@ import { Aurora } from '../components/Aurora';
 import { FocusStatusBar } from '../components/FocusStatusBar';
 import { Icon } from '../components/Icon';
 import { Money } from '../components/Money';
+import { Tile } from '../components/Tile';
 import { Card, IconButton, T, Tap } from '../components/ui';
 import { eurText, pastGroups, useTrip } from '../data/trip';
 import { useTheme } from '../theme/useTheme';
@@ -40,7 +41,15 @@ export default function PastSummary() {
         </Card>
         <Tap highlight onPress={() => router.push({ pathname: '/emoji', params: { id: g.id } })} accessibilityRole="button" accessibilityLabel="Cambiar el emoji del grupo" style={{ marginTop: 16 }}>
           <Card style={styles.row}>
-            <View style={[styles.tile, { backgroundColor: t.disc }]}>{pastEmoji[g.id] ? <Text style={styles.emoji}>{pastEmoji[g.id]}</Text> : <Icon name="shapes" size={20} color={t.ink} />}</View>
+            <Tile>
+              {pastEmoji[g.id] ? (
+                <Text style={styles.emoji} maxFontSizeMultiplier={1.3}>
+                  {pastEmoji[g.id]}
+                </Text>
+              ) : (
+                <Icon name="shapes" size={20} color={t.ink} />
+              )}
+            </Tile>
             <T v="bodyStrong" color={t.ink} style={{ flex: 1 }}>
               Emoji del grupo
             </T>
@@ -54,6 +63,5 @@ export default function PastSummary() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12 },
-  tile: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 23, lineHeight: 28 },
 });

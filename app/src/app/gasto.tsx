@@ -9,16 +9,16 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '../components/Avatar';
+import { BottomFade } from '../components/BottomFade';
 import { Money } from '../components/Money';
 import { surface } from '../components/motion';
 import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Card, Hairline, IconButton, T } from '../components/ui';
-import { eurText, people, useTrip, type Expense, type GroupKind, type PersonId } from '../data/trip';
+import { eurText, people, personName, useTrip, type Expense, type GroupKind, type PersonId } from '../data/trip';
 import { sheetFill } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
-import { BottomFade, Glyph } from './trip/[id]';
+import { Glyph } from './trip/[id]';
 
-const name = (p: PersonId) => (p === 'tu' ? 'Tú' : people[p].name);
 const EUR_TO_USD = 1.1149; // what one euro bought in dollars on the day of the sample expenses (300 US$ ≈ 269,08 €)
 
 // When the sample expenses were added and by whom (Figma 3.7: «13 nov · pagó Luis · lo sumó Luis»).
@@ -99,7 +99,7 @@ function ExpenseDetail() {
                 ≈ {eurText(e.amountEur)} en la moneda {inGroup[kind]}
               </T>
               <T v="caption" color={t.inkMuted}>
-                1 € = {String(EUR_TO_USD).replace('.', ',')} US$, {when.day === 'hoy' ? 'cambio de hoy' : `cambio del ${when.day}`}
+                {`1\u00A0€ = ${String(EUR_TO_USD).replace('.', ',')}\u00A0US$, ${when.day === 'hoy' ? 'cambio de hoy' : `cambio del ${when.day}`}`}
               </T>
             </>
           ) : (
@@ -128,12 +128,12 @@ function ExpenseDetail() {
                   <View
                     style={styles.row}
                     accessible
-                    accessibilityLabel={`${name(p)}${p === e.payer ? `, ${p === 'tu' ? 'pagaste' : 'pagó'} ${eurText(e.amountEur, currency)}` : ''}. ${p === 'tu' ? 'Tu' : 'Su'} parte: ${inSplit ? eurText(share, currency) : 'nada'}`}
+                    accessibilityLabel={`${personName(p)}${p === e.payer ? `, ${p === 'tu' ? 'pagaste' : 'pagó'} ${eurText(e.amountEur, currency)}` : ''}. ${p === 'tu' ? 'Tu' : 'Su'} parte: ${inSplit ? eurText(share, currency) : 'nada'}`}
                   >
                     <Avatar id={p} size={36} bg={t.disc} inset />
                     <View style={{ flex: 1 }}>
                       <T v="bodyStrong" color={t.ink}>
-                        {name(p)}
+                        {personName(p)}
                       </T>
                       {p === e.payer ? (
                         <T v="caption" color={t.inkMuted}>

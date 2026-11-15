@@ -31,7 +31,7 @@ export default function GroupEmoji() {
   const pick = (e: string) => {
     Haptics.selectionAsync();
     setChosen(e);
-    pop.value = withSequence(withTiming(0.85, { duration: 80 }), withSpring(1, { damping: 9, stiffness: 260 }));
+    pop.set(withSequence(withTiming(0.85, { duration: 80 }), withSpring(1, { damping: 9, stiffness: 260 })));
   };
 
   const save = () => {
@@ -87,6 +87,7 @@ export default function GroupEmoji() {
 
       <Tap onPress={() => input.current?.focus()} accessible={false} accessibilityRole="none" style={[styles.field, { backgroundColor: t.card }]}>
         <TextInput
+          maxFontSizeMultiplier={2}
           ref={input}
           value={typed}
           onChangeText={(v) => {

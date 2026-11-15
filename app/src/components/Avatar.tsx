@@ -52,7 +52,7 @@ export function Avatar({
  * A group's faces: on a lime card they overlap with a ring; on graphite, 8 pt apart. `max`
  * keeps the row short on a card; the rest fold into a "+n" disc.
  */
-export function AvatarStack({ ids, size = 30, gap: gapProp, max, on }: { ids: PersonId[]; size?: number; gap?: number; max?: number; on?: AvatarOn; overlap?: number; outline?: string }) {
+export function AvatarStack({ ids, size = 30, gap: gapProp, max, on }: { ids: PersonId[]; size?: number; gap?: number; max?: number; on?: AvatarOn }) {
   const { t } = useTheme();
   // On lime cards the faces overlap by 9 pt, each with its ring (Figma «Personas», spacing −9).
   const gap = gapProp ?? (on === 'lime' ? -9 : 8);
