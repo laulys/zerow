@@ -48,6 +48,8 @@ export type Tokens = {
   pressed: string;
   /** v3 «sheet»: sheets and alerts. */
   sheet: string;
+  /** The light a lime card or button casts: a lime a touch more saturated than the fill, only ever a shadow colour. */
+  glow: string;
 };
 
 export const light: Tokens = {
@@ -81,6 +83,7 @@ export const light: Tokens = {
   disc: 'rgba(18,18,18,0.05)',
   pressed: 'rgba(18,18,18,0.06)',
   sheet: '#FFFFFF',
+  glow: '#B6F03A',
   onLimeButton: '#121212',
   mint: '#7FD8A8',
 };
@@ -119,6 +122,7 @@ export const dark: Tokens = {
   disc: 'rgba(255,255,255,0.08)',
   pressed: 'rgba(255,255,255,0.07)',
   sheet: '#222226',
+  glow: '#B6F03A',
 };
 
 /**
@@ -187,6 +191,7 @@ export const aurora: Tokens = {
   disc: 'rgba(255,255,255,0.08)',
   pressed: 'rgba(255,255,255,0.07)',
   sheet: '#222226',
+  glow: '#B6F03A',
 };
 
 /** Sheets, alerts and the share sheet: #26262A at 62 % over a 32 % black veil. */

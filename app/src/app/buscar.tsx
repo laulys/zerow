@@ -10,6 +10,7 @@ import { useScreen } from '../components/Screen';
 import { Icon, type IconName } from '../components/Icon';
 import { Card, Hairline, T, Tap } from '../components/ui';
 import { eurText, kindEmoji, openEmoji, pastGroups, people, usePeopleBalances, usePisoBalance, useTrip, balancesFor, settledBalances, type Expense, type PersonId } from '../data/trip';
+import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const fold = (s: string) =>
@@ -79,7 +80,7 @@ export default function Search() {
       title: p.name,
       sub: `${p.meta} · a cero`,
       lead: { emoji: pastEmoji[p.id], icon: 'shapes' as IconName },
-      go: () => router.push({ pathname: '/emoji', params: { id: p.id } }),
+      go: () => router.push({ pathname: '/resumen', params: { id: p.id } }),
     })),
   ];
   const personRows: Row[] = between.map((p) => ({
@@ -99,7 +100,7 @@ export default function Search() {
     list.map((e) => ({
       key: gid + e.id,
       title: e.title,
-      sub: `${gname} · pagó ${e.payer === 'tu' ? 'tú' : people[e.payer].name}`,
+      sub: `${gname} · ${e.payer === 'tu' ? 'pagaste tú' : `pagó ${people[e.payer].name}`}`,
       right: eurText(e.amountEur),
       lead: { avatar: e.payer },
       go: () => router.push({ pathname: '/gasto', params: { grupo: gid, id: e.id } }),
@@ -235,6 +236,6 @@ const styles = StyleSheet.create({
   clear: { width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
   cancel: { height: 44, justifyContent: 'center', paddingHorizontal: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 62 },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 23, lineHeight: 28 },
 });

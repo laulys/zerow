@@ -1,4 +1,4 @@
-import { Easing, withDelay, withTiming } from 'react-native-reanimated';
+import { Easing, ReduceMotion, withDelay, withTiming } from 'react-native-reanimated';
 import { motion } from '../theme/tokens';
 
 /**
@@ -18,6 +18,10 @@ import { motion } from '../theme/tokens';
  */
 export const EASE = Easing.bezier(0.23, 1, 0.32, 1);
 
+// Reanimated skips every animation when Reduce Motion is on, fades included. A fade
+// isn't movement, so opacity keeps animating; position and scale still follow the setting.
+const FADE = ReduceMotion.Never;
+
 /** Fades in while rising `distance` pt. `still` (Reduce Motion) keeps only the fade. */
 export const rise =
   (delay = 0, distance = 8, still = false, duration: number = motion.standard) =>
@@ -26,7 +30,7 @@ export const rise =
     return {
       initialValues: { opacity: 0, transform: [{ translateY: still ? 0 : distance }] },
       animations: {
-        opacity: withDelay(delay, withTiming(1, { duration, easing: EASE })),
+        opacity: withDelay(delay, withTiming(1, { duration, easing: EASE, reduceMotion: FADE }), FADE),
         transform: [{ translateY: withDelay(delay, withTiming(0, { duration, easing: EASE })) }],
       },
     };
@@ -40,7 +44,7 @@ export const recede =
     return {
       initialValues: { opacity: 1, transform: [{ scale: 1 }] },
       animations: {
-        opacity: withTiming(0, { duration, easing: EASE }),
+        opacity: withTiming(0, { duration, easing: EASE, reduceMotion: FADE }),
         transform: [{ scale: withTiming(still ? 1 : 0.96, { duration, easing: EASE }) }],
       },
     };
@@ -54,7 +58,7 @@ export const surface =
     return {
       initialValues: { opacity: 0, transform: [{ scale: still ? 1 : 0.96 }] },
       animations: {
-        opacity: withTiming(1, { duration, easing: EASE }),
+        opacity: withTiming(1, { duration, easing: EASE, reduceMotion: FADE }),
         transform: [{ scale: withTiming(1, { duration, easing: EASE }) }],
       },
     };

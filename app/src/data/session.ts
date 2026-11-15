@@ -7,6 +7,17 @@ import { router } from 'expo-router';
 export function enterApp() {
   router.dismissAll();
   router.replace('/grupos');
+  if (newGroupNext) {
+    newGroupNext = false;
+    router.push('/grupo-nuevo');
+  }
+}
+
+// The onboarding ends on «Crear mi primer grupo»: you sign in first (a group is shared, so it needs an account) and land on the new group.
+let newGroupNext = false;
+export function signInThenNewGroup() {
+  newGroupNext = true;
+  router.push('/entrar');
 }
 
 /** Stand-in for the API: any 6 digits work until the auth endpoint exists. */

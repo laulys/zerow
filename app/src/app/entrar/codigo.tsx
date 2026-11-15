@@ -95,7 +95,7 @@ export default function Code() {
         <T v="label" color={t.inkMuted} style={{ marginTop: 8 }}>
           Código enviado a {email}
         </T>
-        <Tap onPress={() => router.back()} accessibilityRole="button" style={[styles.link, { marginTop: 8 }]}>
+        <Tap onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Cambiar el correo" style={[styles.link, { marginTop: 8 }]}>
           <T v="labelStrong" color={t.ink}>
             Cambiar
           </T>

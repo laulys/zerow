@@ -254,6 +254,7 @@ export function Chip({
   leading,
   dashed,
   off,
+  fixed,
 }: {
   label: string;
   selected?: boolean;
@@ -261,15 +262,21 @@ export function Chip({
   icon?: IconName;
   leading?: ReactNode;
   dashed?: boolean;
+  /** A person you can leave out: the chip is a checkbox, `off` when they're not included. */
   off?: boolean;
+  /** Always included (you): shown like the others, but it can't be changed. */
+  fixed?: boolean;
 }) {
   const { t } = useTheme();
-  const fg = selected ? t.onSelected : t.ink;
+  // Left out: the label stays readable (muted, not faded) and only the face dims.
+  const fg = selected ? t.onSelected : off ? t.inkMuted : t.ink;
+  // One of several (radio), in or out (checkbox), or something that acts (button).
+  const role = off !== undefined ? 'checkbox' : selected !== undefined ? 'radio' : 'button';
   return (
     <Tap
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: off === undefined ? !!selected : !off }}
+      onPress={fixed ? undefined : onPress}
+      accessibilityRole={role}
+      accessibilityState={role === 'button' ? {} : { checked: off === undefined ? !!selected : !off, disabled: !!fixed }}
       accessibilityLabel={label}
       style={[
         // v3 chips: glass (white 12 % + blur) or, when chosen, the ink colour with dark text.
@@ -284,11 +291,10 @@ export function Chip({
           paddingRight: 16,
           backgroundColor: selected ? t.selected : undefined,
         },
-        off && { opacity: 0.4 },
       ]}
     >
       {selected ? null : <Frost fill={t.glass} radius={22} intensity={20} />}
-      {leading}
+      {leading ? <View style={off ? { opacity: 0.45 } : undefined}>{leading}</View> : null}
       {icon ? <Icon name={icon} size={20} color={fg} /> : null}
       <T v="labelStrong" color={fg}>
         {label}
@@ -297,7 +303,7 @@ export function Chip({
   );
 }
 
-/** Two-option switch, e.g. Euro / Dólar. The chosen side is lime. */
+/** Two-option switch, e.g. Euro / Dólar. The chosen side is ink, like a selected chip (lime is for actions). */
 export function Segmented<K extends string>({ options, value, onChange }: { options: { key: K; label: string }[]; value: K; onChange: (k: K) => void }) {
   const { t } = useTheme();
   return (
@@ -310,9 +316,18 @@ export function Segmented<K extends string>({ options, value, onChange }: { opti
             onPress={() => onChange(o.key)}
             accessibilityRole="radio"
             accessibilityState={{ checked: on }}
-            style={{ flex: 1, minHeight: 44, paddingVertical: 6, paddingHorizontal: 8, borderRadius: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? t.lime : 'transparent' }}
+            style={{
+              flex: 1,
+              minHeight: 44,
+              paddingVertical: 6,
+              paddingHorizontal: 8,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: on ? t.selected : 'transparent',
+            }}
           >
-            <T v="labelStrong" color={on ? t.onLime : t.ink} style={{ textAlign: 'center' }}>
+            <T v="labelStrong" color={on ? t.onSelected : t.ink} style={{ textAlign: 'center' }}>
               {o.label}
             </T>
           </Tap>

@@ -12,8 +12,8 @@ import { useScreen } from '../../components/Screen';
 import { StretchyScroll } from '../../components/StretchyScroll';
 import { useMinimizeOnScroll } from '../../components/TabChrome';
 import { Card, Hairline, T, Tap } from '../../components/ui';
-import { balancesFor, eurText, settleUp, settledBalances, transferKey, useTrip } from '../../data/trip';
-import { light } from '../../theme/tokens';
+import { eurText, settleUp, settledBalances, useTrip } from '../../data/trip';
+import { aurora } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 // Figma «Tarjeta de perfil» is 398 tall on a 54 pt status bar; the rest follows the device's own inset.
@@ -31,11 +31,13 @@ export default function Profile() {
   const [currency, setCurrency] = useState<'EUR' | 'USD'>('EUR');
   const split = useScreen().form === 'split';
   const minimize = useMinimizeOnScroll();
-  const header = insets.top + HEADER_BELOW_INSET;
+  // With larger text the name, the email and the pill need more room: the header (and its gradient) grow with them.
+  const [grown, setGrown] = useState(0);
+  const header = Math.max(insets.top + HEADER_BELOW_INSET, grown);
 
   const mine = settledBalances(expenses, paid).tu;
   const mineLine = Math.abs(mine) < 0.005 ? 'Estás a cero' : `${mine > 0 ? 'Te deben' : 'Debes'} ${eurText(Math.abs(mine))}`;
-  const pending = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
+  const pending = settleUp(settledBalances(expenses, paid)).length;
   const open = 2 + groups.length;
   const total = open + 4;
 
@@ -43,29 +45,26 @@ export default function Profile() {
 
   const you = (
     <>
-      {/* Figma «Cabecera»: the title and a dark see-through «Editar» button, 44 tall. */}
+      {/* Figma «Cabecera»: the title, 44 tall. Editing the profile comes back when that screen exists. */}
       <View style={styles.head}>
-        <T v="titleL" color={light.inkFixed} accessibilityRole="header">
+        <T v="titleL" color={t.inkFixed} accessibilityRole="header">
           Perfil
         </T>
-        <Tap accessibilityRole="button" accessibilityLabel="Editar perfil" style={styles.edit}>
-          <Icon name="pen" size={20} color={light.inkFixed} weight={1.75} />
-        </Tap>
       </View>
       <View style={{ marginTop: 26 }}>
         <Avatar id="tu" size={108} decorative={false} bg="rgba(255,255,255,0.35)" />
         <Ring />
       </View>
       <View style={{ alignItems: 'center' }}>
-        <T v="titleM" color={light.inkFixed} style={{ marginTop: 22 }}>
+        <T v="titleM" color={t.inkFixed} style={{ marginTop: 22 }}>
           Laura
         </T>
-        <T v="label" color={light.inkMutedFixed} style={{ marginTop: 8 }}>
+        <T v="label" color={t.inkMutedFixed} style={{ marginTop: 8 }}>
           laura@ejemplo.com
         </T>
         <View style={styles.pill}>
-          <View style={[styles.dot, { backgroundColor: light.inkFixed }]} />
-          <T v="caption" color={light.inkFixed} style={{ fontWeight: '600' }}>
+          <View style={[styles.dot, { backgroundColor: t.inkFixed }]} />
+          <T v="caption" color={t.inkFixed} style={{ fontWeight: '600' }}>
             {total} grupos · {open} abiertos
           </T>
         </View>
@@ -101,14 +100,11 @@ export default function Profile() {
 
       <View>
         <Card style={{ paddingVertical: 4 }}>
-          <Row icon={<Icon name="user" size={20} color={t.ink} />} label="Foto de perfil" value="Memoji" chevron />
-          <Hairline />
           <Row
             icon={<Glyph name="coins" color={t.ink} />}
             label="Moneda por defecto"
             value={currency === 'EUR' ? 'Euros (€)' : 'Dólares (US$)'}
             onPress={() => setCurrency((c) => (c === 'EUR' ? 'USD' : 'EUR'))}
-            chevron
           />
           <Hairline />
           <Row
@@ -122,7 +118,7 @@ export default function Profile() {
             }
           />
           <Hairline />
-          <Row icon={<Glyph name="circle-help" color={t.ink} />} label="Cómo funciona Zerow" onPress={() => router.push('/')} chevron />
+          <Row icon={<Glyph name="circle-help" color={t.ink} />} label="Cómo funciona Zerow" onPress={() => router.push({ pathname: '/empezar', params: { repaso: '1' } })} chevron />
         </Card>
       </View>
 
@@ -152,7 +148,12 @@ export default function Profile() {
     <View style={{ flex: 1, backgroundColor: t.page }}>
       <FocusStatusBar style="dark" />
       <StretchyScroll background={gradient} backgroundHeight={header} contentContainerStyle={{ paddingBottom: 140 }} onScrollY={minimize}>
-        <View style={{ height: header, paddingTop: insets.top, paddingHorizontal: 20, alignItems: 'center' }}>{you}</View>
+        <View
+          style={{ minHeight: insets.top + HEADER_BELOW_INSET, paddingTop: insets.top, paddingBottom: 24, paddingHorizontal: 20, alignItems: 'center' }}
+          onLayout={(e) => setGrown(Math.ceil(e.nativeEvent.layout.height))}
+        >
+          {you}
+        </View>
         <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>{settings}</View>
       </StretchyScroll>
     </View>
@@ -247,8 +248,7 @@ function Ring() {
 }
 
 const styles = StyleSheet.create({
-  head: { alignSelf: 'stretch', height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  edit: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(17,17,18,0.12)', alignItems: 'center', justifyContent: 'center' },
+  head: { alignSelf: 'stretch', minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   ring: { position: 'absolute', top: -10, left: -10 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, minHeight: 36, paddingLeft: 12, paddingRight: 16, borderRadius: 18, backgroundColor: 'rgba(17,17,18,0.08)' },
   dot: { width: 8, height: 8, borderRadius: 4 },
@@ -256,5 +256,5 @@ const styles = StyleSheet.create({
   highlightIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   switch: { height: 58, justifyContent: 'center' },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
 });

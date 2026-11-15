@@ -41,6 +41,7 @@ export function Avatar({
       accessible={!decorative}
       accessibilityLabel={decorative ? undefined : people[id].name}
       importantForAccessibility={decorative ? 'no-hide-descendants' : 'auto'}
+      accessibilityElementsHidden={decorative}
     >
       <Image source={people[id].avatar} style={portrait ? portraitFace(size) : inset ? insetFace(size) : { width: size * 1.08, height: size * 1.08, marginTop: size * 0.02 }} resizeMode="contain" />
     </View>
@@ -59,7 +60,7 @@ export function AvatarStack({ ids, size = 30, gap: gapProp, max, on }: { ids: Pe
   const rest = ids.length - shown.length;
   return (
     // Flexbox gaps can't be negative, so overlapping faces pull left with a margin instead.
-    <View style={{ flexDirection: 'row', gap: Math.max(0, gap) }} importantForAccessibility="no-hide-descendants">
+    <View style={{ flexDirection: 'row', gap: Math.max(0, gap) }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       {shown.map((id, i) => (
         <View key={id} style={gap < 0 && i > 0 ? { marginLeft: gap } : undefined}>
           <Avatar id={id} size={size} on={on} />
@@ -87,7 +88,7 @@ export function RingAvatar({ id, size = 44, stroke = 1.5 }: { id: PersonId; size
   const box = size + stroke * 2;
   const gid = `ring-${id}-${size}`;
   return (
-    <View style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants">
+    <View style={{ width: size, height: size }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <Avatar id={id} size={size} bg={t.disc} inset />
       <Svg width={box} height={box} style={{ position: 'absolute', left: -stroke, top: -stroke }} pointerEvents="none">
         <Defs>

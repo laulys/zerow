@@ -20,8 +20,8 @@ import { useStatusVeil } from '../components/StatusVeil';
 import { Button, Card, Hairline, IconButton, T, Tap } from '../components/ui';
 import { DraftCard } from './trip/[id]';
 import { UndoNotice } from '../components/Notice';
-import { balancesFor, eurText, people, settleUp, settledBalances, transferKey, useTrip, type Expense, type PersonId, type Transfer } from '../data/trip';
-import { light, motion } from '../theme/tokens';
+import { balancesFor, eurText, people, plural, settledBalances, settleUp, transferKey, useTrip, type Expense, type PersonId, type Transfer } from '../data/trip';
+import { aurora, motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const who = (t: Transfer) => (t.to === 'tu' ? `${people[t.from].name} te paga` : t.from === 'tu' ? `Pagas a ${people[t.to].name}` : `${people[t.from].name} paga a ${people[t.to].name}`);
@@ -38,12 +38,11 @@ function SettleUp() {
   const [notice, setNotice] = useState<{ title: string; kind: 'sumado' | 'descartado' } | null>(null);
   const skipping = notice?.kind === 'descartado';
   const asking = draft && !skipping ? draft : null;
-  const balances = balancesFor(expenses);
-  const transfers = settleUp(balances);
+  // What is left to pay is worked out from where people stand after the payments already made.
   const current = settledBalances(expenses, paid);
-  const pending = transfers.filter((x) => !paid.has(transferKey(x)));
-  const done = transfers.filter((x) => paid.has(transferKey(x)));
-  const settled = !draft && transfers.length > 0 && pending.length === 0;
+  const pending = settleUp(current);
+  const done = paid;
+  const settled = !draft && done.length > 0 && pending.length === 0;
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
   const [showBalances, setShowBalances] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -90,10 +89,14 @@ function SettleUp() {
     else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const subtitle = settled ? 'Ya no queda ningún pago.' : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
+  const subtitle = settled
+    ? 'Ya no queda ningún pago.'
+    : pending.length === 0
+      ? 'No hay pagos pendientes.'
+      : `Falta${pending.length === 1 ? '' : 'n'} ${pending.length} pago${pending.length === 1 ? '' : 's'} para quedar a cero`;
 
   // 4.5 Resumen, from «Ver resumen» on the «A cero» card; closing it goes back to Saldar.
-  if (settled && summary) return <TripSummary expenses={expenses} payments={transfers.length} onClose={() => setSummary(false)} />;
+  if (settled && summary) return <TripSummary expenses={expenses} payments={done.length} onClose={() => setSummary(false)} />;
 
   // 4.1: an expense is still unreviewed, so the screen asks just that, one question, before any payment.
   if (asking)
@@ -159,7 +162,8 @@ function SettleUp() {
                     <Button label="Ya me ha pagado" height={48} style={{ flex: 1 }} onPress={() => pay(x)} />
                   </View>
                 ) : (
-                  <Button label="Marcar como pagado" height={48} onPress={() => pay(x)} />
+                  // Lime is for your own step: a payment between two other people is a quieter glass button.
+                  <Button label="Marcar como pagado" kind={x.from === 'tu' ? 'primary' : 'secondary'} height={48} onPress={() => pay(x)} />
                 )}
               </Card>
             </Animated.View>
@@ -180,7 +184,12 @@ function SettleUp() {
                       <T v="label" color={t.inkSoft} style={{ flex: 1 }}>
                         {people[x.from].name} → {people[x.to].name} · {eurText(x.amount)}
                       </T>
-                      <Tap onPress={() => unmarkPaid(x)} accessibilityRole="button" accessibilityLabel={`Deshacer el pago de ${people[x.from].name}`} style={styles.quiet}>
+                      <Tap
+                        onPress={() => unmarkPaid(x)}
+                        accessibilityRole="button"
+                        accessibilityLabel={x.from === 'tu' ? 'Deshacer tu pago' : `Deshacer el pago de ${people[x.from].name}`}
+                        style={styles.quiet}
+                      >
                         <T v="labelStrong" color={t.ink}>
                           Deshacer
                         </T>
@@ -246,13 +255,14 @@ function TripSummary({ expenses, payments, onClose }: { expenses: Expense[]; pay
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
   const part = Object.fromEntries(LISBOA_ORDER.map((id) => [id, 0])) as Record<PersonId, number>;
   for (const e of expenses) for (const p of e.splitWith) part[p] += e.amountEur / e.splitWith.length;
-  const average = `en ${expenses.length} gastos · ${eurText(total / LISBOA_ORDER.length)} de media por persona`;
+  const average = `en ${plural(expenses.length, 'gasto')} · ${eurText(total / LISBOA_ORDER.length)} de media por persona`;
   const text = [
     'Lisboa 2026 · 12–18 nov · 4 personas',
     `${eurText(total)} ${average}`,
     'Lo que le tocó a cada uno:',
-    ...LISBOA_ORDER.map((id) => `${people[id].name}: ${eurText(part[id])}`),
-    `Saldado con ${payments} pagos · Zerow`,
+    // What you share is read by the others: there «Tú» would be them, so it carries your name.
+    ...LISBOA_ORDER.map((id) => `${id === 'tu' ? 'Laura' : people[id].name}: ${eurText(part[id])}`),
+    `Saldado con ${plural(payments, 'pago')} · Zerow`,
   ].join('\n');
 
   const shareImage = async () => {
@@ -311,7 +321,7 @@ function TripSummary({ expenses, payments, onClose }: { expenses: Expense[]; pay
               {LISBOA_ORDER.map((id) => (
                 <View key={id} style={styles.share}>
                   <T v="labelStrong" color={t.inkFixed} style={{ flex: 1 }}>
-                    {people[id].name}
+                    {id === 'tu' ? 'Laura' : people[id].name}
                   </T>
                   <T v="titleXS" color={t.inkFixed}>
                     {eurText(part[id])}
@@ -319,7 +329,7 @@ function TripSummary({ expenses, payments, onClose }: { expenses: Expense[]; pay
                 </View>
               ))}
               <T v="caption" color={t.inkMutedFixed}>
-                Saldado con {payments} pagos · Zerow
+                Saldado con {plural(payments, 'pago')} · Zerow
               </T>
             </LimeCard>
           </View>
@@ -358,10 +368,10 @@ function Fade() {
 function ZeroCard({ total, onSummary }: { total: number; onSummary: () => void }) {
   return (
     <LimeCard style={{ padding: 20, gap: 8 }}>
-      <T v="titleL" color={light.inkFixed} accessibilityRole="header">
+      <T v="titleL" color={aurora.inkFixed} accessibilityRole="header">
         A cero
       </T>
-      <T v="label" color={light.inkMutedFixed}>
+      <T v="label" color={aurora.inkMutedFixed}>
         Lisboa 2026 quedó saldado:{'\n'}
         {eurText(total)} entre 4.
       </T>
@@ -451,7 +461,7 @@ function Check({ color, heavy }: { color: string; heavy?: boolean }) {
 
 const styles = StyleSheet.create({
   lime: { borderRadius: 28, padding: 16, gap: 12 },
-  glowLime: { borderRadius: 28, backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  glowLime: { borderRadius: 28, backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { borderRadius: 28, backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   line: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 58 },
   quiet: { minHeight: 44, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center' },

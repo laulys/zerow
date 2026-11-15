@@ -17,19 +17,20 @@ import { Orb } from '../../components/Orb';
 import { Money, RollingAmount, RollingMoney } from '../../components/Money';
 import { EASE, recede, rise } from '../../components/motion';
 import { undoWindow, useScreenReader } from '../../components/announce';
+import { Bone, Skeleton } from '../../components/Skeleton';
 import { useStatusVeil } from '../../components/StatusVeil';
 import { Button, Card, Hairline, IconButton, T, Tap, type as typeScale } from '../../components/ui';
 import { UndoNotice } from '../../components/Notice';
 import {
-  PISO_SHARE,
   balancesFor,
   eurText,
   invite,
+  nameList,
   people,
   pisoGroup,
-  settleUp,
+  plural,
   settledBalances,
-  transferKey,
+  settleUp,
   usePisoBalance,
   useTrip,
   type Currency,
@@ -37,7 +38,8 @@ import {
   type Group,
   type PersonId,
 } from '../../data/trip';
-import { light, motion } from '../../theme/tokens';
+import { useAppState } from '../../data/states';
+import { aurora, motion } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 const order: PersonId[] = ['tu', 'luis', 'ana', 'marta'];
@@ -156,43 +158,109 @@ function Nav({ name, children }: { name: string; children?: React.ReactNode }) {
 }
 
 /** Título L 16 pt under the navigation, then the status line in ink-soft. */
-function Heading({ title, meta }: { title: string; meta: string }) {
+function Heading({ title, meta, offline }: { title: string; meta: string; offline?: boolean }) {
   const { t } = useTheme();
   return (
     <>
       <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
         {title}
       </T>
-      <T v="label" color={t.inkSoft} style={{ marginTop: 4 }}>
-        {meta}
-      </T>
+      {offline ? (
+        // 6.7: what you add is kept and sent when the connection comes back.
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }} accessible accessibilityLabel="Sin conexión. Lo nuevo se enviará al volver.">
+          <Icon name="wifi-off" size={16} color={t.inkSoft} />
+          <T v="label" color={t.inkSoft} style={{ flexShrink: 1 }}>
+            Sin conexión · lo nuevo se enviará al volver
+          </T>
+        </View>
+      ) : (
+        <T v="label" color={t.inkSoft} style={{ marginTop: 4 }}>
+          {meta}
+        </T>
+      )}
     </>
   );
 }
 
-const metaLine = (g: Group) => [g.dates, `${g.members.length} personas`, g.currency === 'EUR' ? 'en euros' : 'en dólares'].filter(Boolean).join(' · ');
+/** 6.2 Lisboa · cargando: the name is known; the balances and the expenses show as outlines. */
+function TripSkeleton() {
+  const { t } = useTheme();
+  const insets = useSafeAreaInsets();
+  const row = (wide: number) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, height: 62 }}>
+      <Bone w={36} h={36} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <Bone w={wide} />
+        <Bone w={50} h={10} />
+      </View>
+      <Bone w={80} h={14} />
+    </View>
+  );
+  return (
+    <View style={{ flex: 1, backgroundColor: t.page }}>
+      <Light preset="joined" />
+      <View style={{ paddingTop: insets.top, paddingHorizontal: 20 }}>
+        <View style={styles.nav}>
+          <Back />
+          <View style={{ flex: 1 }} />
+          <Bone w={44} h={44} />
+          <Bone w={150} h={44} />
+        </View>
+        <T v="titleL" color={t.ink} style={{ marginTop: 16 }} accessibilityRole="header">
+          Lisboa 2026
+        </T>
+        <Skeleton label="Cargando Lisboa 2026">
+          <Bone w={210} style={{ marginTop: 10 }} />
+          <Card style={{ marginTop: 20, paddingBottom: 4 }}>
+            <Bone w={80} />
+            <Bone w={180} h={48} r={14} style={{ marginTop: 10 }} />
+            <Bone w={200} h={10} style={{ marginTop: 12, marginBottom: 12 }} />
+            {[0, 1, 2, 3].map((i) => (
+              <View key={i}>
+                <Hairline />
+                {row(70)}
+              </View>
+            ))}
+          </Card>
+          <T v="section" color={t.ink} style={{ marginTop: 24, marginBottom: 12 }}>
+            Gastos
+          </T>
+          <Card style={{ paddingVertical: 4 }}>
+            {row(120)}
+            <Hairline />
+            {row(120)}
+          </Card>
+        </Skeleton>
+      </View>
+      <CaptureBar bottom={insets.bottom} />
+    </View>
+  );
+}
+
+const metaLine = (g: Group) => [g.dates, plural(g.members.length, 'persona'), g.currency === 'EUR' ? 'en euros' : 'en dólares'].filter(Boolean).join(' · ');
 
 // Piso Calle Mayor (3.8): the sample flat, with its two bills and your share to Ana.
 function PisoGroup() {
   const { t } = useTheme();
-  const { pisoPaid } = useTrip();
+  const { pisoPaidAmount } = useTrip();
   const mine = usePisoBalance();
+  const owes = mine < -0.005;
   return (
     <EmptyGroup
       group={pisoGroup}
       mine={mine}
-      note={pisoPaid ? undefined : 'Tu parte de la luz y el agua, a Ana'}
+      note={owes ? 'Tu parte de la luz y el agua, a Ana' : undefined}
       action={
-        pisoPaid ? (
+        owes ? (
+          <Button label={`Pagar a Ana · ${eurText(-mine)}`} height={48} onPress={() => router.push('/pagar')} />
+        ) : pisoPaidAmount > 0 ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Glyph name="check" size={16} color={t.lime} weight={2} />
             <T v="caption" color={t.inkMuted}>
-              Pagaste {eurText(PISO_SHARE)} a Ana
+              Pagaste {eurText(pisoPaidAmount)} a Ana
             </T>
           </View>
-        ) : (
-          <Button label={`Pagar a Ana · ${eurText(PISO_SHARE)}`} height={48} onPress={() => router.push('/pagar')} />
-        )
+        ) : undefined
       }
     />
   );
@@ -278,7 +346,7 @@ function ListeningEmpty({ group }: { group: Group }) {
             </View>
           ) : null}
           <View style={{ height: 26 }} />
-          <Orb size={96} state="listening" label="Zerow te escucha" />
+          <Orb size={96} state="listening" label="Zerow" />
           <View style={{ height: 2 }} />
           <Animated.View entering={at(60)} style={{ alignSelf: 'stretch', gap: 12 }}>
             <T v="titleM" color={t.ink} style={{ textAlign: 'center' }} accessibilityRole="header">
@@ -315,6 +383,7 @@ function Trip() {
   const { expenses, draft, confirmDraft, discardDraft, undoLast, paid } = useTrip();
   const veil = useStatusVeil();
   const screenReader = useScreenReader();
+  const appState = useAppState();
   // 3.2 / 3.3: a notice with «Deshacer» after either answer. «No es así» only hides
   // the draft; it is dropped when the notice goes, so «Deshacer» can bring it back.
   const [notice, setNotice] = useState<{ title: string; kind: 'sumado' | 'descartado' } | null>(null);
@@ -323,7 +392,7 @@ function Trip() {
   const now = settledBalances(expenses, paid);
   const next = shown ? balancesFor([shown, ...expenses]) : null;
   const total = expenses.reduce((s, e) => s + e.amountEur, 0);
-  const pendingPayments = settleUp(balancesFor(expenses)).filter((x) => !paid.has(transferKey(x))).length;
+  const pendingPayments = settleUp(now).length;
 
   const pending = useRef(false);
   useEffect(() => {
@@ -360,6 +429,8 @@ function Trip() {
   const bar = barBottom(insets.bottom);
   const saldar = pendingPayments ? `Saldar · ${pendingPayments} pago${pendingPayments === 1 ? '' : 's'}` : 'A cero';
 
+  if (appState === 'cargando' && !embedded) return <TripSkeleton />;
+
   return (
     // A group is opened many times a day: the page slides in as iOS pushes it, and nothing
     // inside it stages an entrance on top. What changes afterwards moves: a new expense
@@ -387,7 +458,7 @@ function Trip() {
               <Nav name="Lisboa 2026">
                 <Button label={saldar} kind="control" height={44} leading={<Glyph name="arrowRightLeft" size={20} color={t.lime} weight={1.75} />} onPress={() => router.push('/saldar')} />
               </Nav>
-              <Heading title="Lisboa 2026" meta="12–18 nov · 4 personas · en euros" />
+              <Heading title="Lisboa 2026" meta="12–18 nov · 4 personas · en euros" offline={appState === 'sin-conexion'} />
             </>
           )}
 
@@ -454,7 +525,7 @@ function Trip() {
                       Gastos
                     </T>
                     <T v="caption" color={t.inkMuted} style={{ marginBottom: 6 }}>
-                      {eurText(total)} en {expenses.length} gastos
+                      {eurText(total)} en {plural(expenses.length, 'gasto')}
                     </T>
                     {expenses.map((e) => (
                       <Animated.View key={e.id} entering={rise(0, 8, reduce)}>
@@ -538,7 +609,7 @@ function Expenses({ list, group, currency = 'EUR', flush }: { list: Expense[]; g
 /** The AI draft on the brand gradient (3.1), also used by Saldar (4.1) so a pending expense looks the same everywhere. */
 export function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onConfirm: () => void; onDiscard: () => void }) {
   const { t } = useTheme();
-  const ink = light.inkFixed;
+  const ink = t.inkFixed;
   const soft = t.inkMutedFixed;
   const each = draft.amountEur / draft.splitWith.length;
   const who = draft.payer === 'tu' ? 'Pagaste tú' : `Pagó ${people[draft.payer].name}`;
@@ -576,7 +647,7 @@ export function DraftCard({ draft, onConfirm, onDiscard }: { draft: Expense; onC
 function splitLine(e: Expense) {
   const who = e.payer === 'tu' ? 'Pagaste tú' : `Pagó ${people[e.payer].name}`;
   if (e.splitWith.length > 2) return `${who}, entre ${e.splitWith.length}`;
-  const names = e.splitWith.map((p) => people[p].name).join(' y ');
+  const names = nameList(e.splitWith);
   return `${who}, entre ${names}`;
 }
 
@@ -645,7 +716,7 @@ function CaptureBar({ bottom, group = 'lisboa' }: { bottom: number; group?: stri
   );
 }
 
-const lime = '#CBF26B';
+const lime = aurora.lime;
 
 const styles = StyleSheet.create({
   sideBySide: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
@@ -655,7 +726,7 @@ const styles = StyleSheet.create({
   example: { minHeight: 44, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 6, justifyContent: 'center' },
   preview: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 28, paddingBottom: 10 },
   balRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56, paddingVertical: 6 },
-  draftGlow: { borderRadius: 28, backgroundColor: lime, shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  draftGlow: { borderRadius: 28, backgroundColor: lime, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   draftShade: { borderRadius: 28, backgroundColor: lime, shadowColor: '#000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   draft: { borderRadius: 28, padding: 16, gap: 12 },
   draftTitle: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, minHeight: 36 },
@@ -664,6 +735,6 @@ const styles = StyleSheet.create({
   toast: { position: 'absolute', left: 20, right: 20 },
   captureWrap: { position: 'absolute', left: 20, right: 20, height: BAR, borderRadius: 30 },
   capture: { flex: 1, borderRadius: 30, flexDirection: 'row', alignItems: 'center', paddingLeft: 20, paddingRight: 6, gap: 12 },
-  micGlow: { width: 48, height: 48, borderRadius: 24, backgroundColor: lime, shadowColor: '#B6F03A', shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 5 } },
+  micGlow: { width: 48, height: 48, borderRadius: 24, backgroundColor: lime, shadowColor: aurora.glow, shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 5 } },
   mic: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
 });

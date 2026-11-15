@@ -16,8 +16,8 @@ import { Orb } from '../components/Orb';
 import { announce } from '../components/announce';
 import { Button, Card, Chip, IconButton, T, Tap, type } from '../components/ui';
 import { interpret, missing, type Partial } from '../data/interpret';
-import { balancesFor, eurText, people, useTrip, type Expense, type PersonId } from '../data/trip';
-import { motion } from '../theme/tokens';
+import { balancesFor, eurText, nameList, people, plural, useTrip, type Expense, type PersonId } from '../data/trip';
+import { aurora, motion } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 type Msg = { id: number; from: 'me' | 'zerow'; text: string; unsure?: boolean };
@@ -42,7 +42,7 @@ function understand(text: string, prev: Heard, group: string): Heard {
   const lower = text.toLowerCase();
   const out: Heard = { ...interpret(text, prev), payer: prev.payer };
   if (!/pagu[eé]/.test(lower)) {
-    const lead = lower.replace(/pag[oó]\s+\S+\s*/, '').match(/^\s*(?:el|la|los|las|un|una)?\s*([a-záéíóúñü ]+?)\s+\d/);
+    const lead = lower.replace(/pag[oó]\s+\S+\s*/, '').match(/^\s*(?:(?:el|la|los|las|un|una|unos|unas)\s+)?([a-záéíóúñü ]+?)\s+\d/);
     if (lead) out.title = cap(lead[1].trim());
   }
   const who = lower.match(/pag[oó]\s+(ana|luis|marta)/);
@@ -62,7 +62,7 @@ function NewExpense() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const { expenses, addExpense, removeExpense, groups, groupExpenses, addToGroup } = useTrip();
-  const params = useLocalSearchParams<{ grupo?: string; ejemplo?: string }>();
+  const params = useLocalSearchParams<{ grupo?: string; ejemplo?: string; editar?: string }>();
   const options = [{ id: 'lisboa', name: 'Lisboa 2026', people: 4 }, { id: 'piso', name: 'Piso Calle Mayor', people: 3 }, ...groups.map((g) => ({ id: g.id, name: g.name, people: g.members.length }))];
   const [groupId, setGroupId] = useState(options.some((o) => o.id === params.grupo) ? params.grupo! : 'lisboa');
   const [picking, setPicking] = useState(false);
@@ -75,7 +75,10 @@ function NewExpense() {
       : groupId === 'piso'
         ? (['tu', 'ana', 'luis'] as Expense['splitWith'])
         : (groups.find((g) => g.id === groupId)?.members ?? ['tu']);
-  const ledger = groupId === 'lisboa' ? expenses : (groupExpenses[groupId] ?? []);
+  const all = groupId === 'lisboa' ? expenses : (groupExpenses[groupId] ?? []);
+  // Editing (from «Editar» on an expense): you say what changes and the new version takes the old one's place.
+  const [editing] = useState(() => all.find((e) => e.id === params.editar) ?? null);
+  const ledger = editing ? all.filter((e) => e.id !== editing.id) : all;
   const [messages, setMessages] = useState<Msg[]>([]);
   const [text, setText] = useState('');
   const [partial, setPartial] = useState<Heard>({});
@@ -101,7 +104,7 @@ function NewExpense() {
 
   // 3.4 Dictando: the screen opens listening (the mic in the tab bar is «Dictar un gasto»),
   // except when it comes with an example to send.
-  const [listening, setListening] = useState(!params.ejemplo);
+  const [listening, setListening] = useState(!params.ejemplo && !params.editar);
   const [heard, setHeard] = useState('');
   // Words arrive at the pace of speech: a short pause before the first one, then
   // longer words take a little longer, like live dictation.
@@ -160,7 +163,7 @@ function NewExpense() {
     setTimeout(() => scroll.current?.scrollToEnd({ animated: true }), 50);
     setTimeout(() => {
       const e: Expense = {
-        id: `n${Date.now()}`,
+        id: editing ? editing.id : `n${Date.now()}`,
         title: next.title!,
         payer: next.payer && members.includes(next.payer) ? next.payer : 'tu',
         amountEur: next.amountEur!,
@@ -168,7 +171,7 @@ function NewExpense() {
         splitWith: (next.splitWith ?? members).filter((p) => members.includes(p)),
       };
       if (!e.splitWith.length) e.splitWith = members;
-      const before = balancesFor(ledger).tu;
+      const before = balancesFor(all).tu;
       const after = balancesFor([e, ...ledger]).tu;
       setPreparing(false);
       setDraft(e);
@@ -176,6 +179,15 @@ function NewExpense() {
       standing.current = say('zerow', `Así quedas: ${willBe(after)}${same ? ` en vez de ${eurText(Math.abs(before))}` : ''}.`);
     }, 900);
   };
+
+  // Editing opens on the conversation, with Zerow asking what changes.
+  const asked = useRef(false);
+  useEffect(() => {
+    if (!editing || asked.current) return;
+    asked.current = true;
+    say('zerow', `Dime qué cambia de «${editing.title}»: el importe, quién pagó o entre quiénes.`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Opened from a tapped example (6.5): send it as if the user had said it.
   const sentExample = useRef(false);
@@ -195,17 +207,20 @@ function NewExpense() {
   const confirm = () => {
     if (!draft) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (editing) removeExpense(groupId, editing.id);
     if (groupId === 'lisboa') addExpense(draft);
     else addToGroup(groupId, draft);
     setSaved(true);
     setPartial({});
-    rewrite(standing.current, `Sumado. ${nowIs(balancesFor([draft, ...ledger]).tu)}.`);
+    rewrite(standing.current, `${editing ? 'Cambiado' : 'Sumado'}. ${nowIs(balancesFor([draft, ...ledger]).tu)}.`);
   };
 
   // «Deshacer» on the notice (3.6): the expense goes back to being a draft to review.
   const undo = () => {
     if (!draft) return;
     removeExpense(groupId, draft.id);
+    // Undoing an edit puts the expense back as it was.
+    if (editing) (groupId === 'lisboa' ? addExpense : (e: Expense) => addToGroup(groupId, e))(editing);
     setSaved(false);
     const before = balancesFor(ledger.filter((e) => e.id !== draft.id)).tu;
     const after = balancesFor([draft, ...ledger.filter((e) => e.id !== draft.id)]).tu;
@@ -221,7 +236,7 @@ function NewExpense() {
 
   const split = (e: Expense) => {
     const who = e.payer === 'tu' ? 'Pagaste tú' : `Pagó ${people[e.payer].name}`;
-    const among = e.splitWith.length === members.length ? String(members.length) : e.splitWith.map((p) => (p === 'tu' ? 'tú' : people[p].name)).join(' y ');
+    const among = e.splitWith.length === members.length ? String(members.length) : nameList(e.splitWith);
     const usd = e.originalUsd ? ` · ${e.originalUsd.toFixed(2).replace('.', ',')} US$` : '';
     return `${who} · ${eurText(e.amountEur / e.splitWith.length)} cada uno, entre ${among}${usd}`;
   };
@@ -248,7 +263,7 @@ function NewExpense() {
         <View style={{ flex: 1, alignItems: 'center', gap: 12 }}>
           <View style={styles.titleRow}>
             <T v="section" color={t.ink} accessibilityRole="header">
-              Nuevo gasto
+              {editing ? 'Editar gasto' : 'Nuevo gasto'}
             </T>
           </View>
           <Tap
@@ -418,7 +433,7 @@ function NewExpense() {
               <Animated.View entering={FadeInDown.duration(motion.standard)} exiting={FadeOut.duration(120)} style={styles.notice}>
                 <Frost fill={t.glass} radius={24} intensity={20} />
                 <T v="label" color={t.ink} style={{ flex: 1, fontWeight: '500' }}>
-                  Sumado en {groupName}
+                  {editing ? 'Cambiado en' : 'Sumado en'} {groupName}
                 </T>
                 <Tap onPress={undo} accessibilityRole="button" accessibilityLabel={`Deshacer: quitar ${draft.title}`} style={styles.undo}>
                   <Icon name="undo" size={16} color={t.lime} />
@@ -498,7 +513,7 @@ function NewExpense() {
                   }}
                   accessibilityRole="button"
                   accessibilityState={{ selected: o.id === groupId }}
-                  accessibilityLabel={`${o.name}, ${o.people} personas`}
+                  accessibilityLabel={`${o.name}, ${plural(o.people, 'persona')}`}
                   style={styles.menuRow}
                 >
                   <View style={{ flex: 1 }}>
@@ -506,7 +521,7 @@ function NewExpense() {
                       {o.name}
                     </T>
                     <T v="caption" color={t.inkMuted}>
-                      {o.people} personas
+                      {plural(o.people, 'persona')}
                     </T>
                   </View>
                   {o.id === groupId ? <Icon name="check" size={18} color={t.lime} /> : null}
@@ -636,7 +651,7 @@ const styles = StyleSheet.create({
   status: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   draft: { borderRadius: 28, padding: 16, gap: 12 },
-  glowLime: { borderRadius: 28, backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  glowLime: { borderRadius: 28, backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { borderRadius: 28, backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 126 },
   notice: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 48, borderRadius: 24, paddingLeft: 16, paddingRight: 4, marginBottom: 16 },
@@ -646,7 +661,7 @@ const styles = StyleSheet.create({
   barTyping: { height: 56, borderRadius: 28, gap: 8 },
   input: { flex: 1, fontSize: 17, height: 48 },
   round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  micGlow: { borderRadius: 24, shadowColor: '#B6F03A', shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 5 } },
+  micGlow: { borderRadius: 24, shadowColor: aurora.glow, shadowOpacity: 0.22, shadowRadius: 7, shadowOffset: { width: 0, height: 5 } },
   mic: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
 });
 

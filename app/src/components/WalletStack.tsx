@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { PanResponder, Pressable, StyleSheet, useWindowDimensions, View, type GestureResponderHandlers } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated';
-import { gradientStops } from '../theme/tokens';
+import { aurora, gradientStops } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 import { Frost } from './Frost';
 
@@ -128,7 +128,7 @@ export function WalletStack({
       })}
       {behind ? (
         // The strip that peeks above the front card: tap it to bring that group forward.
-        <Pressable onPress={() => advance(1)} accessibilityRole="button" accessibilityLabel={`Ver ${behind.title}`} style={[styles.peek, { height: geo.peek }]} />
+        <Pressable onPress={() => advance(1)} accessibilityRole="button" accessibilityLabel={`Ver ${behind.title.replace(/\. Toca .*$/, '')}`} style={[styles.peek, { height: geo.peek }]} />
       ) : null}
     </View>
   );
@@ -217,7 +217,7 @@ function StackCard({
 
 const styles = StyleSheet.create({
   slot: { position: 'absolute' },
-  glowLime: { backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  glowLime: { backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
   clip: { flex: 1, overflow: 'hidden' },
   // Laid out at the full card height and revealed by the clip as the card grows.

@@ -24,7 +24,8 @@ export default function Invite() {
     ...groups.map((g) => ({ name: g.name, link: `zerow.app/t/${slug(g.name)}`, members: g.members })),
   ];
   const [pick, setPick] = useState(0);
-  const chosen = elegir ? choices[pick] : null;
+  // From inside a group it is that group, with the same link and people as from Inicio.
+  const chosen = elegir ? choices[pick] : (choices.find((c) => c.name === nombre) ?? null);
   const group = chosen?.name ?? nombre ?? 'Lisboa 2026';
   const link = chosen?.link ?? (nombre ? `zerow.app/t/${slug(nombre)}` : 'zerow.app/t/lisboa-7k2q');
   const inside = chosen?.members ?? (nombre ? null : (['tu', 'ana', 'luis', 'marta'] as PersonId[]));
@@ -48,7 +49,7 @@ export default function Invite() {
   return (
     <SheetBody>
       <T v="titleM" color={t.ink} accessibilityRole="header">
-        Invita a {group}
+        Invita gente a {group}
       </T>
       {elegir ? (
         <View style={styles.chips} accessibilityRole="radiogroup" accessibilityLabel="Grupo">

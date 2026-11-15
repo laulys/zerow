@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 import { glassSheets } from './Glass';
 import { Icon, type IconName } from './Icon';
@@ -76,6 +77,6 @@ export function SheetList({ rows }: { rows: SheetRowItem[] }) {
 const styles = StyleSheet.create({
   body: { paddingHorizontal: 20, paddingTop: 26, gap: 16 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 64, paddingVertical: 12 },
-  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  tile: { width: 40, height: 40, borderRadius: 12, backgroundColor: aurora.disc, alignItems: 'center', justifyContent: 'center' },
   emoji: { fontSize: 22, lineHeight: 28 },
 });

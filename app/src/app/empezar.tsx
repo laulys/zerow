@@ -1,4 +1,5 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { signInThenNewGroup } from '../data/session';
 import { FocusStatusBar } from '../components/FocusStatusBar';
 import { useEffect, useState, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -28,7 +29,7 @@ import { Orb } from '../components/Orb';
 import { useScreen } from '../components/Screen';
 import { Button, Card, Hairline, T, Tap } from '../components/ui';
 import { Fact } from '../components/Fact';
-import { light } from '../theme/tokens';
+import { aurora } from '../theme/tokens';
 import { useTheme } from '../theme/useTheme';
 
 const STEPS = 3;
@@ -39,9 +40,12 @@ export default function Onboarding() {
   const { t } = useTheme();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState(0);
+  // From Perfil («Cómo funciona Zerow») it is a refresher: it closes and you are back where you were.
+  const repaso = !!useLocalSearchParams<{ repaso?: string }>().repaso;
   const done = () => {
-    router.replace('/grupos');
-    router.push('/grupo-nuevo');
+    if (repaso) return router.back();
+    // You have seen what Zerow does; now the account, and then your first group.
+    signInThenNewGroup();
   };
   const next = () => (step < STEPS - 1 ? setStep(step + 1) : done());
 
@@ -60,7 +64,7 @@ export default function Onboarding() {
             Paso {step + 1} de {STEPS}
           </T>
         </View>
-        <Tap onPress={() => router.replace('/grupos')} accessibilityRole="button" accessibilityLabel="Saltar la introducción" style={styles.skip}>
+        <Tap onPress={() => (repaso ? router.back() : router.push('/entrar'))} accessibilityRole="button" accessibilityLabel={repaso ? 'Cerrar' : 'Saltar la introducción'} style={styles.skip}>
           <T v="labelStrong" color={t.ink}>
             Saltar
           </T>
@@ -215,7 +219,7 @@ function TellIt({ onNext }: { onNext: () => void }) {
   const talk = (
     <>
       <Bubble mine at={CHAT.you1}>
-        Pagué el taxi para Ana y para mí
+        Pagué el taxi al aeropuerto para Ana y para mí
       </Bubble>
       <Bubble at={CHAT.zerow1} typing>
         ¿Cuánto fue? Prefiero preguntarte a adivinarlo.
@@ -229,19 +233,19 @@ function TellIt({ onNext }: { onNext: () => void }) {
       <Animated.View entering={reduce ? undefined : arrive(CHAT.card)}>
         <LimeCard radius={28} padding={16} seed={9}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Sparkle size={14} color={light.inkFixed} />
-            <T v="caption" color={light.inkMutedFixed} style={{ fontWeight: '600' }}>
+            <Sparkle size={14} color={t.inkFixed} />
+            <T v="caption" color={t.inkMutedFixed} style={{ fontWeight: '600' }}>
               Por revisar · aún no cuenta
             </T>
           </View>
           {/* Figma aligns the title and the amount on their baseline; both line boxes end together. */}
           <View style={[styles.rowBetween, { alignItems: 'flex-end', marginTop: 12 }]}>
-            <T v="titleM" color={light.inkFixed}>
+            <T v="titleM" color={t.inkFixed}>
               Taxi al aeropuerto
             </T>
-            <Money value={45} size={36} color={light.inkFixed} currency="USD" />
+            <Money value={45} size={36} color={t.inkFixed} currency="USD" />
           </View>
-          <T v="label" color={light.inkMutedFixed} style={{ marginTop: 12, fontWeight: '500' }}>
+          <T v="label" color={t.inkMutedFixed} style={{ marginTop: 12, fontWeight: '500' }}>
             Pagaste tú · 20,18 € cada uno, entre 2
           </T>
         </LimeCard>
@@ -283,7 +287,7 @@ function OneQuestion({ onNext }: { onNext: () => void }) {
           {'¿Pagaste el taxi\nal aeropuerto, 45 US$,\npara Ana y para ti?'}
         </T>
         <T v="body" color={t.inkMuted} style={{ marginTop: 12 }}>
-          Nada suma hasta que respondes.
+          Nada cuenta hasta que respondes.
         </T>
       </Animated.View>
     </>
@@ -391,7 +395,7 @@ function Closing({ onNext }: { onNext: () => void }) {
         <T v="label" color={paidUp ? t.lime : t.ink} style={{ marginTop: 8, fontWeight: '500' }}>
           {paidUp ? 'Todos han pagado' : '3 pagos pendientes'}
         </T>
-        <View style={{ flexDirection: 'row', gap: 8, marginTop: 30 }} importantForAccessibility="no-hide-descendants">
+        <View style={{ flexDirection: 'row', gap: 8, marginTop: 30 }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           {(['tu', 'ana', 'luis', 'marta'] as const).map((id) => (
             <Avatar key={id} id={id} size={32} bg={t.disc} inset />
           ))}
@@ -405,10 +409,10 @@ function Closing({ onNext }: { onNext: () => void }) {
       <LimeCard radius={32} padding={20} seed={5}>
         <View style={[styles.rowBetween, { alignItems: 'flex-start' }]}>
           <View>
-            <T v="titleM" color={light.inkFixed}>
+            <T v="titleM" color={t.inkFixed}>
               Lisboa 2026
             </T>
-            <T v="caption" color={light.inkMutedFixed} style={{ fontWeight: '500' }}>
+            <T v="caption" color={t.inkMutedFixed} style={{ fontWeight: '500' }}>
               12–18 nov · 4 personas
             </T>
           </View>
@@ -420,16 +424,16 @@ function Closing({ onNext }: { onNext: () => void }) {
           </Animated.View>
         </View>
         <View style={{ marginTop: 12 }}>
-          <Money value={485.44} size={56} color={light.inkFixed} />
+          <Money value={447.44} size={56} color={t.inkFixed} />
         </View>
-        <T v="caption" color={light.inkMutedFixed} style={{ marginTop: 12, fontWeight: '500' }}>
-          en 4 gastos · saldado con 3 pagos
+        <T v="caption" color={t.inkMutedFixed} style={{ marginTop: 12, fontWeight: '500' }}>
+          en 3 gastos · saldado con 3 pagos
         </T>
         <View style={[styles.rowBetween, { marginTop: 12, paddingTop: 8 }]}>
           <AvatarStack ids={['tu', 'ana', 'luis', 'marta']} size={32} gap={-10} on="lime" />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Icon name="share" size={20} weight={2} color={light.inkFixed} />
-            <T v="labelStrong" color={light.inkFixed}>
+            <Icon name="share" size={20} weight={2} color={t.inkFixed} />
+            <T v="labelStrong" color={t.inkFixed}>
               Compartir
             </T>
           </View>
@@ -441,10 +445,10 @@ function Closing({ onNext }: { onNext: () => void }) {
   const words = (
     <>
       <T v="titleL" color={t.ink} accessibilityRole="header">
-        El viaje se cierra con un resumen
+        El viaje termina a cero
       </T>
       <T v="body" color={t.inkMuted} style={{ marginTop: 8, marginBottom: 24 }}>
-        Cuando todos han pagado, el viaje queda a cero y se convierte en un resumen para compartir.
+        Cuando todos han pagado, el viaje queda a cero y puedes compartir su resumen.
       </T>
     </>
   );
@@ -505,6 +509,6 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   badge: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 15, paddingHorizontal: 12, height: 30 },
   fade: { position: 'absolute', left: -20, right: -20, height: 170 },
-  glowLime: { backgroundColor: '#B6F03A', shadowColor: '#B6F03A', shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
+  glowLime: { backgroundColor: aurora.glow, shadowColor: aurora.glow, shadowOpacity: 0.3, shadowRadius: 28, shadowOffset: { width: 0, height: 22 } },
   glowDark: { backgroundColor: '#1E1E22', shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 9, shadowOffset: { width: 0, height: 8 } },
 });

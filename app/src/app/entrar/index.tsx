@@ -13,7 +13,6 @@ import { rise } from '../../components/motion';
 import { useAnnounce } from '../../components/announce';
 import { Button, IconButton, Lockup, T, Tap, inputStyle } from '../../components/ui';
 import { enterApp } from '../../data/session';
-import { light } from '../../theme/tokens';
 import { useTheme } from '../../theme/useTheme';
 
 const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
@@ -42,16 +41,16 @@ export default function SignIn() {
 
   const greeting = (
     <>
-      <IconButton name="chevron-left" label="Volver" bg="rgba(18,18,18,0.08)" color={light.inkFixed} onPress={() => router.back()} />
+      <IconButton name="chevron-left" label="Volver" bg="rgba(18,18,18,0.08)" color={t.inkFixed} onPress={() => router.back()} />
       <Animated.View entering={at(120)} style={{ marginTop: 20 }}>
-        <Lockup color={light.inkFixed} size={28} />
+        <Lockup color={t.inkFixed} size={28} />
       </Animated.View>
       <Animated.View entering={at(200)}>
-        <T v="display" color={light.inkFixed} style={styles.hello}>
-          Hola de nuevo.
+        <T v="display" color={t.inkFixed} style={styles.hello} accessibilityRole="header">
+          Entra en Zerow
         </T>
-        <T v="body" color={light.inkMutedFixed}>
-          Entra para ver tus grupos.
+        <T v="body" color={t.inkMutedFixed}>
+          Si es tu primera vez, creamos tu cuenta.
         </T>
       </Animated.View>
     </>
@@ -62,11 +61,11 @@ export default function SignIn() {
         <SmallLockup color={t.ink} />
       </Animated.View>
       <Animated.View entering={at(200)}>
-        <T v="display" color={t.ink} style={{ marginTop: 28 }}>
-          Hola de nuevo.
+        <T v="display" color={t.ink} style={{ marginTop: 28 }} accessibilityRole="header">
+          Entra en Zerow
         </T>
         <T v="body" color={t.inkSoft} style={{ marginTop: 8 }}>
-          Entra para ver tus grupos.
+          Si es tu primera vez, creamos tu cuenta.
         </T>
       </Animated.View>
     </>
@@ -75,10 +74,8 @@ export default function SignIn() {
   const form = (
     <>
       <Animated.View entering={at(300)}>
-        <T v="titleM" color={t.ink} accessibilityRole="header">
-          Iniciar sesión
-        </T>
-        <T v="labelStrong" color={t.ink} style={{ marginTop: 16, marginBottom: 8 }}>
+        {/* One screen for everyone: with a code by email, signing in and signing up are the same step, so there is no second heading and no «create an account» link. */}
+        <T v="labelStrong" color={t.ink} style={{ marginBottom: 8 }}>
           Correo
         </T>
         <TextInput
@@ -124,17 +121,6 @@ export default function SignIn() {
         {/* Figma: #25252A with a #34343A edge (the v2 graphite line, darker than aurora's). */}
         <Tap onPress={enterApp} accessibilityRole="button" accessibilityLabel="Continuar con Google" style={[styles.round, { backgroundColor: t.surface, borderWidth: 1, borderColor: '#34343A' }]}>
           <GoogleMark size={26} />
-        </Tap>
-      </Animated.View>
-
-      <Animated.View entering={at(560)} style={styles.footer}>
-        <T v="label" color={t.inkMuted}>
-          ¿Aún no tienes cuenta?
-        </T>
-        <Tap onPress={() => router.replace('/grupos')} accessibilityRole="button" style={{ minHeight: 44, justifyContent: 'center' }}>
-          <T v="labelStrong" color={t.ink}>
-            Crear una
-          </T>
         </Tap>
       </Animated.View>
     </>
@@ -194,5 +180,4 @@ const styles = StyleSheet.create({
   rule: { flex: 1, height: 1 },
   social: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 16 },
   round: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  footer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 },
 });
