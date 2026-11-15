@@ -60,10 +60,14 @@ export default function NewGroup() {
 
   const basics = (
     <View style={{ gap: 16 }}>
-      <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
-      <T v="titleL" color={t.ink} accessibilityRole="header">
-        Nuevo grupo
-      </T>
+      {/* Like Nuevo gasto and Dividir: the screen's name is the title of the close button's row. */}
+      <View style={styles.navRow}>
+        <IconButton name="x" label="Cerrar" bg={t.glass} color={t.ink} onPress={() => router.back()} />
+        <T v="section" color={t.ink} style={styles.navTitle} accessibilityRole="header" maxFontSizeMultiplier={1.3} numberOfLines={1}>
+          Nuevo grupo
+        </T>
+        <View style={{ width: 44 }} />
+      </View>
 
       <Group label="Tipo">
         <View style={styles.wrap}>
@@ -179,6 +183,8 @@ function Group({ label, children }: { label: string; children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  navRow: { flexDirection: 'row', alignItems: 'center', minHeight: 44 },
+  navTitle: { flex: 1, textAlign: 'center', paddingHorizontal: 8 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 40, paddingHorizontal: 20 },
 });
