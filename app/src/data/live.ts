@@ -2,8 +2,8 @@ import { api, apiBase, onApiBase, Rejected, type RemoteExpense, type RemoteTrip 
 import { setAppState } from './states';
 
 /**
- * Keeps the Lisboa trip in step with the engine when the app is pointed at one
- * (see `data/api.ts`). Everything the app changes goes through one queue:
+ * Keeps the Lisboa trip (its expenses and the payments marked in Saldar) in
+ * step with the engine when the app is pointed at one (see `data/api.ts`). Everything the app changes goes through one queue:
  * the screen updates at once, the change is sent in order, and when the queue is
  * empty the trip is read again so the engine's figures win. If the engine can't
  * be reached the queue waits and retries, which is what «lo nuevo se enviará al
@@ -23,10 +23,11 @@ let running = false;
 let loaded = false;
 let retry: ReturnType<typeof setTimeout> | null = null;
 const queue: Op[] = [];
-/** Expenses added from the app, by their local id, once the engine has given them one. */
+/** Things added from the app (expenses, payments), by their local id, once the engine has given them one. */
 const created = new Map<string, number>();
-/** Engine ids that were deleted: a card kept on screen must not be confirmed by that id again. */
-const gone = new Set<number>();
+/** Engine ids that were deleted, as «kind:id»: a card kept on screen must not be confirmed by that id again. */
+const gone = new Set<string>();
+type Kind = 'expense' | 'payment';
 
 async function run() {
   if (running || !apiBase() || !onTrip) return;
@@ -112,13 +113,13 @@ export const live = {
     if (apiBase() && loaded) run();
   },
 
-  /** The engine's id for an expense, if it has one that still exists. */
-  idOf(e: { id: string; remoteId?: number }) {
+  /** The engine's id for an expense (or a payment), if it has one that still exists. */
+  idOf(e: { id: string; remoteId?: number }, kind: Kind = 'expense') {
     const id = e.remoteId ?? created.get(e.id);
-    return id != null && !gone.has(id) ? id : null;
+    return id != null && !gone.has(`${kind}:${id}`) ? id : null;
   },
   remember: (localId: string, remoteId: number) => created.set(localId, remoteId),
-  forget: (remoteId: number) => gone.add(remoteId),
+  forget: (remoteId: number, kind: Kind = 'expense') => gone.add(`${kind}:${remoteId}`),
 
   /** Says something to the agent. It answers and may propose expenses, which come back as drafts. */
   async ask(message: string): Promise<{ reply: string; drafts: RemoteExpense[] }> {

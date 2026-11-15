@@ -10,6 +10,9 @@ The mobile app talks to these endpoints. The flow for the AI part:
     POST /expenses/{id}/confirm     (the person taps ✓)
     DELETE /expenses/{id}           (or discards it)
     POST /expenses/{id}/unconfirm   (or undoes the ✓)
+
+Settling up: GET /trips/{id} lists the transfers still to make; each one marked
+as paid is POST /trips/{id}/payments, and DELETE /payments/{id} undoes it.
 """
 
 from __future__ import annotations
@@ -38,6 +41,12 @@ class ExpenseIn(BaseModel):
     currency: Literal["USD", "EUR"] = "EUR"
     paid_by: str = Field(examples=["Laura"])
     split_between: Optional[List[str]] = Field(default=None, description="Empty = everyone")
+
+
+class PaymentIn(BaseModel):
+    from_: str = Field(alias="from", examples=["Ana"])
+    to: str = Field(examples=["Laura"])
+    amount: float = Field(gt=0, examples=[26.73])
 
 
 class ChatIn(BaseModel):
@@ -92,12 +101,13 @@ def create_app(db_path: Optional[str] = None, llm_factory: Optional[Callable] = 
 
     @app.get("/trips/{trip_id}")
     def get_trip(trip_id: int):
-        """Everything a trip screen needs: members, expenses, drafts and who owes whom."""
+        """Everything a trip screen needs: members, expenses, drafts, payments made and who still owes whom."""
         with ledger.session(db_path) as conn:
             return {
                 **ledger.get_trip(conn, trip_id),
                 "expenses": ledger.list_expenses(conn, trip_id, "confirmed"),
                 "drafts": ledger.list_expenses(conn, trip_id, "draft"),
+                "payments": ledger.list_payments(conn, trip_id),
                 "balances": ledger.balances(conn, trip_id),
             }
 
@@ -128,6 +138,18 @@ def create_app(db_path: Optional[str] = None, llm_factory: Optional[Callable] = 
     def delete_expense(expense_id: int):
         with ledger.session(db_path) as conn:
             ledger.delete_expense(conn, expense_id)
+
+    @app.post("/trips/{trip_id}/payments", status_code=201)
+    def add_payment(trip_id: int, body: PaymentIn):
+        """«Marcar como pagado» in Saldar: one member paid another. It counts in the balances at once."""
+        with ledger.session(db_path) as conn:
+            return ledger.add_payment(conn, trip_id, body.from_, body.to, body.amount)
+
+    @app.delete("/payments/{payment_id}", status_code=204)
+    def delete_payment(payment_id: int):
+        """«Deshacer» on a payment."""
+        with ledger.session(db_path) as conn:
+            ledger.delete_payment(conn, payment_id)
 
     @app.post("/trips/{trip_id}/chat", response_model=ChatOut)
     def chat(trip_id: int, body: ChatIn):
