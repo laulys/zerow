@@ -13,38 +13,6 @@ This repository has both halves:
 |---|---|---|
 | ![Dictating an expense: Zerow asks how much it was, then proposes a card to confirm](docs/zerow-nuevo-gasto.gif) | ![Marking three payments as paid until the trip reads «A cero»](docs/zerow-saldar.gif) | ![Paying Ana and the receipt sliding out](docs/zerow-pago.gif) |
 
-### Full videos
-
-<details open>
-<summary><b>New expense</b>: dictate it, answer one question, add it (46 s)</summary>
-
-https://github.com/user-attachments/assets/693ba79b-19b9-459b-b1d7-fec426e80132
-
-</details>
-
-<details>
-<summary><b>Settling up</b>: tick off the payments until the trip is at zero (31 s)</summary>
-
-https://github.com/user-attachments/assets/dcdf165e-f711-44ee-9e1c-f54dbd9b6e21
-
-</details>
-
-<details>
-<summary><b>Paying</b>: pay your share and keep the receipt (24 s)</summary>
-
-https://github.com/user-attachments/assets/e1d1982c-a344-4e38-b96b-ba1cf4cecd4a
-
-</details>
-
-<details>
-<summary><b>First run</b>: the welcome, the three-step introduction and signing in (45 s)</summary>
-
-https://github.com/user-attachments/assets/867837ed-220e-478d-a07e-06228abc8a47
-
-</details>
-
-The same files are in [`docs/video`](docs/video).
-
 ## The idea
 
 - **The AI is the input method, not the decision-maker.** It turns a sentence into a draft card. Nothing counts until a person confirms it, and it never invents an amount: if you didn't say how much, it asks.
