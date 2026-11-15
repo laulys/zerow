@@ -13,3 +13,9 @@ venv/
 .vscode/
 .idea/
 .DS_Store
+
+# Local trip database
+*.db
+
+# Design process files (Oil UI)
+.oil-ui/

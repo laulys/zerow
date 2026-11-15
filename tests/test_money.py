@@ -2,8 +2,8 @@
 
 import pytest
 
-from bill_buddy import money
-from bill_buddy.money import MoneyError
+from zerow import money
+from zerow.money import MoneyError
 
 
 def test_tip():

@@ -1,6 +1,6 @@
 # Records docs/demo.gif with VHS (https://github.com/charmbracelet/vhs).
 # Run from the repo root, with Ollama running:  vhs docs/demo.tape
-# Tip: ask Bill Buddy one question first so the model is already loaded.
+# Tip: ask Zerow one question first so the model is already loaded.
 
 Output docs/demo.gif
 
@@ -19,7 +19,7 @@ Enter
 Sleep 2s
 Show
 
-Type "python -m bill_buddy"
+Type "python -m zerow"
 Sleep 500ms
 Enter
 Wait+Screen@30s /You:/
@@ -28,18 +28,18 @@ Sleep 1s
 Type "Somos 4 amigos, la cuenta fue de 230 euros y queremos dejar 10% de propina. ¿Cuánto paga cada uno?"
 Sleep 500ms
 Enter
-Wait+Screen@120s /Bill Buddy:[\s\S]*You:/
+Wait+Screen@120s /Zerow:[\s\S]*You:/
 Sleep 3s
 
 Ctrl+L
 Type "La cena costó 120 dólares, 15% de propina, dividida entre 3. ¿Cuánto es cada parte en pesos?"
 Sleep 500ms
 Enter
-Wait+Screen@120s /Bill Buddy:[\s\S]*You:/
+Wait+Screen@120s /Zerow:[\s\S]*You:/
 Sleep 3s
 
 Type "Pesos colombianos"
 Sleep 500ms
 Enter
-Wait+Screen@120s /Bill Buddy:[\s\S]*Bill Buddy:[\s\S]*You:/
+Wait+Screen@120s /Zerow:[\s\S]*Zerow:[\s\S]*You:/
 Sleep 6s
